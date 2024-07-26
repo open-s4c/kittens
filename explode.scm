@@ -38,12 +38,33 @@
     (print "cycle len: " len)
 
     (let ((tokens (tokenize-cat fn)))
-      ;(pretty-print tokens)
-      ;(newline)
-      ;(display "-------------------------------------------------")
-      ;(newline)
+      (pretty-print tokens)
+      (newline)
+      (display "-------------------------------------------------")
+      (newline)
       (let ((model (parse-cat tokens)))
-        (pretty-print model))))
+        (let ((stmts (caddr model)))
+
+          (define (iter stmts nstmts)
+            (if (null? stmts)
+                nstmts
+                (let ((stmt (car stmts))
+                      (rest (cdr stmts)))
+                  (cond ((eq? 'include (car stmt))
+                         (let* ((ifn (cadr stmt))
+                                (tks (tokenize-cat ifn))
+                                (imodel (parse-cat tks))
+                                (istmts (caddr imodel)))
+                           (iter rest (append istmts nstmts))))
+                        (else
+                         (iter rest (cons stmt nstmts)))))))
+
+          (reverse (iter stmts '())))
+
+        ;(pretty-print model)
+
+        ;;-------
+        )))
   0)
 
 (main (command-args))
