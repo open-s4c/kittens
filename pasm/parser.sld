@@ -1,0 +1,5 @@
+(define-library (pasm parser)
+  (export parser)
+  (import (scheme small)
+          (rebottled packrat))
+  (include "parser.scm"))
