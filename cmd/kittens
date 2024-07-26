@@ -1,0 +1,10 @@
+#!/bin/sh
+
+case "$1" in
+explode)
+    shift
+	exec ./explode "$@"
+;;
+*)
+	exit 0
+esac

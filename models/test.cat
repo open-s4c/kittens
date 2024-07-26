@@ -1,0 +1,6 @@
+TEST
+
+let a = [(b | c) & (d | k)] & e
+let e = ~([e1];[e2])
+
+acyclic a

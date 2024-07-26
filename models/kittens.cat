@@ -1,0 +1,27 @@
+KITTENS
+
+let rf = [W] ; rf ; [R]   | [RMW] ; rf ; [R] |
+	 [W] ; rf ; [RMW] | [RMW] ; rf ; [RMW]
+
+let rmw = [RMW]
+
+let RMW = CAS | XCHG
+
+let po-loc = po & loc
+
+let ctrl = ctrl-a;ctrl-b
+
+let CAS = CAS-S | CAS-F
+
+let fr = rf^-1;co
+
+let fre = fr & ext
+let coe = co & ext
+let rfe = rf & ext
+let poe = po & ext
+
+let fri = fr & int
+let coi = co & int
+let rfi = rf & int
+let poi = po & int
+

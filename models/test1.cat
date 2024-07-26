@@ -1,0 +1,21 @@
+TEST1
+
+let a = co
+let c = rf
+let rf = rf | co
+
+acyclic a;c
+
+
+(* test 2, union *)
+//let a = [R]
+//
+//let b = W
+//
+//empty a | [b]
+
+(* test 3, union *)
+
+//let Op = R | W
+//let a = [Op]
+//acyclic a
