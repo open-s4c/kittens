@@ -30,7 +30,7 @@
 
     (define (seq n)
       (let loop ((i 0) (lst '()))
-        (if (= i n) lst (loop (+ i 1) (cons (- n i) lst)))))
+        (if (= i n) lst (loop (+ i 1) (cons (- n i 1) lst)))))
 
     (define (widen-string str n)
       (let ((miss (- n (string-length str))))
