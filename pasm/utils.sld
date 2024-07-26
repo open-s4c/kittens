@@ -7,8 +7,12 @@
           (only (srfi 1) filter))
   (begin
     (define (select-func dump name)
-      (car (filter (lambda (func) (string=? (car func) name))
-                   dump)))
+      (let ((res (filter (lambda (func) (string=? (car func) name))
+                         dump)))
+        (when (null? res)
+          (error 'select-func
+                 (string-append "no function with name '" name "'")))
+        (car res)))
 
     (define (print-func func)
       (display "--------------------------------\n")
