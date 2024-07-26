@@ -1,0 +1,13 @@
+(define-library (cat parser)
+  (export tokenize-cat
+          parse-cat)
+  (import (scheme base)
+          (scheme file)
+          (scheme char)
+          (rebottled packrat))
+  (include "lexer.scm")
+  (include "expr.scm")
+  (include "stmt.scm")
+  (include "model.scm")
+  (include "generator.scm")
+  (include "parser.scm"))
