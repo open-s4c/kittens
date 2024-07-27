@@ -21,6 +21,26 @@
        (newline)
        (error 'argument-error msg 'cnd)))))
 
+
+(define (include-files model)
+  (let ((stmts (caddr model)))
+    (define (iter stmts nstmts)
+      (if (null? stmts)
+          nstmts
+          (let ((stmt (car stmts))
+                (rest (cdr stmts)))
+            (if (eq? 'include (car stmt))
+                (if (file-exists? (cadr stmt))
+                    (let* ((tks (tokenize-cat (cadr stmt)))
+                           (imodel (parse-cat tks))
+                           (istmts (caddr imodel)))
+                      (iter rest (append istmts nstmts)))
+                    (begin
+                      (print "WARNING: cannot include '" (cadr stmt) "'")
+                      (iter rest nstmts)))
+                (iter rest (cons stmt nstmts))))))
+    (list 'model (cadr model) (reverse (iter stmts '())))))
+
 (define (main args)
   (die-unless (= (length args) 2) "wrong arguments")
 
@@ -42,28 +62,11 @@
       (newline)
       (display "-------------------------------------------------")
       (newline)
-      (let ((model (parse-cat tokens)))
-        (let ((stmts (caddr model)))
+      (let* ((model (parse-cat tokens))
+             (model (include-files model)))
 
-          (define (iter stmts nstmts)
-            (if (null? stmts)
-                nstmts
-                (let ((stmt (car stmts))
-                      (rest (cdr stmts)))
-                  (cond ((eq? 'include (car stmt))
-                         (let* ((ifn (cadr stmt))
-                                (tks (tokenize-cat ifn))
-                                (imodel (parse-cat tks))
-                                (istmts (caddr imodel)))
-                           (iter rest (append istmts nstmts))))
-                        (else
-                         (iter rest (cons stmt nstmts)))))))
+        (pretty-print model)
 
-          (reverse (iter stmts '())))
-
-        ;(pretty-print model)
-
-        ;;-------
         )))
   0)
 
