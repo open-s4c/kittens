@@ -25,7 +25,6 @@
   (let loop ((i 0) (lst '()))
     (if (= i n) lst (loop (+ i 1) (cons (- n i 1) lst)))))
 
-
 (define (print-boilerplate)
   (with-input-from-file
    "boilerplate.smt2"
@@ -65,14 +64,18 @@
      (map (lambda (e) `(declare-const ,e Edge))
           (map edge->symbol nnums))
 
-     ; help ids to look reasonable
+     ; help tids and addresses to look reasonable
      (map (lambda (e) `(assert (and (>= (tid ,e) 0)
                                     (< (tid ,e) ,nedges)
-                                    (>= (eid ,e) 0)
-                                    (< (eid ,e) ,nedges)
                                     (>= (addr ,e) 100)
                                     (< (addr ,e) ,(+ 100 nedges)))))
           (map event->symbol nnums))
+
+     ; enforce event ids
+     (map (lambda (e id)
+            `(assert (= (eid ,e) ,id)))
+          (map event->symbol nnums)
+          nnums)
 
      ; assertions to force smt to find a solution
      (let ((equalis (map (lambda (edge) `(= e ,edge))
