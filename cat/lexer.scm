@@ -87,20 +87,8 @@
           (((str "~")) '(~))
           (((str "+")) '(+))
 
-          ; sets
-          (((str "M")) '(set . M))
-          (((str "A")) '(set . A))
-          (((str "F")) '(set . F))
-          (((str "W")) '(set . W))
-          (((str "R")) '(set . R))
-          (((str "RMW")) '(set . RMW))
-          (((str "ACQ")) '(set . ACQ))
-          (((str "REL")) '(set . REL))
-          (((str "SC")) '(set . SC))
-          (((str "Marked")) '(set . Marked))
-          (((str "Plain")) '(set . Plain))
-
           (((str "let")) '(let))
+          (((str "show")) '(show))
           (((str "include")) '(include))
           (((str "acyclic")) '(acyclic))
           (((str "empty")) '(empty))

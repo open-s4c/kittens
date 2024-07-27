@@ -1,3 +1,25 @@
+(define predefined-sets
+  (map symbol->string
+       '(M ; memory accesses
+         A ; Atomic operations
+         F ; fences
+         W ; write operations
+         R ; read operations
+         RMW ; read-modify-write operations
+         ACQ ; atomic operation with Acq barrier
+         REL ; atomic operation with Rel barrier
+         SC ; atomic operation with SC barrier
+         Marked ; marked atomic operation
+         Plain ; Unmarked operation
+         )))
+
+(define (preset results)
+  (let ((tok (parse-results-token-value results)))
+    (if (member tok predefined-sets)
+        (make-result tok (parse-results-next results))
+        (make-expected-result
+         (parse-results-position results) 'id))))
+
 (define expr-parser
   (packrat-parser
    expr
@@ -42,8 +64,10 @@
     ((a <- set 'diff b <- set) (list 'diff a b))
     ((a <- set) a))
 
-   (set ((s <- 'set) (list 'set s))
-        (('oparen a <- sets 'cparen) a))
+   (set
+    ((s <- preset) (cons 'set s))
+    ((s <- 'set) (cons 'set s))
+    (('oparen a <- sets 'cparen) a))
 
    ; let implied = po & ( W*R & ((M * A) | (A * M)) )
    ; Infix operators are
@@ -76,12 +100,13 @@
     ((a <- rel-cart) a))
 
    (rel-cart
+    ((a <- set 'cart b <- rel-cart) (list 'cart a b))
     ((a <- set 'cart b <- set) (list 'cart a b))
     ((a <- rel) a))
 
    (rel
-    ((r <- 'id) (list 'rel r))
-    ((r <- 'rel) (list 'rel r))
+    (((! preset) r <- 'id) (cons 'rel r))
+    ((r <- 'rel) (cons 'rel r))
     (('oparen a <- rels 'cparen) a))
 
    ))
