@@ -51,9 +51,34 @@
             (if (not (member (car line) keep))
                 (cons "" (cdr line))
                 line))
-          (set! lines (map remove-label lines))
+          ;(set! lines (map remove-label lines))
 
-          ; 3. separate used labels in exclusive lines
+          ; 3.  rename labels
+          (define (rename-label line)
+            (if (not (equal? "" (car line)))
+                (cons (string-append "LC" (car line)) (cdr line))
+                line))
+          (set! lines (map rename-label lines))
+
+          ; 4. rename targets
+          (define (rename-targets line)
+            (let ((mnm (cadr line)))
+              (cond ((member mnm '("cbnz" "cbz"))
+                     (list (car line)
+                           mnm
+                           (let* ((args (caddr line))
+                                  (target (string-append "LC" (cadr args))))
+                             (list (car args) target))))
+                    ((member mnm '("b" "b.ne" "b.eq"))
+                     (list (car line)
+                           mnm
+                           (let* ((args (caddr line))
+                                  (target (string-append "LC" (car args))))
+                             (list target))))
+                    (else line))))
+          (set! lines (map rename-targets lines))
+
+          ; 5. separate used labels in exclusive lines
           (define (separate-label lines)
             (if (null? lines)
                 '()
@@ -66,7 +91,7 @@
                                   (separate-label rst)))))))
           (set! lines (separate-label lines)))
 
-        ; 4. done fixing labels, return function name and fixed lines
+        ; 6. done fixing labels, return function name and fixed lines
         (list (car func) lines)))
 
     (define (export-func func)
@@ -88,7 +113,7 @@
                                (else arg))
                          (if last "" ", ")))
                       args
-                      (map (lambda (i) (= i (length args)))
+                      (map (lambda (i) (= i (- (length args) 1)))
                            (seq (length args))))))
         (map (lambda (x)
                (string-append
@@ -118,21 +143,21 @@
                             (cons (string-append "P" (number->string id))
                                   lines))
                           flines
-                          (map (lambda (x) (- x 1)) (seq (length flines))))))
-        (flines (map widen-code flines)))
+                          (seq (length flines))))
+             (flines (map widen-code flines)))
 
-      ; add | to all but first processor
-      (let ((flines (cons (car flines)
-                          (map (lambda (lines)
-                                 (map (lambda (line)
-                                        (string-append " | " line))
-                                      lines))
-                               (cdr flines)))))
 
-        ; join all processors line-by-line and append ";" to the line
-        (apply map (lambda (x . xs)
-                     (string-append (apply string-append x xs) " ;"))
-               flines))))
 
-  ; --------------------------------------------------------------------------
-  ))
+
+        ; add | to all but first processor
+        (let ((flines (cons (car flines)
+                            (map (lambda (lines)
+                                   (map (lambda (line)
+                                          (string-append " | " line))
+                                        lines))
+                                 (cdr flines)))))
+
+          ; join all processors line-by-line and append ";" to the line
+          (apply map (lambda (x . xs)
+                       (string-append (apply string-append x xs) " ;"))
+                 flines))))))
