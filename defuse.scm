@@ -7,7 +7,7 @@
         (only (chibi string) string-join)
         (chibi match)
         (rebottled packrat)
-        (diy7c parser))
+        (defuse parser))
 
 (define (pretty-print x)
   (show (current-output-port) (pretty x)))
@@ -57,9 +57,13 @@
   ; add includes
   (newline)
   (print "#include <stdatomic.h>")
+  (print "#ifndef RMEM")
   (print "#include <assert.h>")
   (print "#include <pthread.h>")
-  (newline)
+  (print "#define ensure(COND) assert(COND)")
+  (print "#else")
+  (print "#define ensure(COND) if (!cond) { asm (\"brk 0xdead\"); }")
+  (print "#endif")
 
   ; define vars if necessary, for now just assert empty
   (let ((vars (cadr tokens)))
@@ -84,74 +88,91 @@
                 args))
 
     ; create a variable for each read
-    (define (proc-reads p)
-      (let* ((pid (number->string (cdr (cadr p))))
-             (lines (cdr (cadddr p))))
-        (for-each (lambda (line)
-                    (match line
-                           (('line str) #f)
-                           (('local ('decl T V) ('line str))
-                            (print
-                             T " " V "_P" pid ";"))))
-                  lines)))
     (newline)
     (print "/* variables to store per-proc reads */")
-    (for-each proc-reads procs)
+    (for-each (lambda (p)
+                (let* ((pid (number->string (cdr (cadr p))))
+                       (lines (cdr (cadddr p))))
+                  (for-each (lambda (line)
+                              (match line
+                                     (('line str) #f)
+                                     (('local ('decl T V) ('line str))
+                                      (print
+                                       T " " V "_P" pid ";"))))
+                            lines)))
+              procs)
 
     ; create one function per proc and use the arguments as global variables
-    (define (translate-proc p)
-      (let* ((pid (number->string (cdr (cadr p))))
-             (args (cdr (caddr p)))
-             (lines (cdr (cadddr p))))
-
-        (print "void " "P" pid " (")
-        (let ((args-str (map (lambda (arg)
-                               (match arg
-                                      (('volatile T V) (string-append "  volatile " T "* " V))
-                                      (('atomic T V) (string-append "  atomic_" T "* " V))))
-                             args)))
-          (print (string-join args-str ",\n"))
-          (display ") "))
-
-        (let ((lines-str (map (lambda (line)
-                                (match line
-                                       (('line str) str)
-                                       (('local ('decl T V) ('line str))
-                                        (string-append
-                                         str
-                                         " "
-                                         V "_P" pid " = " V ";"))))
-                              lines)))
-          (print (string-join lines-str "\n  ")))
-        (newline)))
-
     (newline)
     (print "/* processor functions */")
-    (for-each translate-proc procs)
+    (for-each (lambda (p)
+                (let* ((pid (number->string (cdr (cadr p))))
+                       (args (cdr (caddr p)))
+                       (lines (cdr (cadddr p)))
+                       (stringify-arg
+                        (lambda (arg)
+                          (match arg
+                                 (('volatile T V)
+                                  (string-append "  volatile " T "* " V))
+                                 (('atomic T V)
+                                  (string-append "  atomic_" T "* " V))))))
 
-    (print "/* final assertion */")
+                  (print "void " "P" pid " (")
+                  (let ((args-str (map stringify-arg args)))
+                    (print (string-join args-str ",\n"))
+                    (display ") "))
+
+                  (let ((lines-str (map (lambda (line)
+                                          (match line
+                                                 (('line str) str)
+                                                 (('local ('decl T V) ('line str))
+                                                  (string-append
+                                                   str
+                                                   " "
+                                                   V "_P" pid " = " V ";"))))
+                                        lines)))
+                    (print (string-join lines-str "\n  ")))
+                  (newline)))
+              procs)
+
     (newline)
-    (print "void final_assert(void) {")
-    (print "  assert(!(1")
-    (print "    && r0_P0 == 0")
-    (print "    && r0_P1 == 0")
-    (print "  ));")
+    (print "/* final assertion */")
+    (print "void not_exists(void) {")
+    (display "  ensure(!")
+    (let ((exists (cadddr tokens)))
+      (define (print-expr expr)
+        (match expr
+               (('conj a b)
+                (display "(")
+                (print-expr a)
+                (display " && ")
+                (print-expr b)
+                (display ")"))
+               (('equal (read-var p v) rhs)
+                (display (string-append v "_P" (number->string p) " == " rhs)))
+               (('equal (deref-var v) rhs)
+                (display (string-append print v " == " rhs)))))
+      (print-expr (cdr exists)))
+    (print ");")
     (print "}")
 
-    (print "/* pthread run functions */")
     (newline)
+    (print "#ifndef RMEM")
+
     ; generate one pthread function per proc
+    (newline)
+    (print "/* pthread run functions */")
     (for-each (lambda (p)
                 (let* ((pid (number->string (cdr (cadr p))))
                        (args (cdr (caddr p))))
-                  (print "void *run" pid "(void *_) {")
-                  (display (string-append "  P" pid))
+                  (display (string-append "void *run" pid "(void *_) {"))
+                  (display (string-append "P" pid))
                   (let ((args-str (map (lambda (arg)
                                          (match arg
                                                 (('volatile T V) (string-append "&" V))
                                                 (('atomic T V) (string-append "&" V))))
                                        args)))
-                    (print "(" (string-join args-str ",") ");}"))))
+                    (print "(" (string-join args-str ",") "); return 0;}"))))
               procs)
 
     ; generate main function
@@ -165,25 +186,18 @@
       (for-each (lambda (pid)
                   (print "  pthread_join(t" pid ", 0);")) pids)
       (newline)
-      (print "  final_assert();")
+      (print "  not_exists();")
       (newline)
       (print "  return 0;")
-      (print "}")))
-
-
-
-  ; print exists as comment
-  (let ((exists (cadddr tokens)))
-    (when #t
-      (print "// exists " (cdr exists))))
-  )
+      (print "}"))
+    (print "#endif")))
 
 
 (define (main args)
   (die-unless (not (null? args)) "input file")
   (let* ((fn (car args))
          (g (file-generator fn)))
-    (let ((tokens (parse-or-die lexer g)))
+    (let ((tokens (parse-or-die parser g)))
       (generate-c tokens)))
   0)
 (main (command-args))

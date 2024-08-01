@@ -5,6 +5,7 @@
         (srfi 166)
         (rebottled packrat))
 
+(include "generic.scm")
 (include "proc.scm")
 (include "../cat/generator.scm")
 

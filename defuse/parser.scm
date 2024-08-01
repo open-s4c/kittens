@@ -1,4 +1,4 @@
-(define lexer
+(define parser
   (packrat-parser
    (begin
 
@@ -84,7 +84,8 @@
 
    (vars ((v <- (string-enclosed #\{ #\})) v))
 
-   (exists (('#\newline (str "exists") x <- (string-enclosed #\( #\))) `(exists . ,x)))
+   ;(exists (('#\newline (str "exists") x <- (string-enclosed #\( #\))) `(exists . ,x)))
+   (exists ((blank x <- exists-parser) x))
 
    (procs ((blurb x <- proc blurb xs <- procs) (cons x xs))
           ((x <- proc) (list x)))
