@@ -87,10 +87,11 @@
    ;(exists (('#\newline (str "exists") x <- (string-enclosed #\( #\))) `(exists . ,x)))
    (exists ((blank x <- exists-parser) x))
 
-   (procs ((blurb x <- proc blurb xs <- procs) (cons x xs))
+   (procs ((x <- proc xs <- procs) (cons x xs))
           ((x <- proc) (list x)))
 
-   (proc ((x <- proc-parser '#\newline) x))
+   (proc ((blurb x <- proc-parser) x)
+         ((x <- proc-parser) x))
 
    (lines ((x <- line '#\newline xs <- lines) (cons x xs))
           ((x <- line) (list x)))

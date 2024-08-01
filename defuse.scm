@@ -24,7 +24,6 @@
        (newline)
        (error 'argument-error msg 'cnd)))))
 
-
 (define (parse-or-die parser generator)
   (let ((result (parser (base-generator->results generator))))
     (if (parse-result-successful? result)
@@ -148,10 +147,10 @@
                 (display " && ")
                 (print-expr b)
                 (display ")"))
-               (('equal (read-var p v) rhs)
+               (('equal ('read-var p v) rhs)
                 (display (string-append v "_P" (number->string p) " == " rhs)))
-               (('equal (deref-var v) rhs)
-                (display (string-append print v " == " rhs)))))
+               (('equal ('deref-var v) rhs)
+                (display (string-append v " == " rhs)))))
       (print-expr (cdr exists)))
     (print ");")
     (print "}")
