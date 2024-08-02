@@ -65,13 +65,13 @@
 (define (sort-records event-records)
     (map (lambda (event-record) (sort event-record (lambda (l r) (< (event-eid l) (event-eid r))))) event-records))
 
-(define (generate-signature event-records)
+(define (generate-thread-signature event-records-per-tid tid-list)
   (apply string-append `(
     "P"
-    ,(number->string (event-tid (car event-records)))
+    ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
     " ("
-    ,@(map (lambda (event) (string-append "volatile int* " (number-to-alphabet-string (event-addr event)) ", ")) (but-last event-records))
-    ,(string-append "volatile int* " (number-to-alphabet-string (event-addr (car (reverse event-records)))))
+    ,@(map (lambda (event) (string-append "volatile int* " (number-to-alphabet-string (event-addr event)) ", ")) (but-last event-records-per-tid))
+    ,(string-append "volatile int* " (number-to-alphabet-string (event-addr (car (reverse event-records-per-tid)))))
     ")"
     ))
 )
@@ -85,20 +85,22 @@
 		        (else
 			       (loop (cdr coll) cnt)))))
 
-(define (get-read-t-number event event-records) 
-  (apply string-append `(
-	       ,(number->string (
-                  count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-eid ev) (event-eid event)))) event-records
- )))))
+(define (get-t-number tid tid-list)
+  (number->string (count (lambda (t) (< t tid)) tid-list)))
 
-(define (print-event event event-records)
+(define (get-read-t-number event event-records-per-tid) 
+  (number->string (
+                  count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-eid ev) (event-eid event)))) event-records-per-tid
+ )))
+
+(define (print-event event event-records-per-tid)
   (apply string-append `(
     "    "
     ,(if (eq? (event-op event) 'read) 
        (apply string-append `(
          ,(string-append "int r" 
 	     (
-                get-read-t-number event event-records
+                get-read-t-number event event-records-per-tid
 	     )
 	   " = *");
          ,(number-to-alphabet-string (event-addr event))
@@ -117,17 +119,17 @@
   ))
 )
 
-(define (generate-body event-records)
+(define (generate-thread-body event-records-per-tid)
   (apply string-append `( 
-     ,@(apply append (map (lambda (event) (list (print-event event event-records) "\n")) event-records))
+     ,@(apply append (map (lambda (event) (list (print-event event event-records-per-tid) "\n")) event-records-per-tid))
   ))
 )
 
-(define (generate-thread-code event-records)
+(define (generate-thread-code event-records-per-tid tid-list)
   (apply string-append `(
-     ,(generate-signature event-records)
+     ,(generate-thread-signature event-records-per-tid tid-list)
      " {\n"
-     ,(generate-body event-records)
+     ,(generate-thread-body event-records-per-tid)
      "}\n")
   )
 )
@@ -140,19 +142,37 @@
   ))
 )
 
-(define (generate-assert event-records)
-  (apply string-append `(
-    "exists("
-    "..."
-    ")\n"
-  ))
+(define (generate-assert-one-tid event-records-per-tid tid-list)
+  ;(display event-records-per-tid)
+  `(
+    ,@(map (lambda (event) (
+      apply string-append `(
+        ,(get-t-number (event-tid event) tid-list)
+	":r"
+        ,(get-read-t-number event event-records-per-tid)
+        "="
+        ,(number->string (event-val event)))
+    )) (filter (lambda (event) (eq? (event-op event) 'read))event-records-per-tid)
+  )
+
+    )
 )
 
-(define (generate-litmus-PC event-records)
+(define (generate-assert event-records tid-list)
+  (let ((all-reads (apply append (map (lambda (event-records-per-tid) (generate-assert-one-tid event-records-per-tid tid-list)) event-records)))) 
+    (apply string-append `(
+      "exists ("
+      ,(apply string-append `(
+        ,@(map (lambda (read) (string-append read " /\\ ")) (but-last all-reads))
+	,(car (reverse all-reads))))
+      ")\n"
+    ))))
+
+(define (generate-litmus-PC event-records tid-list)
   (apply string-append `(
       ,(generate-header)
-      ,@(apply append (map (lambda (event-records-per-tid) (list (generate-thread-code event-records-per-tid) "\n")) event-records))
-      ,(generate-assert event-records)
+      ,@(apply append (map (lambda (event-records-per-tid) (list (generate-thread-code event-records-per-tid tid-list) "\n")) event-records))
+      ,(generate-assert event-records tid-list)
     ))
 )
 
@@ -177,7 +197,12 @@
 	   (events-per-tid (records-per-tid event-records tids))
 	   (records-sorted (sort-records events-per-tid)))
                
-      (display (generate-litmus-PC records-sorted))         
+      (display (generate-litmus-PC records-sorted tids))         
+      ;(display records-sorted)
+      ;(display tids)
+      ;(display (generate-assert records-sorted tids))
+      ;(display (generate-assert-one-tid (car records-sorted)))
+      
 
 )))
 
