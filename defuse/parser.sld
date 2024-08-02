@@ -1,12 +1,13 @@
-(define-library (diy7c parser)
-  (export lexer
+(define-library (defuse parser)
+  (export parser
           file-generator
           )
   (import (scheme base)
           (scheme file)
           (scheme char)
           (rebottled packrat))
+  (include "generic.scm")
   (include "proc.scm")
-  (include "lexer.scm")
-  (include "../cat/generator.scm")
-  (include "parser.scm"))
+  (include "exists.scm")
+  (include "parser.scm")
+  (include "../cat/generator.scm"))

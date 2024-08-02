@@ -9,6 +9,8 @@
     (define (select-func dump name)
       (let ((res (filter (lambda (func) (string=? (car func) name))
                          dump)))
+        (display dump)
+        (newline)
         (when (null? res)
           (error 'select-func
                  (string-append "no function with name '" name "'")))

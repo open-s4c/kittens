@@ -1,0 +1,4 @@
+deps/*
+asm-build*
+*.swo
+*.swp
