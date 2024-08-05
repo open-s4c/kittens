@@ -14,6 +14,8 @@
 (declare-datatype
  Event ((mk-event (eid Int)
                   (tid Int)
+		  (porder Int)
+		  (corder Int)
                   (addr Int)
 		  (val Int)
                   (op Operation))))
@@ -32,7 +34,7 @@
 ; Constraints for po
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as po Relation)) (inSet e))
-                    (and (< (eid (src e)) (eid (trg e)))
+                    (and (< (porder (src e)) (porder (trg e)))
                          (= (tid (src e)) (tid (trg e)))))))
 ; Constraints for rf
 (assert (forall ((e Edge))
@@ -47,14 +49,16 @@
                 (=> (and (= (rel e) (as fr Relation)) (inSet e))
                     (and (= (op (src e)) (as read Operation))
                          (= (op (trg e)) (as write Operation))
-                         (= (addr (src e)) (addr (trg e)))
+                         (< (corder (src e)) (corder (trg e)))
+			 (= (addr (src e)) (addr (trg e)))
 			 (not (= (val (src e)) (val (trg e))))))))
 
 ; Constraints for co
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as co Relation)) (inSet e))
                     (and (= (addr (src e)) (addr (trg e)))
-                         (= (op (src e)) (as write Operation))
+                         (< (corder (src e)) (corder (trg e)))
+			 (= (op (src e)) (as write Operation))
                          (= (op (trg e)) (as write Operation))))))
 
 ; -----------------------------------------------------------------------------

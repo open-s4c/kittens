@@ -19,16 +19,16 @@
 
 (define-record-type 
   event-record 
-  (event eid tid addr val op) 
+  (event eid tid po co addr val op) 
   event? 
-  (eid event-eid) (tid event-tid) (addr event-addr) (val event-val) (op event-op))
+  (eid event-eid) (tid event-tid) (po event-po) (co event-co) (addr event-addr) (val event-val) (op event-op))
 
 (define (extract-event-records expr)
   (match expr
     (('model . defs) 
       (map extract-event-records defs))
     (('define-fun _ _ _ ev) (extract-event-records ev))
-    (('mk-event eid tid adr val op) (event eid tid adr val op))
+    (('mk-event eid tid po co adr val op) (event eid tid po co adr val op))
     (else (list expr))))
 
 (define (but-last xs) (reverse (cdr (reverse xs))))
@@ -180,17 +180,15 @@
   (let ((my-model
 		  '(model
 		     (define-fun ev1 () Event
-		       (mk-event 1 0 102 12 read))
-		     (define-fun ev3 () Event
-		       (mk-event 3 0 104 16 read))
-		     (define-fun ev2 () Event
-		       (mk-event 2 0 102 13 write))
-		     (define-fun ev0 () Event
-		       (mk-event 0 2 103 13 write))
-		     (define-fun ev2 () Event
-		       (mk-event 5 2 104 13 read))
-		     (define-fun ev0 () Event
-		       (mk-event 4 2 103 15 write)))))
+		         (mk-event 1 2 0 1 2101 13 read))
+		       (define-fun ev3 () Event
+		           (mk-event 3 1 3 4 101 12 read))
+		         (define-fun ev2 () Event
+			     (mk-event 2 2 5 6 101 12 write))
+			   (define-fun ev0 () Event
+			       (mk-event 0 3 7 8 101 13 write))
+
+		     )))
 
     (let* ((event-records (extract-event-records my-model))
            (tids (get-tids event-records))
