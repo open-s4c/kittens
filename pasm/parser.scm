@@ -129,12 +129,17 @@
                  ((arg <- argval) (list arg)))
 
      (argval ((arg <- argoff) arg)
-             ((arg <- identifier) arg))
+             ((arg <- const-or-id) arg))
 
-     (argoff (( '#\[ arg <- identifier '#\, blank off <- identifier '#\])
+     (argoff (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\])
               (cons arg off))
-             (( '#\[ arg <- identifier '#\])
+             (( '#\[ arg <- const-or-id '#\])
               (cons arg 0)))
+
+     (const-or-id (('#\# '#\0 '#\x x <- identifier)
+                   (let ((hex (string->number (string-append "#x" x) 16)))
+                     (string-append "#" (number->string hex))))
+                  ((x <- identifier) x))
 
 
      (label ((lab <- identifier '#\:) lab))

@@ -9,8 +9,6 @@
     (define (select-func dump name)
       (let ((res (filter (lambda (func) (string=? (car func) name))
                          dump)))
-        (display dump)
-        (newline)
         (when (null? res)
           (error 'select-func
                  (string-append "no function with name '" name "'")))
@@ -91,9 +89,19 @@
                       (cons (list (car cur) "" '()) ; label line
                             (cons (cons "" (cdr cur)) ; current line w/o label
                                   (separate-label rst)))))))
-          (set! lines (separate-label lines)))
+          (set! lines (separate-label lines))
 
-        ; 6. done fixing labels, return function name and fixed lines
+          ; 6. remove nop and ret instructions
+          (define (remove-nop-ret lst res)
+            (if (null? lst)
+                res
+                (let ((line (car lst)))
+                  (if (or (equal? "ret" (cadr line)) (equal? "nop" (cadr line)))
+                      (remove-nop-ret (cdr lst) res)
+                      (remove-nop-ret (cdr lst) (cons line res))))))
+          (set! lines (reverse (remove-nop-ret lines '()))))
+
+        ; 7. done fixing labels, return function name and fixed lines
         (list (car func) lines)))
 
     (define (export-func func)
