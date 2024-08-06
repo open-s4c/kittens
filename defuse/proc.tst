@@ -1,19 +1,12 @@
 ; -*- scheme -*-
 
 (import (scheme small)
-        (chibi test)
-        (srfi 166)
-        (rebottled packrat))
+        (rebottled packrat)
+        (kittens generator)
+        (kittens test))
 
 (include "generic.scm")
 (include "proc.scm")
-(include "../cat/generator.scm")
-
-(define (code . lines)
-  (apply string-append
-         (map (lambda (line)
-                (string-append line "\n"))
-              lines)))
 
 
 (define (proc-parse str)
@@ -44,27 +37,27 @@
 
 (test-group
  "code"
- (let* ((input (code "x = 1;"))
+ (let* ((input (code-append "x = 1;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
    (test '(code (line "x = 1;")) (parse-result-semantic-value r)))
 
- (let* ((input (code "int x = 1;"))
+ (let* ((input (code-append "int x = 1;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
    (test '(code (local (decl "int" "x") (line "int x = 1;")))
          (parse-result-semantic-value r)))
 
- (let* ((input (code "int x = 1;"
-                     "y = x;"))
+ (let* ((input (code-append "int x = 1;"
+                            "y = x;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
    (test '(code (local (decl "int" "x") (line "int x = 1;"))
                 (line "y = x;"))
          (parse-result-semantic-value r)))
 
- (let* ((input (code "int x = 1;"
-                     "	y = x;"))
+ (let* ((input (code-append "int x = 1;"
+                            "	y = x;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
    (test '(code (local (decl "int" "x") (line "int x = 1;"))
@@ -73,7 +66,7 @@
 
 (test-group
  "proc"
- (let* ((input (code
+ (let* ((input (code-append
                 "P0 (volatile int* y,volatile int* x) {"
                 "	int r0 = *x;"
                 "	*y = 1;"
@@ -91,7 +84,7 @@
                       (line "}")))
          (parse-result-semantic-value r)))
 
- (let* ((input (code
+ (let* ((input (code-append
                 "P0 (volatile int* y, atomic_int* x) {"
                 "	int r0 = *x;"
                 "	if (r0 == 0) {"

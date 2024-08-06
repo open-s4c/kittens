@@ -1,20 +1,12 @@
 ; -*- scheme -*-
 
 (import (scheme small)
-        (chibi test)
-        (srfi 166)
-        (rebottled packrat))
+        (rebottled packrat)
+        (kittens generator)
+        (kittens test))
 
 (include "generic.scm")
 (include "exists.scm")
-(include "../cat/generator.scm")
-
-(define (code . lines)
-  (apply string-append
-         (map (lambda (line)
-                (string-append line "\n"))
-              lines)))
-
 
 (define (var-parse str)
   (var-parser (base-generator->results (str-generator str))))

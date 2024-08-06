@@ -2,8 +2,8 @@
 
 (import (scheme small)
         (rebottled packrat)
-        (chibi test)
-        (kittens generator))
+        (kittens generator)
+        (kittens test))
 
 (test-group
  "generator"

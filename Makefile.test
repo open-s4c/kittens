@@ -1,0 +1,8 @@
+TSTS = $(wildcard *.tst)
+SCM  = chibi-scheme -I ../.. -I ..
+
+test: $(TSTS:.tst=.log)
+
+%.log: %.tst
+	@echo [TEST] $<
+	@$(SCM) $<
