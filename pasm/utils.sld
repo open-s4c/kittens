@@ -44,64 +44,62 @@
       (let ((lines (cadr func)))
 
         ; 1. find which labels to keep
+        #;(let ((keep '("118")))
+            ; 2.  remove unused labels
+            (define (remove-label line)
+              (if (not (member (car line) keep))
+                  (cons "" (cdr line))
+                  line))
+            (set! lines (map remove-label lines)))
 
-        (let ((keep '("118")))
-          ; 2.  remove unused labels
-          (define (remove-label line)
-            (if (not (member (car line) keep))
-                (cons "" (cdr line))
-                line))
-          ;(set! lines (map remove-label lines))
+        ; 3.  rename labels
+        (define (rename-label line)
+          (if (not (equal? "" (car line)))
+              (cons (string-append "LC" (car line)) (cdr line))
+              line))
+        (set! lines (map rename-label lines))
 
-          ; 3.  rename labels
-          (define (rename-label line)
-            (if (not (equal? "" (car line)))
-                (cons (string-append "LC" (car line)) (cdr line))
-                line))
-          (set! lines (map rename-label lines))
+        ; 4. rename targets
+        (define (rename-targets line)
+          (let ((mnm (cadr line)))
+            (cond ((member mnm '("cbnz" "cbz"))
+                   (list (car line)
+                         mnm
+                         (let* ((args (caddr line))
+                                (target (string-append "LC" (cadr args))))
+                           (list (car args) target))))
+                  ((member mnm '("b" "b.ne" "b.eq"))
+                   (list (car line)
+                         mnm
+                         (let* ((args (caddr line))
+                                (target (string-append "LC" (car args))))
+                           (list target))))
+                  (else line))))
+        (set! lines (map rename-targets lines))
 
-          ; 4. rename targets
-          (define (rename-targets line)
-            (let ((mnm (cadr line)))
-              (cond ((member mnm '("cbnz" "cbz"))
-                     (list (car line)
-                           mnm
-                           (let* ((args (caddr line))
-                                  (target (string-append "LC" (cadr args))))
-                             (list (car args) target))))
-                    ((member mnm '("b" "b.ne" "b.eq"))
-                     (list (car line)
-                           mnm
-                           (let* ((args (caddr line))
-                                  (target (string-append "LC" (car args))))
-                             (list target))))
-                    (else line))))
-          (set! lines (map rename-targets lines))
+        ; 5. separate used labels in exclusive lines
+        (define (separate-label lines)
+          (if (null? lines)
+              '()
+              (let ((cur (car lines))
+                    (rst (cdr lines)))
+                (if (string=? "" (car cur))
+                    (cons cur (separate-label rst))
+                    (cons (list (car cur) "" '()) ; label line
+                          (cons (cons "" (cdr cur)) ; current line w/o label
+                                (separate-label rst)))))))
+        (set! lines (separate-label lines))
 
-          ; 5. separate used labels in exclusive lines
-          (define (separate-label lines)
-            (if (null? lines)
-                '()
-                (let ((cur (car lines))
-                      (rst (cdr lines)))
-                  (if (string=? "" (car cur))
-                      (cons cur (separate-label rst))
-                      (cons (list (car cur) "" '()) ; label line
-                            (cons (cons "" (cdr cur)) ; current line w/o label
-                                  (separate-label rst)))))))
-          (set! lines (separate-label lines))
-
-          ; 6. remove nop and ret instructions
-          (define (remove-nop-ret lst res)
-            (if (null? lst)
-                res
-                (let* ((line (car lst))
-                       (mnm (cadr line)))
-                  (newline)
-                  (if (member mnm '("ret" "nop"))
-                      (remove-nop-ret (cdr lst) res)
-                      (remove-nop-ret (cdr lst) (cons line res))))))
-          (set! lines (reverse (remove-nop-ret lines '()))))
+        ; 6. remove nop and ret instructions
+        (define (remove-nop-ret lst res)
+          (if (null? lst)
+              res
+              (let* ((line (car lst))
+                     (mnm (cadr line)))
+                (if (member mnm '("ret" "nop"))
+                    (remove-nop-ret (cdr lst) res)
+                    (remove-nop-ret (cdr lst) (cons line res))))))
+        (set! lines (reverse (remove-nop-ret lines '())))
 
         ; 7. done fixing labels, return function name and fixed lines
         (list (car func) lines)))
@@ -109,6 +107,7 @@
     (define (export-func func)
       (let* ((func (fix-labels func))
              (lines (cadr func)))
+
         (define (export-args args)
           (apply string-append
                  (map (lambda (arg last)
