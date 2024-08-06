@@ -5,53 +5,36 @@
         (srfi 166) ; formatting
         (srfi 125) ; hash tables
         (only (chibi string) string-join)
+        (only (srfi 1) filter)
         (chibi match)
         (rebottled packrat)
         (defuse parser))
 
-(define (pretty-print x)
-  (show (current-output-port) (pretty x)))
+(include "common.scm")
 
-(define (print . xs)
-  (for-each display xs)
+(define (usage)
+  (print "defuse <c-litmus file>")
   (newline))
 
-(define-syntax die-unless
-  (syntax-rules ()
-    ((_ cnd msg)
-     (unless cnd
-       (print "<kittens> <model file> <cycle length>")
-       (newline)
-       (error 'argument-error msg 'cnd)))))
+(define (print-expr expr)
+  (match expr
+         (('disj a b)
+          (display "(")
+          (print-expr a)
+          (display " && ")
+          (print-expr b)
+          (display ")"))
+         (('equal ('read-var p v) rhs)
+          (display (string-append v "_P" (number->string p) " == " rhs)))
+         (('equal ('deref-var v) rhs)
+          (display (string-append v " == " rhs)))))
 
-(define (parse-or-die parser generator)
-  (let ((result (parser (base-generator->results generator))))
-    (if (parse-result-successful? result)
-        (parse-result-semantic-value result)
-        (error 'parse-error "parse error"
-               (let ((e (parse-result-error result)))
-                 (list 'parse-error
-                       (parse-position->string (parse-error-position e))
-                       (parse-error-expected e)
-                       (parse-error-messages e)))))))
-
-(define (unique lst)
-  (define (iter lst out)
-    (if (null? lst)
-        out
-        (if (member (car lst) out)
-            (iter (cdr lst) out)
-            (iter (cdr lst) (cons (car lst) out)))))
-  (iter lst '()))
-
-
-(define (generate-c tokens)
+(define (generate-c litc)
   ; print preamble in comment
-  (let ((preamble (car tokens)))
-    (when #t
-      (print "/*")
-      (for-each print (cdr preamble))
-      (print "*/")))
+  (when #t
+    (print "/*")
+    (for-each print (litc-preamble litc))
+    (print "*/"))
 
   ; add includes
   (newline)
@@ -65,16 +48,14 @@
   (print "#endif")
 
   ; define vars if necessary, for now just assert empty
-  (let ((vars (cadr tokens)))
-    (when #f
-      (print "/*")
-      (for-each print (cdr vars))
-      (print "*/")))
+  (when #f
+    (print "/*")
+    (for-each print (litc-vars litc))
+    (print "*/"))
 
-  (let ((procs (cdr (caddr tokens))))
+  (let ((procs (litc-procs litc)))
     ; collect all arguments and create variables for the arguments
-    (let* ((args (map caddr procs))   ; take args of each proc
-           (args (map cdr args))      ; remove "args" label
+    (let* ((args (map litc-proc-args procs))   ; take args of each proc
            (args (apply append args)) ; combine all args
            (args (unique args)))      ; remove duplicates
 
@@ -90,25 +71,19 @@
     (newline)
     (print "/* variables to store per-proc reads */")
     (for-each (lambda (p)
-                (let* ((pid (number->string (cdr (cadr p))))
-                       (lines (cdr (cadddr p))))
-                  (for-each (lambda (line)
-                              (match line
-                                     (('line str) #f)
-                                     (('local ('decl T V) ('line str))
-                                      (print
-                                       T " " V "_P" pid ";"))))
-                            lines)))
+                (for-each (lambda (read)
+                            (let-values (((T V vname) (apply values read)))
+                              (print
+                               T " " vname ";")))
+                          (litc-proc-reads p)))
               procs)
 
     ; create one function per proc and use the arguments as global variables
+    ; the per-proc-read variables are passed as last arguments
     (newline)
     (print "/* processor functions */")
     (for-each (lambda (p)
-                (let* ((pid (number->string (cdr (cadr p))))
-                       (args (cdr (caddr p)))
-                       (lines (cdr (cadddr p)))
-                       (stringify-arg
+                (let* ((stringify-arg
                         (lambda (arg)
                           (match arg
                                  (('volatile T V)
@@ -116,20 +91,29 @@
                                  (('atomic T V)
                                   (string-append "  atomic_" T "* " V))))))
 
-                  (print "void " "P" pid " (")
-                  (let ((args-str (map stringify-arg args)))
+                  (print "void " (litc-proc-name p) " (")
+                  (let* (
+                         (all-args (append
+                                    (litc-proc-args p)
+                                    (map (lambda (read)
+                                           (let-values (((T V vname)
+                                                         (apply values read)))
+                                             `(volatile ,T ,V)))
+                                         (litc-proc-reads p))))
+                         (args-str (map stringify-arg all-args)))
                     (print (string-join args-str ",\n"))
                     (display ") "))
 
-                  (let ((lines-str (map (lambda (line)
-                                          (match line
-                                                 (('line str) str)
-                                                 (('local ('decl T V) ('line str))
-                                                  (string-append
-                                                   str
-                                                   " "
-                                                   V "_P" pid " = " V ";"))))
-                                        lines)))
+                  (let ((lines-str
+                         (map (lambda (line)
+                                (match line
+                                       (('line str) str)
+                                       (('local ('decl T V) ('line str) ('rest rst))
+                                        ; we want to replace the pattern "T var = ..."
+                                        ; with V_P = ...
+                                        (string-append
+                                         "*" V " = " rst))))
+                              (litc-proc-lines p))))
                     (print (string-join lines-str "\n  ")))
                   (newline)))
               procs)
@@ -138,20 +122,7 @@
     (print "/* final assertion */")
     (print "void not_exists(void) {")
     (display "  ensure(!")
-    (let ((exists (cadddr tokens)))
-      (define (print-expr expr)
-        (match expr
-               (('conj a b)
-                (display "(")
-                (print-expr a)
-                (display " && ")
-                (print-expr b)
-                (display ")"))
-               (('equal ('read-var p v) rhs)
-                (display (string-append v "_P" (number->string p) " == " rhs)))
-               (('equal ('deref-var v) rhs)
-                (display (string-append v " == " rhs)))))
-      (print-expr (cdr exists)))
+    (print-expr (litc-exists litc))
     (print ");")
     (print "}")
 
@@ -162,22 +133,31 @@
     (newline)
     (print "/* pthread run functions */")
     (for-each (lambda (p)
-                (let* ((pid (number->string (cdr (cadr p))))
-                       (args (cdr (caddr p))))
+                (let ((pid (litc-proc-id p))
+                      (pname (litc-proc-name p)))
                   (display (string-append "void *run" pid "(void *_) {"))
-                  (display (string-append "P" pid))
-                  (let ((args-str (map (lambda (arg)
-                                         (match arg
-                                                (('volatile T V) (string-append "&" V))
-                                                (('atomic T V) (string-append "&" V))))
-                                       args)))
+                  (display pname)
+                  (let* ((all-args
+                          (append
+                           (litc-proc-args p)
+                           (map (lambda (read)
+                                  (let-values (((T V vname)
+                                                (apply values read)))
+                                    `(volatile ,T ,vname)))
+                                (litc-proc-reads p))))
+
+                         (args-str (map (lambda (arg)
+                                          (match arg
+                                                 (('volatile T V) (string-append "&" V))
+                                                 (('atomic T V) (string-append "&" V))))
+                                        all-args)))
                     (print "(" (string-join args-str ",") "); return 0;}"))))
               procs)
 
     ; generate main function
     (newline)
     (print "int main(void) {")
-    (let ((pids (map (lambda (p) (number->string (cdr (cadr p)))) procs)))
+    (let ((pids (map litc-proc-id (litc-procs litc))))
       (for-each (lambda (pid)
                   (print "  pthread_t t" pid ";")) pids)
       (for-each (lambda (pid)
@@ -195,8 +175,9 @@
 (define (main args)
   (die-unless (not (null? args)) "input file")
   (let* ((fn (car args))
-         (g (file-generator fn)))
-    (let ((tokens (parse-or-die parser g)))
-      (generate-c tokens)))
+         (g (file-generator fn))
+         (tokens (parse-or-die parser g))
+         (litc (make-litc tokens)))
+    (generate-c litc))
   0)
 (main (command-args))

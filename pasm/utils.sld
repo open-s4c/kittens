@@ -95,8 +95,10 @@
           (define (remove-nop-ret lst res)
             (if (null? lst)
                 res
-                (let ((line (car lst)))
-                  (if (or (equal? "ret" (cadr line)) (equal? "nop" (cadr line)))
+                (let* ((line (car lst))
+                       (mnm (cadr line)))
+                  (newline)
+                  (if (member mnm '("ret" "nop"))
                       (remove-nop-ret (cdr lst) res)
                       (remove-nop-ret (cdr lst) (cons line res))))))
           (set! lines (reverse (remove-nop-ret lines '()))))
@@ -147,6 +149,13 @@
 
     (define (combine-funcs . funcs)
       (let* ((flines (map export-func funcs))
+             (longest (apply max (map length flines)))
+
+             ; stretch code with empty lines
+             (flines
+              (map (lambda (lines)
+                     (append lines (make-list (- longest (length lines)) "")))
+                   flines))
 
              ; introduce the processor name to each function
              (flines (map (lambda (lines id)
@@ -155,9 +164,6 @@
                           flines
                           (seq (length flines))))
              (flines (map widen-code flines)))
-
-
-
 
         ; add | to all but first processor
         (let ((flines (cons (car flines)

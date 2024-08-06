@@ -17,7 +17,7 @@
 (define expr-parser
   (packrat-parser
    expr
-   (expr ((x <- equal (str "/\\") xs <- expr) `(conj ,x ,xs))
+   (expr ((x <- equal (str "/\\") xs <- expr) `(disj ,x ,xs))
          ((x <- equal) x))
    (equal ((blank x <- equal-parser) x)
           ((x <- equal-parser) x))))

@@ -25,8 +25,9 @@
         rest <- (string-upto-char #\newline))
      (let* ((linestr (string-append T " " v " = " rest))
             (ln `(line ,linestr))
-            (dl `(decl ,T ,v)))
-       `(local ,dl ,ln)))
+            (dl `(decl ,T ,v))
+            (rst `(rest ,rest)))
+       `(local ,dl ,ln ,rst)))
 
     ; any other kind of line
     ((x <- (string-upto-char #\newline)) `(line ,x)))
