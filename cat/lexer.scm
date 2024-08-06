@@ -1,7 +1,6 @@
 (define lexer
   (packrat-parser
    (begin
-
      (define (str str)
        (lambda (starting-results)
          (let loop ((pos 0) (results starting-results))
@@ -108,5 +107,4 @@
    (comment*/ (((str "*/")) 'comment)
               (((skip comment*/)) 'comment))
 
-   (return (() 'empty))
-   ))
+   (return (() 'empty))))

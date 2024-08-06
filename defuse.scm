@@ -29,6 +29,27 @@
          (('equal ('deref-var v) rhs)
           (display (string-append v " == " rhs)))))
 
+(define (print-proc-lines p)
+  (let ((name (litc-proc-name p))
+        (lines (litc-proc-lines p)))
+    (for-each (lambda (line)
+                (print "  "
+                       (match line
+                              (('line str) str)
+                              (('local ('decl T V) ('line str))
+                               (string-append
+                                str " *" V "_" name " = " V ";")))))
+              lines)))
+
+(define (declare-read-var read)
+  (let-values (((T V vname) (apply values read)))
+    (print T " " vname ";")))
+
+(define (declare-arg-var arg)
+  (match arg
+         (('volatile T V) (print "volatile " T " " V ";"))
+         (('atomic T V) (print "atomic_" T " " V ";"))))
+
 (define (generate-c litc)
   ; print preamble in comment
   (when #t
@@ -61,22 +82,12 @@
 
       (newline)
       (print "/* shared variables */")
-      (for-each (lambda (arg)
-                  (match arg
-                         (('volatile T V) (print "volatile " T " " V ";"))
-                         (('atomic T V) (print "atomic_" T " " V ";"))))
-                args))
+      (for-each declare-arg-var args))
 
     ; create a variable for each read
     (newline)
     (print "/* variables to store per-proc reads */")
-    (for-each (lambda (p)
-                (for-each (lambda (read)
-                            (let-values (((T V vname) (apply values read)))
-                              (print
-                               T " " vname ";")))
-                          (litc-proc-reads p)))
-              procs)
+    (for-each declare-read-var (apply append (map litc-proc-reads procs)))
 
     ; create one function per proc and use the arguments as global variables
     ; the per-proc-read variables are passed as last arguments
@@ -98,23 +109,13 @@
                                     (map (lambda (read)
                                            (let-values (((T V vname)
                                                          (apply values read)))
-                                             `(volatile ,T ,V)))
+                                             `(volatile ,T ,vname)))
                                          (litc-proc-reads p))))
                          (args-str (map stringify-arg all-args)))
                     (print (string-join args-str ",\n"))
                     (display ") "))
 
-                  (let ((lines-str
-                         (map (lambda (line)
-                                (match line
-                                       (('line str) str)
-                                       (('local ('decl T V) ('line str) ('rest rst))
-                                        ; we want to replace the pattern "T var = ..."
-                                        ; with V_P = ...
-                                        (string-append
-                                         "*" V " = " rst))))
-                              (litc-proc-lines p))))
-                    (print (string-join lines-str "\n  ")))
+                  (print-proc-lines p)
                   (newline)))
               procs)
 

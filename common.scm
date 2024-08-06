@@ -104,6 +104,6 @@
             (map (lambda (line)
                    (match line
                           (('line str) #f)
-                          (('local ('decl T V) ('line str) ('rest rst))
+                          (('local ('decl T V) ('line str))
                            (list T V (string-append V "_" pname)))))
                  (litc-proc-lines p)))))

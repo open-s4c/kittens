@@ -121,6 +121,15 @@
                                           (zero? (cdr arg)))
                                      "]"
                                      (string-append ", " (cdr arg) "]"))))
+                               ((list? arg)
+                                (string-append
+                                 "["
+                                 (car arg)
+                                 (if (and (number? (cadr arg))
+                                          (zero? (cadr arg)))
+                                     "]"
+                                     (string-append ", " (cadr arg) "]"))
+                                 (if (= 2 (length arg)) "" (caddr arg))))
                                (else arg))
                          (if last "" ", ")))
                       args

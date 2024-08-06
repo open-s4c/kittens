@@ -8,6 +8,4 @@
   (include "lexer.scm")
   (include "expr.scm")
   (include "stmt.scm")
-  (include "model.scm")
-  (include "generator.scm")
-  (include "parser.scm"))
+  (include "model.scm"))

@@ -33,10 +33,6 @@
 (define parser/internal
   (packrat-parser
    (begin
-
-
-
-
      (define (token str)
        (lambda (starting-results)
          (let loop ((pos 0) (results starting-results))
@@ -131,7 +127,9 @@
      (argval ((arg <- argoff) arg)
              ((arg <- const-or-id) arg))
 
-     (argoff (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\])
+     (argoff (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\] '#\!)
+              (list arg off "!"))
+             (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\])
               (cons arg off))
              (( '#\[ arg <- const-or-id '#\])
               (cons arg 0)))

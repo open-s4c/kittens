@@ -18,7 +18,6 @@
   (print "pasm <litmus/C file> <objdump file>")
   (newline))
 
-
 (define (vars-of-proc p)
   (let* ((args (litc-proc-args p))
          (args (append args (litc-proc-reads p))))
@@ -60,7 +59,8 @@
       (print "## litc: \n" litc)
       (newline)
       (pretty-print "## dump: \n" dump)
-      (newline))
+      (newline)
+      (exit))
 
     (print "AArch64 " cfn)
     (print "{")

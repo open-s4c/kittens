@@ -1,17 +1,26 @@
 ; -*- scheme -*-
 
-(import (scheme base))
+(import (scheme base)
+        (rebottled packrat)
+        (kittens generator)
+        (kittens test))
 
+(include "expr.scm")
+(include "stmt.scm")
 (include "model.scm")
 
-(test-begin "model-parser")
+(test-begin "model")
 
-(let ()
-  (define g (generator
-             '((let) (id . hb) (=) (oparen) (set . A) (union) (set . B) (cparen) (cart) (set . C) (union) (rel . R))))
-
-  (define r (model-parser (base-generator->results g)))
+(let* ((g (token-generator
+           '((id . "TEST")
+             (let) (id . hb) (=) (oparen) (set . A) (union) (set . B)
+             (cparen) (cart) (set . C) (union) (rel . R))))
+       (r (model-parser (base-generator->results g))))
   (test-assert (parse-result-successful? r))
-  (test 10 (parse-result-semantic-value r)))
+  (test '(model (name "TEST")
+                ((let hb (union (cart (union (set . A) (set . B))
+                                      (set . C))
+                                (rel . R)))))
+        (parse-result-semantic-value r)))
 
 (test-end)

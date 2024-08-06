@@ -107,6 +107,4 @@
    (rel
     (((! preset) r <- 'id) (cons 'rel r))
     ((r <- 'rel) (cons 'rel r))
-    (('oparen a <- rels 'cparen) a))
-
-   ))
+    (('oparen a <- rels 'cparen) a))))
