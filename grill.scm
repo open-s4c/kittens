@@ -1,6 +1,6 @@
 #!/usr/bin/env -S chibi-scheme -I..
 
-(import (scheme small)
+(import (scheme base)
         (kittens command))
 
 (define (print-boilerplate)

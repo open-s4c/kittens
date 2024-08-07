@@ -5,12 +5,11 @@
           test-begin
           test-end
           test
-          test-assert
-          )
+          test-assert)
   (import (scheme base)
-          (chibi test)
-          (kittens debug)
-          (srfi 166))
+          (kittens test)
+          (kittens debug))
+
   (begin
     (define (code-append . lines)
       (apply string-append

@@ -1,6 +1,7 @@
 #!/usr/bin/env -S chibi-scheme -I..
 
-(import (scheme small)
+(import (scheme base)
+        (scheme cxr)
         (rename (kittens odump) (parser odump/parser))
         (rename (kittens litc) (parser litc/parser))
         (kittens match)

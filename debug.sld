@@ -4,8 +4,7 @@
 
   (import (scheme base)
           (scheme file)
-          (srfi 166)
-          (rebottled packrat))
+          (kittens packrat))
   (begin
 
     (define (pretty-print . xs)

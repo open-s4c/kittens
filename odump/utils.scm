@@ -6,19 +6,6 @@
              (string-append "no function with name '" name "'")))
     (car res)))
 
-(define (print-func func)
-  (display "--------------------------------\n")
-  (display "function ")
-  (display (car func))
-  (newline)
-  (newline)
-  (for-each (lambda (y)
-              (display y)
-              (newline))
-            (cadr func))
-  (newline))
-
-
 
 (define (seq n)
   (let loop ((i 0) (lst '()))

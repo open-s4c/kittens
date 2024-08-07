@@ -54,7 +54,7 @@
         (cond
           ((and ch (null? acc) (memv ch '(#\space #\tab #\newline)))
            (loop acc (parse-results-next results)))
-          ((and ch (null? acc) (char-ci=? start-char))
+          ((and ch (null? acc) (char-ci=? ch start-char))
            (loop (cons ch acc) (parse-results-next results)))
           ((and ch (char-ci=? ch end-char))
            (let* ((acc (reverse acc))

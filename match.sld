@@ -1,3 +1,5 @@
 (define-library (kittens match)
   (export match)
-  (import (chibi match)))
+  (cond-expand
+    (chicken (import matchable))
+    (else (import (chibi match)))))

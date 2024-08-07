@@ -4,7 +4,7 @@
           str-generator)
   (import (scheme base)
           (scheme file)
-          (rebottled packrat))
+          (kittens packrat))
   (begin
     (define (token-generator tokens)
       (let ((stream tokens))

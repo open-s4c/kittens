@@ -1,6 +1,7 @@
 #!/usr/bin/env -S chibi-scheme -I..
 
-(import (scheme small)
+(import (scheme base)
+        (scheme cxr)
         (kittens match)
         (kittens generator)
         (kittens litc)

@@ -2,3 +2,12 @@ deps/*
 asm-build*
 *.swo
 *.swp
+
+# chicken auto-generated files
+*.install.sh
+*.build.sh
+*.so
+*.static.o
+*.types
+*.link
+*.import.scm

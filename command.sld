@@ -1,6 +1,5 @@
 (define-library (kittens command)
-  (export pretty-print
-          print
+  (export print
           die-unless
           parse-or-die
           unique
@@ -14,16 +13,10 @@
 
   (import (scheme base)
           (scheme write)
-          (only (srfi 166) pretty show)
           (only (srfi 193) command-args)
           (only (srfi 130) string-join)
-          (rebottled packrat))
+          (kittens packrat))
   (begin
-    (define (pretty-print . xs)
-      (for-each (lambda (x)
-                  (show (current-output-port) (pretty x)))
-                xs))
-
     (define (print . xs)
       (for-each display xs)
       (newline))

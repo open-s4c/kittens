@@ -1,7 +1,7 @@
 ; -*- scheme -*-
 
 (import (scheme small)
-        (rebottled packrat)
+        (kittens packrat)
         (kittens generator)
         (kittens test))
 

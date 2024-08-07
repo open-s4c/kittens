@@ -4,7 +4,7 @@
   (import (scheme base)
           (scheme file)
           (scheme char)
-          (rebottled packrat))
+          (kittens packrat))
   (include "cat/lexer.scm")
   (include "cat/expr.scm")
   (include "cat/stmt.scm")

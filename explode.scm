@@ -1,13 +1,18 @@
 #!/usr/bin/env -S chibi-scheme -I..
 
-(import (scheme small)
-        (srfi 125) ; hash-table
-        (only (srfi 128) symbol-hash)
+(import (scheme base)
+        (scheme file)
+        (scheme cxr)
         (only (srfi 1) filter)
         (kittens cat)
         (kittens match)
         (kittens generator)
         (kittens command))
+
+(cond-expand ; hash-table
+  (chicken (import (srfi 69)))
+  (else (import (srfi 125)
+                (only (srfi 128) string-hash))))
 
 (define (tokenize-cat fn)
   (parse-or-die lexer (file-generator fn)))
@@ -35,7 +40,7 @@
     (list 'model (cadr model) (reverse (iter stmts '())))))
 
 (define (get-hash-table model)
-  (let ((ht (make-hash-table equal? symbol-hash 1024))
+  (let ((ht (make-hash-table equal? string-hash 1024))
         (stmts (caddr model)))
     (for-each (lambda (stmt)
                 (when (eq? 'let (car stmt))

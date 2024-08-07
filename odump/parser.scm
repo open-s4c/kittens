@@ -48,104 +48,104 @@
        (let loop ((acc '()) (results results))
          (let ((ch (parse-results-token-value results)))
            (cond
-             ((or (not ch) (memv ch '(\#[ #\] #\, #\: #\space #\newline #\tab #\< #\>)))
-                  (make-result (list->string (reverse acc)) results))
-              (else
-               (loop (cons ch acc) (parse-results-next results)))))))
+             ((or (not ch) (memv ch '(#\[ #\] #\, #\: #\space #\newline #\tab #\< #\>)))
+              (make-result (list->string (reverse acc)) results))
+             (else
+              (loop (cons ch acc) (parse-results-next results)))))))
 
-       (define (blank results)
-         (let ((ch (parse-results-token-value results)))
-           (cond ((and ch (memv ch '(#\space #\tab)))
-                  (blank (parse-results-next results)))
-                 ;((and ch (memv ch '(#\newline #\return)))
-                 ; (return results))
-                 (else (return results)))))
+     (define (blank results)
+       (let ((ch (parse-results-token-value results)))
+         (cond ((and ch (memv ch '(#\space #\tab)))
+                (blank (parse-results-next results)))
+               ;((and ch (memv ch '(#\newline #\return)))
+               ; (return results))
+               (else (return results)))))
 
-       (define (nl results)
-         (let ((ch (parse-results-token-value results)))
-           (cond
-             ((and ch (memv ch '(#\newline #\return)))
-              (return (parse-results-next results)))
-             (else (return results)))))
+     (define (nl results)
+       (let ((ch (parse-results-token-value results)))
+         (cond
+           ((and ch (memv ch '(#\newline #\return)))
+            (return (parse-results-next results)))
+           (else (return results)))))
 
-       (define (to-nl results)
-         (if (memv (parse-results-token-value results) '(#\newline #\return))
-             (blank results)
-             (to-nl (parse-results-next results))))
+     (define (to-nl results)
+       (if (memv (parse-results-token-value results) '(#\newline #\return))
+           (blank results)
+           (to-nl (parse-results-next results))))
 
-       prog)
+     prog)
 
-     (prog ((nothing preamble nothing
-                     distext nothing
-                     funcs <- functions)
-            funcs))
+   (prog ((nothing preamble nothing
+                   distext nothing
+                   funcs <- functions)
+          funcs))
 
-     (nothing ((blank nl nl nl nl) 'nothing)
-              ((blank nl nl) 'nothing)
-              ((blank nl) 'nothing)
-              ((nl nl nl) 'nothing)
-              ((nl nl) 'nothing)
-              ((nl) 'nothing))
+   (nothing ((blank nl nl nl nl) 'nothing)
+            ((blank nl nl) 'nothing)
+            ((blank nl) 'nothing)
+            ((nl nl nl) 'nothing)
+            ((nl nl) 'nothing)
+            ((nl) 'nothing))
 
-     (preamble ((file <- identifier '#\: blank identifier blank identifier blank fmt <- identifier)
-                (cons file fmt)))
-     (distext ((identifier blank identifier blank identifier blank .text <- identifier '#\:)
-               (unless (equal? .text ".text")
-                 (error "not at .text"))
-               'nothing))
+   (preamble ((file <- identifier '#\: blank identifier blank identifier blank fmt <- identifier)
+              (cons file fmt)))
+   (distext ((identifier blank identifier blank identifier blank .text <- identifier '#\:)
+             (unless (equal? .text ".text")
+               (error "not at .text"))
+             'nothing))
 
-     (functions ((func <- function nl nl funcs <- functions) (cons func funcs))
-                ((func <- function) (list func)))
+   (functions ((func <- function nl nl funcs <- functions) (cons func funcs))
+              ((func <- function) (list func)))
 
-     (function ((name <- fname lns <- lines) (list name lns)))
+   (function ((name <- fname lns <- lines) (list name lns)))
 
-     (fname ((identifier blank '#\< name <- identifier '#\> '#\: nl)
-             name))
+   (fname ((identifier blank '#\< name <- identifier '#\> '#\: nl)
+           name))
 
-     (lines ((ln <- line nl lns <- lines) (cons ln lns))
-            ((ln <- line) (list ln)))
+   (lines ((ln <- line nl lns <- lines) (cons ln lns))
+          ((ln <- line) (list ln)))
 
-     (line ((blank lab <- label blank
-                   code <- identifier blank
-                   mnm <- identifier blank
-                   args <- arglist)
-            (list lab mnm args))
-           ((blank lab <- label
-                   code <- identifier
-                   mnm <- identifier)
-            (list lab mnm))
-           )
+   (line ((blank lab <- label blank
+                 code <- identifier blank
+                 mnm <- identifier blank
+                 args <- arglist)
+          (list lab mnm args))
+         ((blank lab <- label
+                 code <- identifier
+                 mnm <- identifier)
+          (list lab mnm))
+         )
 
-     (arglist ((args <- arglist/ne) args)
-              (() '()))
-     (arglist/ne ((arg <- argval '#\, blank args <- arglist/ne) (cons arg args))
-                 ((arg <- argval blank '#\< identifier '#\> blank comment) (list arg))
-                 ((arg <- argval blank '#\< identifier '#\>) (list arg))
-                 ((arg <- argval blank comment) (list arg))
-                 ((arg <- argval) (list arg)))
+   (arglist ((args <- arglist/ne) args)
+            (() '()))
+   (arglist/ne ((arg <- argval '#\, blank args <- arglist/ne) (cons arg args))
+               ((arg <- argval blank '#\< identifier '#\> blank comment) (list arg))
+               ((arg <- argval blank '#\< identifier '#\>) (list arg))
+               ((arg <- argval blank comment) (list arg))
+               ((arg <- argval) (list arg)))
 
-     (argval ((arg <- argoff) arg)
-             ((arg <- const-or-id) arg))
+   (argval ((arg <- argoff) arg)
+           ((arg <- const-or-id) arg))
 
-     (argoff (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\] '#\!)
-              (list arg off "!"))
-             (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\])
-              (cons arg off))
-             (( '#\[ arg <- const-or-id '#\])
-              (cons arg 0)))
+   (argoff (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\] '#\!)
+            (list arg off "!"))
+           (( '#\[ arg <- const-or-id '#\, blank off <- const-or-id '#\])
+            (cons arg off))
+           (( '#\[ arg <- const-or-id '#\])
+            (cons arg 0)))
 
-     (const-or-id (('#\# '#\0 '#\x x <- identifier)
-                   (let ((hex (string->number (string-append "#x" x) 16)))
-                     (string-append "#" (number->string hex))))
-                  ((x <- identifier) x))
+   (const-or-id (('#\# '#\0 '#\x x <- identifier)
+                 (let ((hex (string->number (string-append "#x" x) 16)))
+                   (string-append "#" (number->string hex))))
+                ((x <- identifier) x))
 
 
-     (label ((lab <- identifier '#\:) lab))
+   (label ((lab <- identifier '#\:) lab))
 
-     (comment (((token "//") b <- to-nl) b)
-              (() 'whitespace))
+   (comment (((token "//") b <- to-nl) b)
+            (() 'whitespace))
 
-     (return (() 'empty))
-     ))
+   (return (() 'empty))
+   ))
 
-  (define parser (new-reader parser/internal))
+(define parser (new-reader parser/internal))
