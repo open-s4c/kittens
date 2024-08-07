@@ -1,0 +1,57 @@
+((synopsis "Kittens test case generator")
+ (version "0.1")
+ (category misc)
+
+ (author "Huawei Dresden Research Center")
+ (license "MIT")
+
+ (dependencies packrat
+               srfi-69
+               srfi-193)
+
+ (component-options
+  (csc-options "-d1" "-O3" "-X" "r7rs" "-R" "r7rs"))
+
+ (components
+  (program defuse
+           (source "defuse.scm")
+           (csc-options "-d0" "-static"))
+  (program pasm
+           (source "pasm.scm")
+           (csc-options "-d0" "-static"))
+  (program grill
+           (source "grill.scm")
+           (csc-options "-d0" "-static"))
+  (program explode
+           (source "explode.scm")
+           (csc-options "-d0" "-static"))
+  (extension kittens.packrat
+             (source "packrat.sld")
+             (types-file))
+  (extension kittens.generator
+             (source "generator.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.command
+             (source "command.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.match
+             (source "match.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.cat
+             (source "cat.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.litc
+             (source "litc.sld")
+             (types-file)
+             (component-dependencies kittens.packrat
+                                     kittens.match))
+  (extension kittens.odump
+             (source "odump.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  ))
+
