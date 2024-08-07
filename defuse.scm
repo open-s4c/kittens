@@ -1,16 +1,10 @@
-#!/usr/bin/env -S chibi-scheme -I.
+#!/usr/bin/env -S chibi-scheme -I..
 
 (import (scheme small)
-        (srfi 193) ; command-args
-        (srfi 166) ; formatting
-        (srfi 125) ; hash tables
-        (only (chibi string) string-join)
-        (only (srfi 1) filter)
-        (chibi match)
-        (rebottled packrat)
-        (defuse parser))
-
-(include "common.scm")
+        (kittens match)
+        (kittens generator)
+        (kittens litc)
+        (kittens command))
 
 (define (usage)
   (print "defuse <c-litmus file>")

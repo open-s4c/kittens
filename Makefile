@@ -4,5 +4,5 @@ include Makefile.test
 
 test-subdirs:
 	make -C cat test
-	make -C defuse test
+	make -C litc test
 	make -C pasm test

@@ -1,29 +1,7 @@
-#!/usr/bin/env chibi-scheme
+#!/usr/bin/env -S chibi-scheme -I..
 
 (import (scheme small)
-        (srfi 193) ; command-args
-        (srfi 166)
-        (rebottled packrat)
-        (cat parser))
-
-(define (pretty-print x)
-  (show (current-output-port) (pretty x)))
-
-(define (print . xs)
-  (for-each display xs)
-  (newline))
-
-(define-syntax die-unless
-  (syntax-rules ()
-    ((_ cnd msg)
-     (unless cnd
-       (print "<kittens> <model file> <cycle length>")
-       (newline)
-       (error 'argument-error msg 'cnd)))))
-
-(define (seq n)
-  (let loop ((i 0) (lst '()))
-    (if (= i n) lst (loop (+ i 1) (cons (- n i 1) lst)))))
+        (kittens command))
 
 (define (print-boilerplate)
   (with-input-from-file

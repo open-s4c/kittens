@@ -1,18 +1,11 @@
-#!/usr/bin/env -S chibi-scheme -I.
+#!/usr/bin/env -S chibi-scheme -I..
 
 (import (scheme small)
-        (scheme write)
-        (srfi 193) ; command-args
-        (only (srfi 1) filter)
-        (chibi match)
-        (srfi 166) ; pretty-print
-        (prefix (pasm parser) odump/)
-        (prefix (defuse parser) defuse/)
-        (rebottled packrat)
-        (pasm utils))
-
-(include "cat/generator.scm")
-(include "common.scm")
+        (rename (kittens odump) (parser odump/parser))
+        (rename (kittens litc) (parser litc/parser))
+        (kittens match)
+        (kittens generator)
+        (kittens command))
 
 (define (usage)
   (print "pasm <litmus/C file> <objdump file>")
@@ -49,7 +42,7 @@
          (dfn (cadr args))
          (cgen (file-generator cfn))
          (dport (open-input-file dfn))
-         (litc (make-litc (parse-or-die defuse/parser cgen)))
+         (litc (make-litc (parse-or-die litc/parser cgen)))
          (dump (odump/parser dport)))
 
     ;(print "litmus/C file: " cfn)

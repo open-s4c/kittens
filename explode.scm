@@ -1,30 +1,19 @@
-#!/usr/bin/env chibi-scheme
+#!/usr/bin/env -S chibi-scheme -I..
 
 (import (scheme small)
-        (srfi 193) ; command-args
-        (srfi 166)
-	(srfi 125) ; hash-table
-	(srfi 128) ; symbol-hash
-	(srfi 1)
-        (rebottled packrat)
-	(chibi match)
-        (cat parser))
+        (srfi 125) ; hash-table
+        (only (srfi 128) symbol-hash)
+        (only (srfi 1) filter)
+        (kittens cat)
+        (kittens match)
+        (kittens generator)
+        (kittens command))
 
-(define (pretty-print x)
-  (show (current-output-port) (pretty x)))
+(define (tokenize-cat fn)
+  (parse-or-die lexer (file-generator fn)))
 
-(define (print . xs)
-  (for-each display xs)
-  (newline))
-
-(define-syntax die-unless
-  (syntax-rules ()
-    ((_ cnd msg)
-     (unless cnd
-       (print "<kittens> <model file> <cycle length>")
-       (newline)
-       (error 'argument-error msg 'cnd)))))
-
+(define (parse-cat tokens)
+  (parse-or-die model-parser (token-generator tokens)))
 
 (define (include-files model)
   (let ((stmts (caddr model)))
@@ -41,58 +30,53 @@
                       (iter rest (append istmts nstmts)))
                     (begin
                       (print "WARNING: cannot include '" (cadr stmt) "'")
-                      (iter rest nstmts))
-		)
-                (iter rest (cons stmt nstmts))
-	    )
-          )
-    )
-  )
+                      (iter rest nstmts)))
+                (iter rest (cons stmt nstmts))))))
     (list 'model (cadr model) (reverse (iter stmts '())))))
-        
+
 (define (get-hash-table model)
   (let ((ht (make-hash-table equal? symbol-hash 1024))
         (stmts (caddr model)))
-        (for-each (lambda (stmt)
-          (when (eq? 'let (car stmt)) 
+    (for-each (lambda (stmt)
+                (when (eq? 'let (car stmt))
 
-      (let ((label (cadr stmt))
-            (expr (caddr stmt)))
-	   (hash-table-set! ht label expr)))) 
-        stmts)
-      ht))
+                  (let ((label (cadr stmt))
+                        (expr (caddr stmt)))
+                    (hash-table-set! ht label expr))))
+              stmts)
+    ht))
 
 (define (explode-expr expr ht)
   (define (explode expr)
     (match expr
            (('union . exprs) (apply append (map explode exprs)))
-            (('rel . label) (if (hash-table-exists? ht label)
-	                       (explode (hash-table-ref ht label))
-			       (list expr)))
-            (else `(,expr))
-))
+           (('rel . label) (if (hash-table-exists? ht label)
+                               (explode (hash-table-ref ht label))
+                               (list expr)))
+           (else `(,expr))
+           ))
   (explode expr))
 
-(define (explode-accs model ht)                                  
+(define (explode-accs model ht)
   (let* ((stmts (caddr model))
          (accs (filter (lambda (x) (eq? (car x) 'acyclic)) stmts)))
     (apply append (map (lambda (acc) (explode-expr (cadr acc) ht)) accs))))
 
 (define (dfs edges path d)
-  (if (eq? d 0) 
-    (list path)
-    (apply append (map (lambda (edge) 
-	(dfs edges (append path (list (cdr edge))) (- d 1))
-    ) edges))))
+  (if (eq? d 0)
+      (list path)
+      (apply append (map (lambda (edge)
+                           (dfs edges (append path (list (cdr edge))) (- d 1))
+                           ) edges))))
 
 (define (cycles-print cycles)
   (define (print-plus cycle)
     (display cycle)
     (display " ")
-  )
- (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el)) cycle) (newline)) cycles))
+    )
+  (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el)) cycle) (newline)) cycles))
 
-(define (main args)  
+(define (main args)
   (die-unless (= (length args) 2) "wrong arguments")
 
   ; car , cdr
@@ -115,13 +99,10 @@
       ;(newline)
       (let* ((model (parse-cat tokens))
              (model (include-files model))
-	     (ht (get-hash-table model)))	
-        (let* ((edges (explode-accs model ht))
-	      (cycles (dfs edges '() len)))
-	    (cycles-print cycles) 
-	)
-
-        )))
+             (ht (get-hash-table model))
+             (edges (explode-accs model ht))
+             (cycles (dfs edges '() len)))
+        (cycles-print cycles))))
   0)
 
 (main (command-args))
