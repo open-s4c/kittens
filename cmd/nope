@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+DIR=$(dirname "$0")
+CROSS_COMPILE=aarch64-linux-gnu-
+GCC="${CROSS_COMPILE}gcc"
+OBJDUMP="${CROSS_COMPILE}objdump"
+
+$DIR/defuse.scm "$1" > /tmp/nope.c
+$GCC -O3 -c -o /tmp/nope.o /tmp/nope.c 2>/dev/null
+$OBJDUMP -S /tmp/nope.o > /tmp/nope.dump
+$DIR/pasm.scm "$1" /tmp/nope.dump
