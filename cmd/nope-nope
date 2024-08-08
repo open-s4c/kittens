@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+INPUT_DIR="$1"
+DIR=$(dirname "$0")
+
+for f in $INPUT_DIR/*.litmus; do
+    echo
+    echo "$f"
+    $DIR/nope $f > /tmp/nope.litmus
+    $DIR/dat3m -cat models/aarch64.cat /tmp/nope.litmus
+ done

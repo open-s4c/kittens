@@ -1,0 +1,58 @@
+#!/bin/bash
+set -e
+
+jar=${DAT3M_HOME}/dartagnan/target/dartagnan.jar
+
+args=""
+
+while (($#)); do
+    #echo ">> $@"
+    case "$1" in
+        -cat)
+            shift
+            cat="$1"
+            shift
+        ;;
+        *-target)
+            shift
+            target="$1"
+            shift
+        ;;
+        *-property)
+            shift
+            property="$1"
+            shift
+        ;;
+        *)
+            args="${args} $1"
+            shift
+        ;;
+    esac
+done
+
+if [ -z "${cat}" ]; then
+    echo "error: no cat file specified"
+    exit 1
+fi
+
+if [ -z "${target}" ] && [ ! -z "$(echo $cat | grep aarch64)" ] ; then
+    target="arm8"
+fi
+
+if [ -z "${target}" ]; then
+    echo "error: no target specified"
+    exit 1
+fi
+
+if [ -z "${property}" ]; then
+    property="program_spec"
+fi
+
+cmd="java -jar ${jar}"
+cmd="${cmd} ${cat}"
+cmd="${cmd} --target=${target}"
+cmd="${cmd} --property=${property}"
+cmd="${cmd} ${args}"
+
+echo "# ${cmd}"
+exec ${cmd}
