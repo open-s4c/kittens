@@ -14,8 +14,8 @@
          ((x <- arg '#\, xs <- args) (cons x xs))
          ((x <- arg '#\)) (list x)))
 
-   (arg (((str "volatile") T <- c-id '#\* n <- c-id) `(volatile ,T ,n))
-        (((str "atomic_") T <- c-id '#\* n <- c-id) `(atomic ,T ,n))
+   (arg (((str "volatile") T <- c-id (str "*") n <- c-id) `(volatile ,T ,n))
+        (((str "atomic_") T <- c-id (str "*") n <- c-id) `(atomic ,T ,n))
         ((T <- c-id '#\* n <- c-id) `(volatile ,T ,n)))))
 
 (define code-parser

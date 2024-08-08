@@ -29,8 +29,12 @@
    (test '(args (volatile "int" "y") (volatile "long" "x"))
          (parse-result-semantic-value r)))
 
-
  (let ((r (args-parse "(volatile int* y, atomic_long* x)")))
+   (test-assert (parse-result-successful? r))
+   (test '(args (volatile "int" "y") (atomic "long" "x"))
+         (parse-result-semantic-value r)))
+
+ (let ((r (args-parse "(volatile int * y, atomic_long *x)")))
    (test-assert (parse-result-successful? r))
    (test '(args (volatile "int" "y") (atomic "long" "x"))
          (parse-result-semantic-value r))))
