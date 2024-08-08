@@ -2,12 +2,14 @@
 ; such as:
 ;     exists (0:r0=0 /\ 1:r0=0)
 ;     exists ([x]=2 /\ 1:r2=1)
+;     exists (x=2 /\ 1:r2=1)
 
 (define var-parser
   (packrat-parser
    var
    (var ((p <- c-id '#\: x <- c-id) `(read-var ,(string->number p) ,x))
-        (('#\[ x <- c-id '#\]) `(deref-var ,x)))))
+        (('#\[ x <- c-id '#\]) `(deref-var ,x))
+        ((x <- c-id) `(deref-var ,x)))))
 
 (define equal-parser
   (packrat-parser
