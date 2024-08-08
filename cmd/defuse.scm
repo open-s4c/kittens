@@ -82,6 +82,18 @@
     (print "  }")
     (newline)))
 
+(define (unique-arg lst)
+  (define (var-name var)
+    (caddr var))
+  (define (iter lst out)
+    (if (null? lst)
+        out
+        (let ((names (map var-name out)))
+          (if (member (var-name (car lst)) names)
+              (iter (cdr lst) out)
+              (iter (cdr lst) (cons (car lst) out))))))
+  (iter lst '()))
+
 (define (generate-c litc)
   ; print preamble in comment
   (when #t
@@ -110,7 +122,7 @@
     ; collect all arguments and create variables for the arguments
     (let* ((args (map litc-proc-args procs))   ; take args of each proc
            (args (apply append args)) ; combine all args
-           (args (unique args)))      ; remove duplicates
+           (args (unique-arg args)))      ; remove duplicates
 
       (newline)
       (print "/* shared variables */")
