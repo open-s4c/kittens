@@ -2,7 +2,32 @@
 
 (import (scheme base)
         (scheme file)
-        (kittens command))
+        (kittens command)
+	(scheme small)
+        (srfi 193) ; command-args
+        (srfi 166)
+	(srfi 1)   ; filter
+        (rebottled packrat)
+        (cat parser))
+
+(define (pretty-print x)
+  (show (current-output-port) (pretty x)))
+
+(define (print . xs)
+  (for-each display xs)
+  (newline))
+
+(define-syntax die-unless
+  (syntax-rules ()
+    ((_ cnd msg)
+     (unless cnd
+       (print "<kittens> <model file> <cycle length>")
+       (newline)
+       (error 'argument-error msg 'cnd)))))
+
+(define (seq n)
+  (let loop ((i 0) (lst '()))
+    (if (= i n) lst (loop (+ i 1) (cons (- n i 1) lst)))))
 
 (define (print-boilerplate)
   (with-input-from-file
@@ -27,28 +52,68 @@
     (string->symbol
      (string-append str (number->string n)))))
 
+(define (find-indices lst target)
+  (let loop ((lst lst) (index 0) (indices '()))
+    (cond
+      ((null? lst) (reverse indices))
+        ((equal? (car lst) target)
+        (loop (cdr lst) (+ index 1) (cons index indices)))
+	(else (loop (cdr lst) (+ index 1) indices)))))
+
 (define (generate rels)
   (let* ((rels (map string->symbol rels))
          (nedges (length rels))
-         (nnums (seq nedges))
-         (event->symbol (string/n->symbol "ev"))
-         (edge->symbol (string/n->symbol "ed")))
-    (append
+         (nnums (seq nedges)) 
+	 (fr-rels (find-indices rels 'fr))
+	 (nfredges (length fr-rels))
+         
+	 (event->symbol (string/n->symbol "ev"))
+         (event-fr->symbol (string/n->symbol "evfr"))
+	 (edge->symbol (string/n->symbol "ed"))
+	 (edge-fr->symbol (string/n->symbol "edfr")))
+    ;(print rels)
+    ;(print nedges)
+    ;(print nnums)
+    
+    ;(print fr-rels)
 
+    ;(print (filter (lambda (ed) (eq? ed 'fr)) rels))
+
+    (append
      ; event declarations
      (map (lambda (e) `(declare-const ,e Event))
           (map event->symbol nnums))
 
+     ; event from fr declarations
+     (map (lambda (e) `(declare-const ,e Event))
+	  (map event-fr->symbol fr-rels))
+
      ; edge declarations
      (map (lambda (e) `(declare-const ,e Edge))
           (map edge->symbol nnums))
-
-     ; help tids and addresses to look reasonable
+      
+     ; edge declarations from fr decomp
+     (map (lambda (e) `(declare-const ,e Edge))
+          (map edge-fr->symbol fr-rels))
+     
+     (map (lambda (e) `(declare-const ,e Edge))
+          (map edge-fr->symbol 
+	    (map (lambda (j) (modulo (+ j 1) nedges)) fr-rels)))
+                                   
+     ; force event fields to look reasonable
      (map (lambda (e) `(assert (and (>= (tid ,e) 0)
-                                    (< (tid ,e) ,nedges)
-                                    (>= (addr ,e) 100)
-                                    (< (addr ,e) ,(+ 100 nedges)))))
-          (map event->symbol nnums))
+                                    (< (tid ,e) ,(+ (length fr-rels) nedges))
+				    (>= (corder ,e) 300)
+                                    (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))             
+				    (>= (porder ,e) 200)
+                                    (< (porder ,e) ,(+ 200 (+ (length fr-rels) nedges)))
+				    (>= (val ,e) 10)
+                                    (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))
+				    (>= (addr ,e) 100)
+                                    (< (addr ,e) ,(+ 100 (+ (length fr-rels) nedges))))))
+          (append 
+	    (map event->symbol nnums) 
+	    (map event-fr->symbol fr-rels)))
 
      ; enforce event ids
      (map (lambda (e id)
@@ -56,12 +121,31 @@
           (map event->symbol nnums)
           nnums)
 
-     ; assertions to force smt to find a solution
-     (let ((equalis (map (lambda (edge) `(= e ,edge))
-                         (map edge->symbol nnums))))
+     (map (lambda (e)  
+	    `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
+	                  (>= (eid ,e) 0)))) 
+          (map event-fr->symbol fr-rels)
+     )
+
+     ; assertions to stop smt from creating edges
+     ; without inSet the solver will create edges to make the latter forall assertions fail
+     (let* ((equalis (map (lambda (edge) `(= e ,edge))
+                         (map edge->symbol nnums)))
+
+            (equalis-fr (map (lambda (edge) `(= e ,edge))
+                         (map edge-fr->symbol (apply append (map (lambda (x) `(,x ,(modulo (+ x 1) nedges))) fr-rels))))))
        `((assert (forall ((e Edge))
-                         (= (inSet e)
-                            (or ,@equalis))))))
+                         (= (inEdgeSet e)
+                            (or ,@equalis ,@equalis-fr))))))
+
+     (let* ((equalis (map (lambda (event) `(= e ,event))
+			(map event->symbol nnums))) 
+
+	   (equalis-fr (map (lambda (event) `(= e ,event))
+                         (map event-fr->symbol fr-rels))))
+       `((assert (forall ((e Event))
+                         (= (inEventSet e)
+                            (or ,@equalis ,@equalis-fr))))))
 
      ; assert relations
      (map (lambda (rel i)
@@ -71,8 +155,24 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           rels
           nnums)
-
-
+     ;(print rels)
+     ;(print nnums)
+     (map (lambda (rel i)
+            (let ((edge (edge-fr->symbol (modulo (+ 1 i) nedges)))
+                  (ev/i (event-fr->symbol i))
+                  (ev/j (event->symbol (modulo (+ 1 i) nedges))))
+              `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
+          (map (lambda (x) 'co) fr-rels)
+          fr-rels)
+     
+     (map (lambda (rel i)
+            (let ((edge (edge-fr->symbol i))
+                  (ev/i (event-fr->symbol i))
+                  (ev/j (event->symbol (modulo i nedges))))
+              `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
+          (map (lambda (x) 'rf) fr-rels)
+          fr-rels)
+     
      )))
 
 (define (main args)
@@ -84,7 +184,8 @@
                 (display e)
                 (newline))
               edges)
-    (print-epilogue))
+    (print-epilogue)
+    )
 
   0)
 

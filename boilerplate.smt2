@@ -25,7 +25,8 @@
                 (trg Event)
                 (rel Relation))))
 
-(declare-fun inSet (Edge) Bool)
+(declare-fun inEdgeSet (Edge) Bool)
+(declare-fun inEventSet (Event) Bool)
 
 ; -----------------------------------------------------------------------------
 ; Define relations
@@ -33,33 +34,43 @@
 
 ; Constraints for po
 (assert (forall ((e Edge))
-                (=> (and (= (rel e) (as po Relation)) (inSet e))
+                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
                     (and (< (porder (src e)) (porder (trg e)))
-                         (= (tid (src e)) (tid (trg e)))))))
+                         (not (= (addr (src e)) (addr (trg e))))
+			 (= (tid (src e)) (tid (trg e)))))))
+
 ; Constraints for rf
 (assert (forall ((e Edge))
-                (=> (and (= (rel e) (as rf Relation)) (inSet e))
+                (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
                     (and (= (op (src e)) (as write Operation))
                          (= (op (trg e)) (as read Operation))
                          (= (addr (src e)) (addr (trg e)))
 			 (= (val (src e)) (val (trg e)))))))
 
-; Constraints for fr
-(assert (forall ((e Edge))
-                (=> (and (= (rel e) (as fr Relation)) (inSet e))
-                    (and (= (op (src e)) (as read Operation))
-                         (= (op (trg e)) (as write Operation))
-                         (< (corder (src e)) (corder (trg e)))
-			 (= (addr (src e)) (addr (trg e)))
-			 (not (= (val (src e)) (val (trg e))))))))
-
 ; Constraints for co
 (assert (forall ((e Edge))
-                (=> (and (= (rel e) (as co Relation)) (inSet e))
+                (=> (and (= (rel e) (as co Relation)) (inEdgeSet e))
                     (and (= (addr (src e)) (addr (trg e)))
                          (< (corder (src e)) (corder (trg e)))
 			 (= (op (src e)) (as write Operation))
                          (= (op (trg e)) (as write Operation))))))
+
+(assert (forall ((e1 Edge) (e2 Edge))
+		(=> (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
+		         (= (rel e2) (as rf Relation)) (inEdgeSet e2)
+			 (= (eid (trg e1)) (eid (trg e2))))
+		    (= (eid (src e1)) (eid (src e2))))))
+
+(assert (forall ((e1 Event) (e2 Event)) 
+		(=> (and (= (eid e1) (eid e2))
+		         (inEventSet e1)
+			 (inEventSet e2))
+		    (and (= (tid e1) (tid e2))
+			 (= (corder e1) (corder e2))
+			 (= (porder e1) (porder e2))
+			 (= (addr e1) (addr e2))
+			 (= (val e1) (val e2))
+			 (= (op e1) (op e2))))))
 
 ; -----------------------------------------------------------------------------
 ; definition of events and edges
