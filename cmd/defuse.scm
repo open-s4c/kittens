@@ -24,6 +24,18 @@
          (('equal ('deref-var v) rhs)
           (display (string-append v " == " rhs)))))
 
+
+
+(define (print-read-declare p)
+  (let ((name (litc-proc-name p))
+        (lines (litc-proc-lines p)))
+    (for-each (lambda (line)
+                (match line
+                       (('line str) str)
+                       (('local ('decl T V _) _)
+                        (print "    " T " " V ";"))))
+              lines)))
+
 (define (print-proc-lines p)
   (let* ((name (litc-proc-name p))
          (lines (litc-proc-lines p))
@@ -34,7 +46,8 @@
                   (print "    "
                          (match line
                                 (('line str) str)
-                                (('local ('decl T V) ('line str)) str)))))
+                                (('local ('decl T V rhs) _)
+                                 (string-append V " = " rhs))))))
               lines
               (seq (length lines)))))
 
@@ -44,7 +57,7 @@
     (for-each (lambda (line)
                 (match line
                        (('line str) str)
-                       (('local ('decl T V) ('line str))
+                       (('local ('decl T V _) _)
                         (print "    *" V "_" name " = " V ";"))))
               lines)))
 
@@ -77,6 +90,7 @@
          (args-str (map stringify-arg all-args)))
     (print (string-join args-str ",\n"))
     (print") {")
+    (print-read-declare p)
     (print-proc-lines p)
     (print-read-lines p)
     (print "  }")

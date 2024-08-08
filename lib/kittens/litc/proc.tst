@@ -49,14 +49,14 @@
  (let* ((input (code-append "int x = 1;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
-   (test '(code (local (decl "int" "x") (line "int x = 1;")))
+   (test '(code (local (decl "int" "x" "1;") (line "int x = 1;")))
          (parse-result-semantic-value r)))
 
  (let* ((input (code-append "int x = 1;"
                             "y = x;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
-   (test '(code (local (decl "int" "x") (line "int x = 1;"))
+   (test '(code (local (decl "int" "x" "1;") (line "int x = 1;"))
                 (line "y = x;"))
          (parse-result-semantic-value r)))
 
@@ -64,7 +64,7 @@
                             "	y = x;"))
         (r (code-parse input)))
    (test-assert (parse-result-successful? r))
-   (test '(code (local (decl "int" "x") (line "int x = 1;"))
+   (test '(code (local (decl "int" "x" "1;") (line "int x = 1;"))
                 (line "y = x;"))
          (parse-result-semantic-value r))))
 
@@ -82,7 +82,7 @@
                 (args (volatile "int" "y")
                       (volatile "int" "x"))
                 (code (line "{")
-                      (local (decl "int" "r0")
+                      (local (decl "int" "r0" "*x;")
                              (line "int r0 = *x;"))
                       (line "*y = 1;")
                       (line "}")))
@@ -102,7 +102,7 @@
                 (args (volatile "int" "y")
                       (atomic "int" "x"))
                 (code (line "{")
-                      (local (decl "int" "r0")
+                      (local (decl "int" "r0" "*x;")
                              (line "int r0 = *x;"))
                       (line "if (r0 == 0) {")
                       (line "do();")

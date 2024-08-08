@@ -30,10 +30,10 @@
    (line
     ; line with a variable declaration
     ((T <- c-id v <- c-id (str "=") '#\space
-        rest <- (string-upto-char #\newline))
-     (let* ((linestr (string-append T " " v " = " rest))
+        rhs <- (string-upto-char #\newline))
+     (let* ((linestr (string-append T " " v " = " rhs))
             (ln `(line ,linestr))
-            (dl `(decl ,T ,v)))
+            (dl `(decl ,T ,v ,rhs)))
        `(local ,dl ,ln)))
 
     ; any other kind of line
