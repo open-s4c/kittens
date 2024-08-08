@@ -7,50 +7,59 @@
 
  (dependencies packrat
                srfi-69
+               ;srfi-95 ; sort
+               ;srfi-128 ; required by srfi-113
+               ;srfi-113 ; sets
                srfi-193)
 
  (component-options
   (csc-options "-d1" "-O3" "-X" "r7rs" "-R" "r7rs"))
 
  (components
-  (program defuse
-           (source "defuse.scm")
-           (csc-options "-d0" "-static"))
-  (program pasm
-           (source "pasm.scm")
+
+  ; Programs
+  (program explode
+           (source "cmd/explode.scm")
            (csc-options "-d0" "-static"))
   (program grill
-           (source "grill.scm")
+           (source "cmd/grill.scm")
            (csc-options "-d0" "-static"))
-  (program explode
-           (source "explode.scm")
+  #;(program roast
+             (source "cmd/roast.scm")
+             (csc-options "-d0" "-static"))
+  (program defuse
+           (source "cmd/defuse.scm")
            (csc-options "-d0" "-static"))
+  (program pasm
+           (source "cmd/pasm.scm")
+           (csc-options "-d0" "-static"))
+
+  ; Extensions
   (extension kittens.packrat
-             (source "packrat.sld")
+             (source "lib/kittens/packrat.sld")
              (types-file))
   (extension kittens.generator
-             (source "generator.sld")
+             (source "lib/kittens/generator.sld")
              (types-file)
              (component-dependencies kittens.packrat))
   (extension kittens.command
-             (source "command.sld")
+             (source "lib/kittens/command.sld")
              (types-file)
              (component-dependencies kittens.packrat))
   (extension kittens.match
-             (source "match.sld")
+             (source "lib/kittens/match.sld")
              (types-file)
              (component-dependencies kittens.packrat))
   (extension kittens.cat
-             (source "cat.sld")
+             (source "lib/kittens/cat.sld")
              (types-file)
              (component-dependencies kittens.packrat))
   (extension kittens.litc
-             (source "litc.sld")
+             (source "lib/kittens/litc.sld")
              (types-file)
-             (component-dependencies kittens.packrat
-                                     kittens.match))
+             (component-dependencies kittens.packrat kittens.match))
   (extension kittens.odump
-             (source "odump.sld")
+             (source "lib/kittens/odump.sld")
              (types-file)
              (component-dependencies kittens.packrat))
   ))

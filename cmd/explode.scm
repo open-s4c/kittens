@@ -1,4 +1,4 @@
-#!/usr/bin/env -S chibi-scheme -I..
+#!/usr/bin/env -S chibi-scheme -Ilib -Ivendor
 
 (import (scheme base)
         (scheme file)

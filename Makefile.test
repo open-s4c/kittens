@@ -1,8 +1,11 @@
 TSTS = $(wildcard *.tst)
-SCM  = chibi-scheme -I ../.. -I ..
+SCM  = chibi-scheme -I $(ROOTDIR)/lib -I $(ROOTDIR)/vendor
 
-test: $(TSTS:.tst=.log)
+.PHONY: test test-local
+test: test-local
+
+test-local: $(TSTS:.tst=.log)
 
 %.log: %.tst
-	@echo [TEST] $<
+	@echo [TEST] running $<
 	@$(SCM) $<

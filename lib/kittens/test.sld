@@ -7,8 +7,10 @@
           test
           test-assert)
   (import (scheme base)
-          (kittens test)
           (kittens debug))
+  (cond-expand
+    (chicken (import (srfi 64)))
+    (else (import (chibi test))))
 
   (begin
     (define (code-append . lines)

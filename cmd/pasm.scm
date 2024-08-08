@@ -1,6 +1,7 @@
-#!/usr/bin/env -S chibi-scheme -I..
+#!/usr/bin/env -S chibi-scheme -Ilib -Ivendor
 
 (import (scheme base)
+        (scheme file)
         (scheme cxr)
         (rename (kittens odump) (parser odump/parser))
         (rename (kittens litc) (parser litc/parser))
@@ -52,9 +53,8 @@
       (newline)
       (print "## litc: \n" litc)
       (newline)
-      (pretty-print "## dump: \n" dump)
-      (newline)
-      (exit))
+      (print "## dump: \n" dump)
+      (newline))
 
     (print "AArch64 " cfn)
     (print "{")

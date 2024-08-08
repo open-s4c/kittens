@@ -5,6 +5,10 @@
   (import (scheme base)
           (scheme file)
           (kittens packrat))
+  (cond-expand
+    (chicken (import (srfi 48)))
+    (else (import (chibi show)
+                  (chibi show pretty))))
   (begin
 
     (define (pretty-print . xs)

@@ -1,8 +1,5 @@
-test-all: test test-subdirs
+ROOTDIR = $(CURDIR)
+include $(ROOTDIR)/Makefile.test
 
-include Makefile.test
-
-test-subdirs:
-	make -C cat test
-	make -C litc test
-	make -C odump test
+test:
+	@$(MAKE) -C lib test
