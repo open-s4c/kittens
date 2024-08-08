@@ -25,15 +25,27 @@
           (display (string-append v " == " rhs)))))
 
 (define (print-proc-lines p)
+  (let* ((name (litc-proc-name p))
+         (lines (litc-proc-lines p))
+         (L (- (length lines) 1)))
+    (for-each (lambda (line i)
+                (unless (or (and (= i 0) (equal? line '(line "{")))
+                            (and (= i L) (equal? line '(line "}"))))
+                  (print "    "
+                         (match line
+                                (('line str) str)
+                                (('local ('decl T V) ('line str)) str)))))
+              lines
+              (seq (length lines)))))
+
+(define (print-read-lines p)
   (let ((name (litc-proc-name p))
         (lines (litc-proc-lines p)))
     (for-each (lambda (line)
-                (print "  "
-                       (match line
-                              (('line str) str)
-                              (('local ('decl T V) ('line str))
-                               (string-append
-                                str " *" V "_" name " = " V ";")))))
+                (match line
+                       (('line str) str)
+                       (('local ('decl T V) ('line str))
+                        (print "    *" V "_" name " = " V ";"))))
               lines)))
 
 (define (declare-read-var read)
@@ -44,6 +56,31 @@
   (match arg
          (('volatile T V) (print "volatile " T " " V ";"))
          (('atomic T V) (print "atomic_" T " " V ";"))))
+
+(define (define-proc-function p)
+  (print "void " (litc-proc-name p) " (")
+
+  (let* ((stringify-arg
+          (lambda (arg)
+            (match arg
+                   (('volatile T V)
+                    (string-append "  volatile " T "* " V))
+                   (('atomic T V)
+                    (string-append "  atomic_" T "* " V)))))
+         (all-args (append
+                    (litc-proc-args p)
+                    (map (lambda (read)
+                           (let-values (((T V vname)
+                                         (apply values read)))
+                             `(volatile ,T ,vname)))
+                         (litc-proc-reads p))))
+         (args-str (map stringify-arg all-args)))
+    (print (string-join args-str ",\n"))
+    (print") {")
+    (print-proc-lines p)
+    (print-read-lines p)
+    (print "  }")
+    (newline)))
 
 (define (generate-c litc)
   ; print preamble in comment
@@ -88,31 +125,7 @@
     ; the per-proc-read variables are passed as last arguments
     (newline)
     (print "/* processor functions */")
-    (for-each (lambda (p)
-                (let* ((stringify-arg
-                        (lambda (arg)
-                          (match arg
-                                 (('volatile T V)
-                                  (string-append "  volatile " T "* " V))
-                                 (('atomic T V)
-                                  (string-append "  atomic_" T "* " V))))))
-
-                  (print "void " (litc-proc-name p) " (")
-                  (let* (
-                         (all-args (append
-                                    (litc-proc-args p)
-                                    (map (lambda (read)
-                                           (let-values (((T V vname)
-                                                         (apply values read)))
-                                             `(volatile ,T ,vname)))
-                                         (litc-proc-reads p))))
-                         (args-str (map stringify-arg all-args)))
-                    (print (string-join args-str ",\n"))
-                    (display ") "))
-
-                  (print-proc-lines p)
-                  (newline)))
-              procs)
+    (for-each define-proc-function procs)
 
     (newline)
     (print "/* final assertion */")
