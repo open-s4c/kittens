@@ -81,6 +81,30 @@
     (print-read-lines p)
     (print "  }")
     (newline)))
+(define (define-run-function p)
+  (let ((pid (litc-proc-id p))
+        (pname (litc-proc-name p)))
+    (display (string-append "void *run" pid "(void *_) {"))
+    (display pname)
+    (let* ((all-args
+            (append
+             (litc-proc-args p)
+             (map (lambda (read)
+                    (let-values (((T V vname)
+                                  (apply values read)))
+                      `(volatile ,T ,vname)))
+                  (litc-proc-reads p))))
+
+           (args-str (map (lambda (arg)
+                            (match arg
+                                   (('volatile T V)
+                                    (string-append
+                                     "(volatile " T "*)&" V))
+                                   (('atomic T V)
+                                    (string-append
+                                     "(atomic_" T "*)&" V))))
+                          all-args)))
+      (print "(" (string-join args-str ",") "); return 0;}"))))
 
 (define (unique-arg lst)
   (define (var-name var)
@@ -153,27 +177,7 @@
     ; generate one pthread function per proc
     (newline)
     (print "/* pthread run functions */")
-    (for-each (lambda (p)
-                (let ((pid (litc-proc-id p))
-                      (pname (litc-proc-name p)))
-                  (display (string-append "void *run" pid "(void *_) {"))
-                  (display pname)
-                  (let* ((all-args
-                          (append
-                           (litc-proc-args p)
-                           (map (lambda (read)
-                                  (let-values (((T V vname)
-                                                (apply values read)))
-                                    `(volatile ,T ,vname)))
-                                (litc-proc-reads p))))
-
-                         (args-str (map (lambda (arg)
-                                          (match arg
-                                                 (('volatile T V) (string-append "&" V))
-                                                 (('atomic T V) (string-append "&" V))))
-                                        all-args)))
-                    (print "(" (string-join args-str ",") "); return 0;}"))))
-              procs)
+    (for-each define-run-function procs)
 
     ; generate main function
     (newline)
