@@ -46,7 +46,17 @@ With Chibi, just call the commands:
     - input: .litmus/C
     - output: .c
 
-- nope:
+- pasm:
     - input: .litmus/C + object dump (from compiled .c)
     - output: .litmus/ASM
+
+- nope:
+    - input: .litmus/C
+    - output: .litmus/ASM
+    - details:
+        - runs defuse
+        - compiles result with gcc
+        - disassembles with objdump
+        - lifts result with pasm
+    - requires: gcc-aarch64-linux-gnu package installed
 
