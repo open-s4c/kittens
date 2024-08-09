@@ -109,12 +109,11 @@
                  code <- identifier blank
                  mnm <- identifier blank
                  args <- arglist)
-          (list lab mnm args))
+          (list lab (string-upcase mnm) args))
          ((blank lab <- label
                  code <- identifier
                  mnm <- identifier)
-          (list lab mnm))
-         )
+          (list lab (string->upcase mnm))))
 
    (arglist ((args <- arglist/ne) args)
             (() '()))
@@ -137,6 +136,9 @@
    (const-or-id (('#\# '#\0 '#\x x <- identifier)
                  (let ((hex (string->number (string-append "#x" x) 16)))
                    (string-append "#" (number->string hex))))
+                (('#\# '#\- '#\0 '#\x x <- identifier)
+                 (let ((hex (string->number (string-append "#x" x) 16)))
+                   (string-append "#-" (number->string hex))))
                 ((x <- identifier) x))
 
 

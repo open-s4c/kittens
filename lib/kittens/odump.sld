@@ -6,6 +6,7 @@
 
   (import (scheme base)
           (scheme cxr)
+          (scheme char)
           (kittens packrat)
           (only (srfi 1) filter))
 

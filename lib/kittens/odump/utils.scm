@@ -41,13 +41,13 @@
     ; 4. rename targets
     (define (rename-targets line)
       (let ((mnm (cadr line)))
-        (cond ((member mnm '("cbnz" "cbz"))
+        (cond ((member mnm '("CBNZ" "CBZ"))
                (list (car line)
                      mnm
                      (let* ((args (caddr line))
                             (target (string-append "LC" (cadr args))))
                        (list (car args) target))))
-              ((member mnm '("b" "b.ne" "b.eq"))
+              ((member mnm '("B" "B.NE" "B.EQ"))
                (list (car line)
                      mnm
                      (let* ((args (caddr line))
@@ -75,7 +75,7 @@
           res
           (let* ((line (car lst))
                  (mnm (cadr line)))
-            (if (member mnm '("ret" "nop"))
+            (if (member mnm '("RET" "NOP"))
                 (remove-nop-ret (cdr lst) res)
                 (remove-nop-ret (cdr lst) (cons line res))))))
     (set! lines (reverse (remove-nop-ret lines '())))

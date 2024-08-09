@@ -76,19 +76,16 @@
                 `(vars ,v)
                 `(procs ,@x)
                 e)))
-   (litc-name (('#\C x <- cat-id) (cons "C" x)))
-   (preamble ((x <- litc-name xs <- preamble+)
-              (cons x xs))
-             ((x <- preamble-line '#\newline) (list x)))
 
+   (litc-name (('#\C x <- cat-id) (cons "C" x)))
+
+   (preamble ((x <- litc-name xs <- preamble+) (cons x xs)))
    (preamble+ ((x <- preamble-line '#\newline xs <- preamble+) (cons x xs))
               ((x <- preamble-line '#\newline) (list x)))
-
    (preamble-line ((x <- line) x))
 
    (vars ((v <- (string-enclosed #\{ #\})) v))
 
-   ;(exists (('#\newline (str "exists") x <- (string-enclosed #\( #\))) `(exists . ,x)))
    (exists ((blank x <- exists-parser) x))
 
    (procs ((x <- proc xs <- procs) (cons x xs))
