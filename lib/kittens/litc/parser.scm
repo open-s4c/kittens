@@ -76,9 +76,13 @@
                 `(vars ,v)
                 `(procs ,@x)
                 e)))
-
-   (preamble ((x <- preamble-line '#\newline xs <- preamble) (cons x xs))
+   (litc-name (('#\C x <- cat-id) (cons "C" x)))
+   (preamble ((x <- litc-name xs <- preamble+)
+              (cons x xs))
              ((x <- preamble-line '#\newline) (list x)))
+
+   (preamble+ ((x <- preamble-line '#\newline xs <- preamble+) (cons x xs))
+              ((x <- preamble-line '#\newline) (list x)))
 
    (preamble-line ((x <- line) x))
 
