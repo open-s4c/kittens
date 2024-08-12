@@ -1,3 +1,5 @@
+(set-option :opt.priority box)
+
 ; -----------------------------------------------------------------------------
 ; Define sorts and functions
 ; -----------------------------------------------------------------------------
@@ -12,7 +14,8 @@
            (fr)))
 
 (declare-datatype
- Event ((mk-event (eid Int)
+ Event ((mk-event (uid Int)
+		  (eid Int)
                   (tid Int)
 		  (porder Int)
 		  (corder Int)
@@ -33,11 +36,11 @@
 ; -----------------------------------------------------------------------------
 
 ; Constraints for po
-(assert (forall ((e Edge))
-                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
-                    (and (< (porder (src e)) (porder (trg e)))
-                         (not (= (addr (src e)) (addr (trg e))))
-			 (= (tid (src e)) (tid (trg e)))))))
+;(assert (forall ((e Edge))
+;                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
+;                    (and (< (porder (src e)) (porder (trg e)))
+;                         (not (= (addr (src e)) (addr (trg e))))
+;			 (= (tid (src e)) (tid (trg e)))))))
 
 ; Constraints for rf
 (assert (forall ((e Edge))
@@ -53,7 +56,8 @@
                     (and (= (addr (src e)) (addr (trg e)))
                          (< (corder (src e)) (corder (trg e)))
 			 (= (op (src e)) (as write Operation))
-                         (= (op (trg e)) (as write Operation))))))
+                         (= (op (trg e)) (as write Operation))
+			 (not (= (val (trg e)) (val (src e))))))))
 
 (assert (forall ((e1 Edge) (e2 Edge))
 		(=> (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)

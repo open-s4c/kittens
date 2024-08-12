@@ -80,6 +80,18 @@
     ;(print (filter (lambda (ed) (eq? ed 'fr)) rels))
 
     (append
+     ; Constraints for po
+     (if (eq? 1 (length (find-indices rels 'po)))
+        '((assert (forall ((e Edge))
+                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
+	            (and (< (porder (src e)) (porder (trg e)))
+	                    (= (tid (src e)) (tid (trg e))))))))
+	'((assert (forall ((e Edge))
+                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
+	            (and (< (porder (src e)) (porder (trg e)))
+	                    (not (= (addr (src e)) (addr (trg e))))
+	                    (= (tid (src e)) (tid (trg e))))))))
+     )
      ; event declarations
      (map (lambda (e) `(declare-const ,e Event))
           (map event->symbol nnums))
@@ -107,13 +119,28 @@
                                     (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))             
 				    (>= (porder ,e) 200)
                                     (< (porder ,e) ,(+ 200 (+ (length fr-rels) nedges)))
-				    (>= (val ,e) 10)
-                                    (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))
 				    (>= (addr ,e) 100)
                                     (< (addr ,e) ,(+ 100 (+ (length fr-rels) nedges))))))
           (append 
 	    (map event->symbol nnums) 
 	    (map event-fr->symbol fr-rels)))
+
+     (map (lambda (e)
+	`(assert (=> 
+	    (= (op ,e) (as write Operation)) 
+	    (and
+		(>= (val ,e) 10)
+		(< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))) 
+          (map event->symbol nnums))
+               
+	       ;(assert (=> (= (op ev0) (as write Operation)) (and (>= (val ev0) 10) (< (val ev0)
+	       ;17))))
+
+     (map (lambda (e)
+	`(assert (and 
+	   (>= (val ,e) 0)
+	   (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))) 
+          (map event-fr->symbol fr-rels))
 
      ; enforce event ids
      (map (lambda (e id)
@@ -173,6 +200,20 @@
           (map (lambda (x) 'rf) fr-rels)
           fr-rels)
      
+     (map (lambda (rel) 
+	`(assert (=> 
+	    (not (exists ((e Event))
+		(and 
+		    (not (= (uid e) (uid ,(event-fr->symbol rel))))
+		    (inEventSet e)
+		    (= (eid e) (eid ,(event-fr->symbol rel))))))
+	    (= 0 (val ,(event-fr->symbol rel)))))
+     ) fr-rels)
+
+     ;'("\n")
+     ;`((minimize (+ ,@(map (lambda (e) `(val ,(event-fr->symbol e))) fr-rels))))
+     ;'("\n")
+
      )))
 
 (define (main args)
