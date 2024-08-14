@@ -154,6 +154,21 @@
           (map event-fr->symbol fr-rels)
      )
 
+     `((assert (distinct ,@(map (lambda (e)
+                                          `(uid ,(event-fr->symbol e)))
+                                          fr-rels))))
+     `((assert (distinct ,@(map (lambda (e)
+                                          `(uid ,(event->symbol e)))
+                                        nnums))))
+
+     (map (lambda (e)
+                     `(assert (< (uid ,(event-fr->symbol e)) 0)))
+                   fr-rels)
+     
+     (map (lambda (e)
+                     `(assert (> (uid ,(event->symbol e)) 0)))
+                   nnums)
+     
      ; assertions to stop smt from creating edges
      ; without inSet the solver will create edges to make the latter forall assertions fail
      (let* ((equalis (map (lambda (edge) `(= e ,edge))

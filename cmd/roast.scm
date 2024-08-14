@@ -43,10 +43,12 @@
 (define (extract-event-records expr)
   (match expr
     (('model . defs) 
-      (map extract-event-records defs))
-    (('define-fun _ _ _ ev) (extract-event-records ev))
-    (('mk-event uid eid tid po co adr val op) (event uid eid tid po co adr val op))
-    (else (list expr))))
+      (apply append (map extract-event-records defs)))
+    (('define-fun _ _ 'Event ev) 
+      (extract-event-records ev))
+    (('mk-event uid eid tid po co adr val op) 
+      (list (event uid eid tid po co adr val op)))
+    (else '())))
 
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
@@ -200,31 +202,24 @@
 )
 
 (define (main args)
-  (let ((my-model
-		  '(model
+  (die-unless (= (length args) 1) "model file missing")
 
-;(define-fun ev0 () Event
- ;     (mk-event 65 0 4 205 300 101 0 read))
-  ; (define-fun ev1 () Event
-   ;     (mk-event 69 1 5 202 303 101 15 write))
-    ;  (define-fun ev2 () Event
-     ;    (mk-event 68 2 5 204 301 100 0 read))
-      ; (define-fun ev3 () Event
-       ;   (mk-event 70 3 4 203 305 100 13 write))
-
-
-		       (define-fun ev0 () Event
-        	         (mk-event 65 0 4 205 300 101 0 read))
-        	       (define-fun ev1 () Event
-        	         (mk-event 69 1 5 202 303 101 15 write))
-        	       (define-fun ev2 () Event
-        	         (mk-event 68 2 5 204 301 100 0 read))
-        	       (define-fun ev3 () Event
-        		 (mk-event 70 3 4 203 304 100 13 write))
-        
-		     )))
-
-    (let* ((event-records (extract-event-records my-model))
+  (let* ((file-content (with-input-from-file (car args)
+			(lambda ()
+			    ;;
+			    (read)
+			    ;;
+			    (read))))
+	(model-from-file (cons 'model file-content)))
+    ;(display my-model)
+    ;(newline)
+    ;(newline)
+    ;(display model-from-file)
+    ;(newline)
+    ;(newline)
+    ;(display (extract-event-records model-from-file))
+    (let* ((event-records-all (extract-event-records model-from-file))
+	   (event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
            (tids (get-tids event-records))
 	   (events-per-tid (records-per-tid event-records tids))
 	   (records-sorted (sort-records events-per-tid)))
