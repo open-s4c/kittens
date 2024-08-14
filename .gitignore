@@ -4,4 +4,6 @@
 *.swp
 
 examples
-new.smt2
+*.smt2
+*.txt
+!boilerplate.smt2
