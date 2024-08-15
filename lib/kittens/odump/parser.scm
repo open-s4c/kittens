@@ -113,7 +113,7 @@
          ((blank lab <- label
                  code <- identifier
                  mnm <- identifier)
-          (list lab (string->upcase mnm))))
+          (list lab (string-upcase mnm))))
 
    (arglist ((args <- arglist/ne) args)
             (() '()))
