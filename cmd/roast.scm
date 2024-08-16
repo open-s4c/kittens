@@ -197,4 +197,4 @@
 
       )))
 
-(main (command-args))
+(start-command main)

@@ -72,4 +72,5 @@
     (print-expr (litc-exists litc))
     (newline))
   0)
-(main (command-args))
+
+(start-command args)

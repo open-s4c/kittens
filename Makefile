@@ -9,6 +9,7 @@ default: format perms test build
 
 test:
 	@$(MAKE) -C lib test
+	@$(MAKE) -C cmd test
 
 format: $(SRCS)
 	for f in $(SRCS); do \

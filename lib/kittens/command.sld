@@ -2,16 +2,17 @@
   (export print
           die-unless
           parse-or-die
+          start-command
 
           ; reexport
-          command-args
           display
           newline
           string-join)
 
   (import (scheme base)
           (scheme write)
-          (only (srfi 193) command-args)
+          (only (srfi 130) string-contains)
+          (only (srfi 193) command-args command-line)
           (only (srfi 130) string-join)
           (kittens packrat))
   (begin
@@ -35,4 +36,9 @@
                      (list 'parse-error
                            (parse-position->string (parse-error-position e))
                            (parse-error-expected e)
-                           (parse-error-messages e)))))))))
+                           (parse-error-messages e)))))))
+
+    (define (start-command foo)
+      (let ((arg0 (car (command-line))))
+        (unless (string-contains arg0 ".tst")
+          (foo (command-args)))))))

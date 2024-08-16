@@ -5,12 +5,12 @@
  (author "Huawei Dresden Research Center")
  (license "MIT")
 
- (dependencies packrat
-               srfi-69
-               srfi-95 ; sort
+ (dependencies srfi-69  ; hash table
+               srfi-95  ; sort
                srfi-128 ; required by srfi-113
                srfi-113 ; sets
-               srfi-193)
+               srfi-193 ; command arguments
+               packrat)
 
  (component-options
   (csc-options "-d1" "-O3" "-X" "r7rs" "-R" "r7rs"))

@@ -219,4 +219,5 @@
          (litc (make-litc tokens)))
     (generate-c litc))
   0)
-(main (command-args))
+
+(start-command main)

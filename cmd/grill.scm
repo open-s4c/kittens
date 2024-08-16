@@ -223,6 +223,6 @@
 
   0)
 
-(main (command-args))
+(start-command main)
 
 

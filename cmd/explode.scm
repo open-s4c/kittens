@@ -110,6 +110,6 @@
         (cycles-print cycles))))
   0)
 
-(main (command-args))
+(start-command main)
 
 
