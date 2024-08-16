@@ -5,6 +5,8 @@ LIB = $(shell find lib -name "*.scm" -o -name "*.tst" -o -name "*.sld")
 CMD = $(shell find cmd -name "*.scm" -o -name "*.tst" -o -name "*.sld")
 SRCS = $(LIB) $(CMD)
 
+default: format perms test build
+
 test:
 	@$(MAKE) -C lib test
 
@@ -17,7 +19,7 @@ format: $(SRCS)
 perms:
 	for f in $(CMD); do chmod 755 $$f; done
 
-build: format perms
+build:
 	chicken-install -n
 
 .PHONY: format test build perms

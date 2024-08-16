@@ -3,34 +3,26 @@
         (scheme file)
         (scheme read)
         (srfi 1)
-        (srfi 113)
-        (srfi 128)
+        (srfi 95) ; sort
         (kittens match)
+        (kittens utils)
         (kittens command))
 
-(cond-expand
-  (chicken #f)
-  (else (import (srfi 113) ; sets
-                (srfi 95) ; sort
-                (only (srfi 128) symbol-hash))))
-
 (define (usage)
-  (print "<kittens> <model file> <cycle length>"))
-
-(define-syntax die-unless
-  (syntax-rules ()
-    ((_ cnd msg)
-     (unless cnd
-       (print "<kittens> <model file> <cycle length>")
-       (newline)
-       (error 'argument-error msg 'cnd)))))
-
+  (print "roast <z3 model>"))
 
 (define-record-type
   event-record
   (event uid eid tid po co addr val op)
   event?
-  (uid event-uid) (eid event-eid) (tid event-tid) (po event-po) (co event-co) (addr event-addr) (val event-val) (op event-op))
+  (uid event-uid)
+  (eid event-eid)
+  (tid event-tid)
+  (po event-po)
+  (co event-co)
+  (addr event-addr)
+  (val event-val)
+  (op event-op))
 
 (define (extract-event-records expr)
   (match expr
@@ -45,18 +37,18 @@
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
 (define (get-tids event-records)
-  (let ((tids (set equal? symbol-hash 1024)))
-    (begin
-      (for-each (lambda (x) (set-adjoin! tids (event-tid x))) event-records)
-
-      (filter (lambda (x) (
-                           if (number? x) (and (>= x 0) (< x 50)) #f
-                           )) (set->list tids)))))
+  (filter (lambda (x)
+            (if (number? x)
+                (and (>= x 0) (< x 50))
+                #f))
+          (unique event-records)))
 
 (define (records-per-tid event-records tids)
   (map (lambda (tid)
-         (filter (lambda (event-record) (eq? (event-tid event-record) tid)) event-records)) tids)
-  )
+         (filter (lambda (event-record)
+                   (eq? (event-tid event-record) tid))
+                 event-records))
+       tids))
 
 (define (number-to-alphabet-string n)
   (let loop ((n n) (result ""))

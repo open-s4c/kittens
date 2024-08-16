@@ -35,6 +35,9 @@
            (csc-options "-d0" "-static"))
 
   ; Extensions
+  (extension kittens.utils
+             (source "lib/kittens/utils.sld")
+             (types-file))
   (extension kittens.packrat
              (source "lib/kittens/packrat.sld")
              (types-file))
