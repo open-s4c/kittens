@@ -6,6 +6,7 @@
         (rename (kittens odump) (parser odump/parser))
         (rename (kittens litc) (parser litc/parser))
         (kittens match)
+        (kittens utils)
         (kittens generator)
         (kittens command))
 
@@ -73,4 +74,4 @@
     (newline))
   0)
 
-(start-command args)
+(start-command main)

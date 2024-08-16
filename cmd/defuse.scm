@@ -4,6 +4,7 @@
         (scheme cxr)
         (kittens match)
         (kittens generator)
+        (kittens utils)
         (kittens litc)
         (kittens command))
 
