@@ -1,11 +1,6 @@
 (import (scheme base)
-        (scheme file)
-        (scheme read)
-        (srfi 1)
-        (srfi 95) ; sort
         (kittens match)
         (kittens utils)
-        (kittens match)
         (kittens command)
         (kittens test))
 
