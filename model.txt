@@ -1,0 +1,64 @@
+sat
+(
+  (define-fun ed1 () Edge
+    (mk-edge (mk-event 2285 1 3 201 300 100 10 write)
+         (mk-event 2283 2 2 203 303 100 10 read)
+         rf))
+  (define-fun ed2 () Edge
+    (mk-edge (mk-event 2283 2 2 203 303 100 10 read)
+         (mk-event 2284 0 3 200 301 100 11 write)
+         fr))
+  (define-fun ev2 () Event
+    (mk-event 2283 2 2 203 303 100 10 read))
+  (define-fun edfr2 () Edge
+    (mk-edge (mk-event (- 8856) 1 3 201 300 100 10 write)
+         (mk-event 2283 2 2 203 303 100 10 read)
+         rf))
+  (define-fun ev1 () Event
+    (mk-event 2285 1 3 201 300 100 10 write))
+  (define-fun ed0 () Edge
+    (mk-edge (mk-event 2284 0 3 200 301 100 11 write)
+         (mk-event 2285 1 3 201 300 100 10 write)
+         po))
+  (define-fun evfr2 () Event
+    (mk-event (- 8856) 1 3 201 300 100 10 write))
+  (define-fun ev0 () Event
+    (mk-event 2284 0 3 200 301 100 11 write))
+  (define-fun edfr0 () Edge
+    (mk-edge (mk-event (- 8856) 1 3 201 300 100 10 write)
+         (mk-event 2284 0 3 200 301 100 11 write)
+         co))
+  (define-fun inEventSet ((x!0 Event)) Bool
+    (let ((a!1 (and (not (= x!0 (mk-event 2283 2 2 203 303 100 10 read)))
+                    (not (= x!0 (mk-event 2284 0 3 200 301 100 11 write)))
+                    (not (= x!0 (mk-event 2285 1 3 201 300 100 10 write)))
+                    (not (= x!0 (mk-event (- 8856) 1 3 201 300 100 10 write))))))
+      (not a!1)))
+  (define-fun inEdgeSet ((x!0 Edge)) Bool
+    (let ((a!1 (not (= x!0
+                       (mk-edge (mk-event 2283 2 2 203 303 100 10 read)
+                                (mk-event 2284 0 3 200 301 100 11 write)
+                                fr))))
+          (a!2 (not (= x!0
+                       (mk-edge (mk-event 2284 0 3 200 301 100 11 write)
+                                (mk-event 2285 1 3 201 300 100 10 write)
+                                po))))
+          (a!3 (= x!0
+                  (mk-edge (mk-event 7 8 9 204 302 12 13 read)
+                           (mk-event 14 15 16 202 299 17 18 read)
+                           fr)))
+          (a!4 (not (= x!0
+                       (mk-edge (mk-event 2285 1 3 201 300 100 10 write)
+                                (mk-event 2283 2 2 203 303 100 10 read)
+                                rf))))
+          (a!5 (not (= x!0
+                       (mk-edge (mk-event (- 8856) 1 3 201 300 100 10 write)
+                                (mk-event 2284 0 3 200 301 100 11 write)
+                                co))))
+          (a!6 (not (= x!0
+                       (mk-edge (mk-event (- 8856) 1 3 201 300 100 10 write)
+                                (mk-event 2283 2 2 203 303 100 10 read)
+                                rf)))))
+      (and (not (and a!1 a!2 (not a!3) a!4 a!5 a!6))
+           (not (and a!3 a!4 a!5 a!6)))))
+)
