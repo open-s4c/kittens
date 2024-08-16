@@ -37,11 +37,7 @@
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
 (define (get-tids event-records)
-  (filter (lambda (x)
-            (if (number? x)
-                (and (>= x 0) (< x 50))
-                #f))
-          (unique event-records)))
+  (unique (map (lambda (x) (event-tid x)) event-records)))
 
 (define (records-per-tid event-records tids)
   (map (lambda (tid)
