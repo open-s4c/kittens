@@ -1,22 +1,12 @@
 #!/usr/bin/env -S chibi-scheme -Ilib -Ivendor
 (import (scheme base)
+        (scheme file)
+        (scheme read)
         (srfi 1)
         (srfi 113)
-        (scheme file)
-	;(scheme small)
-	;(srfi 95)
         (srfi 128)
-	(kittens match)
+        (kittens match)
         (kittens command))
-
-;(import (scheme small)
- ;       (srfi 193)
-  ;      (srfi 166)
-   ;     (srfi 113)
-    ;    (srfi 128)
-     ;   (srfi 1)
-      ;  (srfi 95)
-       ; (chibi match))
 
 (cond-expand
   (chicken #f)
@@ -26,7 +16,7 @@
 
 (define (usage)
   (print "<kittens> <model file> <cycle length>"))
- 
+
 (define-syntax die-unless
   (syntax-rules ()
     ((_ cnd msg)
@@ -36,25 +26,25 @@
        (error 'argument-error msg 'cnd)))))
 
 
-(define-record-type 
-  event-record 
-  (event uid eid tid po co addr val op) 
-  event? 
+(define-record-type
+  event-record
+  (event uid eid tid po co addr val op)
+  event?
   (uid event-uid) (eid event-eid) (tid event-tid) (po event-po) (co event-co) (addr event-addr) (val event-val) (op event-op))
 
 (define (extract-event-records expr)
   (match expr
-         (('model . defs) 
+         (('model . defs)
           (apply append (map extract-event-records defs)))
-         (('define-fun _ _ 'Event ev) 
+         (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co adr val op) 
+         (('mk-event uid eid tid po co adr val op)
           (list (event uid eid tid po co adr val op)))
          (else '())))
 
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
-(define (get-tids event-records) 
+(define (get-tids event-records)
   (let ((tids (set equal? symbol-hash 1024)))
     (begin
       (for-each (lambda (x) (set-adjoin! tids (event-tid x))) event-records)
@@ -64,7 +54,7 @@
                            )) (set->list tids)))))
 
 (define (records-per-tid event-records tids)
-  (map (lambda (tid) 
+  (map (lambda (tid)
          (filter (lambda (event-record) (eq? (event-tid event-record) tid)) event-records)) tids)
   )
 
@@ -112,7 +102,7 @@
 (define (get-t-number tid tid-list)
   (number->string (count (lambda (t) (< t tid)) tid-list)))
 
-(define (get-read-t-number event event-records-per-tid) 
+(define (get-read-t-number event event-records-per-tid)
   (number->string (
                    count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-eid ev) (event-eid event)))) event-records-per-tid
                    )))
@@ -120,9 +110,9 @@
 (define (print-event event event-records-per-tid)
   (apply string-append `(
                          "    "
-                         ,(if (eq? (event-op event) 'read) 
+                         ,(if (eq? (event-op event) 'read)
                               (apply string-append `(
-                                                     ,(string-append "int r" 
+                                                     ,(string-append "int r"
                                                                      (
                                                                       get-read-t-number event event-records-per-tid
                                                                       )
@@ -144,7 +134,7 @@
   )
 
 (define (generate-thread-body event-records-per-tid)
-  (apply string-append `( 
+  (apply string-append `(
                          ,@(apply append (map (lambda (event) (list (print-event event event-records-per-tid) "\n")) event-records-per-tid))
                          ))
   )
@@ -182,7 +172,7 @@
   )
 
 (define (generate-assert event-records tid-list)
-  (let ((all-reads (apply append (map (lambda (event-records-per-tid) (generate-assert-one-tid event-records-per-tid tid-list)) event-records)))) 
+  (let ((all-reads (apply append (map (lambda (event-records-per-tid) (generate-assert-one-tid event-records-per-tid tid-list)) event-records))))
     (apply string-append `(
                            "exists ("
                            ,(apply string-append `(
@@ -215,7 +205,7 @@
            (tids (get-tids event-records))
            (events-per-tid (records-per-tid event-records tids))
            (records-sorted (sort-records events-per-tid)))
-      (display (generate-litmus-PC records-sorted tids))         
+      (display (generate-litmus-PC records-sorted tids))
 
       )))
 

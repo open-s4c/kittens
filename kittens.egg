@@ -24,9 +24,9 @@
   (program grill
            (source "cmd/grill.scm")
            (csc-options "-d0" "-static"))
-  #;(program roast
-             (source "cmd/roast.scm")
-             (csc-options "-d0" "-static"))
+  (program roast
+           (source "cmd/roast.scm")
+           (csc-options "-d0" "-static"))
   (program defuse
            (source "cmd/defuse.scm")
            (csc-options "-d0" "-static"))
