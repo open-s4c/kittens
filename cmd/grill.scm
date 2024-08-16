@@ -3,12 +3,8 @@
 (import (scheme base)
         (scheme file)
         (kittens command)
-	(scheme small)
         (srfi 193) ; command-args
-        (srfi 166)
-        (srfi 1)   ; filter
-        (rebottled packrat)
-        (kittens cat))
+        (srfi 1))   ; filter
 
 (define (pretty-print x)
   (show (current-output-port) (pretty x)))
