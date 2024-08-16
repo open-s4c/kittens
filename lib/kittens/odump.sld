@@ -8,6 +8,7 @@
           (scheme cxr)
           (scheme char)
           (kittens packrat)
+          (kittens utils)
           (only (srfi 1) filter))
 
   (include "odump/parser.scm")

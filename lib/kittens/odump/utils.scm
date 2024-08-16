@@ -6,17 +6,11 @@
              (string-append "no function with name '" name "'")))
     (car res)))
 
-
-(define (seq n)
-  (let loop ((i 0) (lst '()))
-    (if (= i n) lst (loop (+ i 1) (cons (- n i 1) lst)))))
-
 (define (widen-string str n)
   (let ((miss (- n (string-length str))))
     (string-append
      str
      (if (negative? miss) "" (make-string miss #\space)))))
-
 
 ; remove any unused label and put used labels in exclusive lines
 (define (fix-labels func)
