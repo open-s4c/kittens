@@ -7,9 +7,9 @@
 
  (dependencies packrat
                srfi-69
-               ;srfi-95 ; sort
-               ;srfi-128 ; required by srfi-113
-               ;srfi-113 ; sets
+               srfi-95 ; sort
+               srfi-128 ; required by srfi-113
+               srfi-113 ; sets
                srfi-193)
 
  (component-options
