@@ -8,7 +8,7 @@
         (srfi 166)
         (srfi 1)   ; filter
         (rebottled packrat)
-        (cat parser))
+        (kittens cat))
 
 (define (pretty-print x)
   (show (current-output-port) (pretty x)))
