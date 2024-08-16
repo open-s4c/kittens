@@ -2,28 +2,11 @@
 
 (import (scheme base)
         (scheme file)
-        (kittens command)
-        (srfi 193) ; command-args
-        (srfi 1))   ; filter
+        (kittens utils)
+        (kittens command))
 
-(define (pretty-print x)
-  (show (current-output-port) (pretty x)))
-
-(define (print . xs)
-  (for-each display xs)
-  (newline))
-
-(define-syntax die-unless
-  (syntax-rules ()
-    ((_ cnd msg)
-     (unless cnd
-       (print "<kittens> <model file> <cycle length>")
-       (newline)
-       (error 'argument-error msg 'cnd)))))
-
-(define (seq n)
-  (let loop ((i 0) (lst '()))
-    (if (= i n) lst (loop (+ i 1) (cons (- n i 1) lst)))))
+(define (usage)
+  (print "grill <edge> ..."))
 
 (define (print-boilerplate)
   (with-input-from-file
@@ -59,7 +42,7 @@
 (define (generate rels)
   (let* ((rels (map string->symbol rels))
          (nedges (length rels))
-         (nnums (seq nedges)) 
+         (nnums (seq nedges))
          (fr-rels (find-indices rels 'fr))
          (nfredges (length fr-rels))
 
@@ -98,34 +81,34 @@
           (map edge-fr->symbol fr-rels))
 
      (map (lambda (e) `(declare-const ,e Edge))
-          (map edge-fr->symbol 
+          (map edge-fr->symbol
                (map (lambda (j) (modulo (+ j 1) nedges)) fr-rels)))
 
      ; force event fields to look reasonable
      (map (lambda (e) `(assert (and (>= (tid ,e) 0)
                                     (< (tid ,e) ,(+ (length fr-rels) nedges))
                                     (>= (corder ,e) 300)
-                                    (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))             
+                                    (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))
                                     (>= (porder ,e) 200)
                                     (< (porder ,e) ,(+ 200 (+ (length fr-rels) nedges)))
                                     (>= (addr ,e) 100)
                                     (< (addr ,e) ,(+ 100 (+ (length fr-rels) nedges))))))
-          (append 
-           (map event->symbol nnums) 
+          (append
+           (map event->symbol nnums)
            (map event-fr->symbol fr-rels)))
 
      (map (lambda (e)
-            `(assert (=> 
-                      (= (op ,e) (as write Operation)) 
+            `(assert (=>
+                      (= (op ,e) (as write Operation))
                       (and
                        (>= (val ,e) 10)
-                       (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))) 
+                       (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
           (map event->symbol nnums))
 
      (map (lambda (e)
-            `(assert (and 
+            `(assert (and
                       (>= (val ,e) 0)
-                      (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))) 
+                      (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))
           (map event-fr->symbol fr-rels))
 
      ; enforce event ids
@@ -134,9 +117,9 @@
           (map event->symbol nnums)
           nnums)
 
-     (map (lambda (e)  
+     (map (lambda (e)
             `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
-                          (>= (eid ,e) 0)))) 
+                          (>= (eid ,e) 0))))
           (map event-fr->symbol fr-rels)
           )
 
@@ -167,7 +150,7 @@
                             (or ,@equalis ,@equalis-fr))))))
 
      (let* ((equalis (map (lambda (event) `(= e ,event))
-                          (map event->symbol nnums))) 
+                          (map event->symbol nnums)))
 
             (equalis-fr (map (lambda (event) `(= e ,event))
                              (map event-fr->symbol fr-rels))))
@@ -199,10 +182,10 @@
           (map (lambda (x) 'rf) fr-rels)
           fr-rels)
 
-     (map (lambda (rel) 
-            `(assert (=> 
+     (map (lambda (rel)
+            `(assert (=>
                       (not (exists ((e Event))
-                                   (and 
+                                   (and
                                     (not (= (uid e) (uid ,(event-fr->symbol rel))))
                                     (inEventSet e)
                                     (= (eid e) (eid ,(event-fr->symbol rel))))))
@@ -222,7 +205,7 @@
                                              (= (rel ed) (as po Relation)))))))
                          (not (= (eid ,ev2) (eid ,ev1))))
                         (not (= (tid ,ev2) (tid ,ev1)))
-                        ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))   
+                        ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
 
      )))
 
