@@ -2,7 +2,8 @@
 (import (scheme base)
         (srfi 1)
         (srfi 113)
-        ;(srfi 95)
+        (scheme small)
+	;(srfi 95)
         (kittens match)
         (kittens command))
 
