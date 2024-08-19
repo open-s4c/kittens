@@ -39,12 +39,22 @@
 (define (get-tids event-records)
   (unique (map (lambda (x) (event-tid x)) event-records)))
 
+(define (get-write-addresses event-writes)
+  (unique (map (lambda (x) (event-addr x)) event-writes)))
+
 (define (records-per-tid event-records tids)
   (map (lambda (tid)
          (filter (lambda (event-record)
                    (eq? (event-tid event-record) tid))
                  event-records))
        tids))
+            
+(define (get-writes-per-addr write-events write-addresses)
+  (map (lambda (address)
+	 (filter (lambda (event-record)
+		   (eq? (event-addr event-record) address))
+		 write-events))
+       write-addresses))
 
 (define (number-to-alphabet-string n)
   (let loop ((n n) (result ""))
@@ -190,11 +200,19 @@
 
     (let* ((event-records-all (extract-event-records model-from-file))
            (event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
-           (tids (get-tids event-records))
-           (events-per-tid (records-per-tid event-records tids))
-           (records-sorted (sort-records events-per-tid)))
+           (event-writes (filter (lambda (ev) (eq? (event-op ev) 'write)) event-records))
+	   (tids (get-tids event-records))
+           (write-addresses (get-write-addresses event-writes))
+	   (events-per-tid (records-per-tid event-records tids))
+           (writes-per-addr (get-writes-per-addr event-writes write-addresses))
+	   (records-sorted (sort-records events-per-tid)))
       (display (generate-litmus-PC records-sorted tids))
-
+      (newline)
+      (display event-writes)
+      (newline)
+      (display write-addresses)
+      (newline)
+      (display writes-per-addr)
       )))
 
 (start-command main)
