@@ -123,9 +123,11 @@
           (map event-fr->symbol fr-rels)
           )
 
+     (if (> (length fr-rels) 0)
      `((assert (distinct ,@(map (lambda (e)
                                   `(uid ,(event-fr->symbol e)))
                                 fr-rels))))
+     )
      `((assert (distinct ,@(map (lambda (e)
                                   `(uid ,(event->symbol e)))
                                 nnums))))
