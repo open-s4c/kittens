@@ -79,16 +79,16 @@
 
 (define (generate-thread-signature event-records-per-tid tid-list)
   (let ((addresses (unique (map (lambda (ev) (event-addr ev)) event-records-per-tid))))
-  (apply string-append `(
-                         "P"
-                         ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
-                         " ("
-                         ,@(map (lambda (addr) (string-append "volatile int* "
-			 (number-to-alphabet-string addr) ", ")) (but-last addresses))
-                         ,(string-append "volatile int* " (number-to-alphabet-string (car (reverse addresses))))
-                         ")"
-                         ))
-  ))
+    (apply string-append `(
+                           "P"
+                           ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
+                           " ("
+                           ,@(map (lambda (addr) (string-append "volatile int* "
+                                                                (number-to-alphabet-string addr) ", ")) (but-last addresses))
+                           ,(string-append "volatile int* " (number-to-alphabet-string (car (reverse addresses))))
+                           ")"
+                           ))
+    ))
 
 (define (count predicate collection)
   (let loop ((coll collection) (cnt 0))
@@ -227,8 +227,8 @@
                                 ))
            )                       
       (display (generate-litmus-PC 
-				(sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
-				(append tid-list addr-list) 
-				writes-per-addr-sorted addr-list))
+                (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
+                (append tid-list addr-list) 
+                writes-per-addr-sorted addr-list))
 
       )))
