@@ -30,8 +30,8 @@
           (apply append (map extract-event-records defs)))
          (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co adr val op)
-          (list (event uid eid tid po co adr val op)))
+         (('mk-event uid eid tid po co addr val op)
+          (list (event uid eid tid po co addr val op)))
          (else '())))
 
 (define (but-last xs) (reverse (cdr (reverse xs))))
@@ -74,8 +74,8 @@
       (newline)
       (loop (+ i 1)))))
 
-(define (sort-records event-records)
-  (map (lambda (event-record) (sort event-record (lambda (l r) (< (event-po l) (event-po r))))) event-records))
+(define (sort-records event-records criteria)
+  (map (lambda (event-record) (sort event-record (lambda (l r) (< (criteria l) (criteria r))))) event-records))
 
 (define (generate-thread-signature event-records-per-tid tid-list)
   (apply string-append `(
@@ -102,7 +102,7 @@
 
 (define (get-read-t-number event event-records-per-tid)
   (number->string (
-                   count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-eid ev) (event-eid event)))) event-records-per-tid
+                   count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-po ev) (event-po event)))) event-records-per-tid
                    )))
 
 (define (print-event event event-records-per-tid)
@@ -137,18 +137,35 @@
                          ))
   )
 
-(define (generate-thread-code event-records-per-tid tid-list)
+(define (generate-thread-code events-one-tid tid-list)
   (apply string-append `(
-                         ,(generate-thread-signature event-records-per-tid tid-list)
+                         ,(generate-thread-signature events-one-tid tid-list)
                          " {\n"
-                         ,(generate-thread-body event-records-per-tid)
+                         ,(generate-thread-body events-one-tid)
                          "}\n")
          )
   )
 
+(define (generate-observer-code events-one-addr addr-list)
+  (let ((events-one-addr-reworked (map (lambda (ev) (event (event-uid ev)
+									(event-eid ev)
+									(event-addr ev)
+									(event-co ev) ; in observer thread programme order is same as coherence order
+									(event-co ev)
+									(event-addr ev)
+									(event-val ev)
+									'read)) events-one-addr)))
+  (apply string-append `(
+			,(generate-thread-signature (list (car events-one-addr-reworked)) addr-list)
+			" {\n"
+                        ,(generate-thread-body events-one-addr-reworked)
+			"}\n")
+  ))
+)
+
 (define (generate-header)
   (apply string-append '(
-                         "Test Name \n"
+                         "C Test Name \n"
                          "Some Very Useful Information\n"
                          "{}\n\n"
                          ))
@@ -179,11 +196,12 @@
                            ")\n"
                            ))))
 
-(define (generate-litmus-PC event-records tid-list)
+(define (generate-litmus-PC events-per-tid-sorted tid-list writes-per-addr-sorted addr-list)
   (apply string-append `(
                          ,(generate-header)
-                         ,@(apply append (map (lambda (event-records-per-tid) (list (generate-thread-code event-records-per-tid tid-list) "\n")) event-records))
-                         ,(generate-assert event-records tid-list)
+                         ,@(apply append (map (lambda (events-one-tid)  (list (generate-thread-code   events-one-tid tid-list)  "\n")) events-per-tid-sorted))
+                         ;,@(apply append (map (lambda (writes-one-addr) (list (generate-observer-code writes-one-addr addr-list) "\n")) writes-per-addr-sorted))
+                         ,(generate-assert events-per-tid-sorted tid-list)
                          ))
   )
 
@@ -200,19 +218,44 @@
 
     (let* ((event-records-all (extract-event-records model-from-file))
            (event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
-           (event-writes (filter (lambda (ev) (eq? (event-op ev) 'write)) event-records))
-	   (tids (get-tids event-records))
-           (write-addresses (get-write-addresses event-writes))
-	   (events-per-tid (records-per-tid event-records tids))
-           (writes-per-addr (get-writes-per-addr event-writes write-addresses))
-	   (records-sorted (sort-records events-per-tid)))
-      (display (generate-litmus-PC records-sorted tids))
-      (newline)
-      (display event-writes)
-      (newline)
-      (display write-addresses)
-      (newline)
-      (display writes-per-addr)
+	   
+	   (tid-list (get-tids event-records))
+	   (events-per-tid (records-per-tid event-records tid-list))
+	   (events-per-tid-sorted (sort-records events-per-tid event-po))
+           
+	   (event-writes (filter (lambda (ev) (eq? (event-op ev) 'write)) event-records))
+           (addr-list (get-write-addresses event-writes))
+           (writes-per-addr (get-writes-per-addr event-writes addr-list))
+           (writes-per-addr-sorted (sort-records writes-per-addr event-co))
+           (reads-per-addr (map (lambda (events-one-addr)                                                            
+								       (map (lambda (ev) (event (event-uid ev)
+									(event-eid ev)
+									(event-addr ev)
+									(event-co ev) ; in observer thread programme order is same as coherence order
+									(event-co ev)
+									(event-addr ev)
+									(event-val ev)
+									'read)) events-one-addr)
+				)   writes-per-addr-sorted
+		))
+	   )
+      (display (generate-litmus-PC (append events-per-tid-sorted reads-per-addr) (append tid-list addr-list) writes-per-addr-sorted addr-list))
+
+      ;(newline)
+      ;(display event-writes)
+      ;(newline)
+      ;(newline)
+      ;(display addr-list)
+      ;(newline)
+      ;(newline)
+      ;(display writes-per-addr)
+      ;(newline)
+      ;(newline)
+      ;(display reads-per-addr)
+      ;(newline)
+      ;(newline)
+      ;(display writes-per-addr-sorted)
+      ;(newline)
       )))
 
 (start-command main)
