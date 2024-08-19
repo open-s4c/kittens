@@ -190,12 +190,15 @@
 (define (main args)
   (die-unless (= (length args) 1) "model file missing")
 
-  (let* ((file-content (with-input-from-file (car args)
-                        (lambda ()
-                          ;;
-                          (read)
-                          ;;
-                          (read))))
+  (let* ((fn (car args))
+         (file-content (if (equal? "-" fn)
+                           (begin (read) (read))
+                           (with-input-from-file fn
+                            (lambda ()
+                              ;;
+                              (read)
+                              ;;
+                              (read)))))
          (model-from-file (cons 'model file-content)))
 
     (let* ((event-records-all (extract-event-records model-from-file))
@@ -209,7 +212,7 @@
            (addr-list (get-write-addresses event-writes))
            (writes-per-addr (get-writes-per-addr event-writes addr-list))
            (writes-per-addr-sorted (sort-records writes-per-addr event-co))
-           (reads-per-addr (map (lambda (events-one-addr)                                                            
+           (reads-per-addr (map (lambda (events-one-addr)
                                   (map (lambda (ev) (event (event-uid ev)
                                                            (event-eid ev)
                                                            (event-addr ev)
