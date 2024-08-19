@@ -225,9 +225,10 @@
                                                            'read)) events-one-addr)
                                   )   writes-per-addr-sorted
                                 ))
-           )
-      (display (generate-litmus-PC (append events-per-tid-sorted reads-per-addr) (append tid-list addr-list) writes-per-addr-sorted addr-list))
+           )                       
+      (display (generate-litmus-PC 
+				(sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
+				(append tid-list addr-list) 
+				writes-per-addr-sorted addr-list))
 
       )))
-
-(start-command main)
