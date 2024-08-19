@@ -78,15 +78,17 @@
   (map (lambda (event-record) (sort event-record (lambda (l r) (< (criteria l) (criteria r))))) event-records))
 
 (define (generate-thread-signature event-records-per-tid tid-list)
+  (let ((addresses (unique (map (lambda (ev) (event-addr ev)) event-records-per-tid))))
   (apply string-append `(
                          "P"
                          ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
                          " ("
-                         ,@(map (lambda (event) (string-append "volatile int* " (number-to-alphabet-string (event-addr event)) ", ")) (but-last event-records-per-tid))
-                         ,(string-append "volatile int* " (number-to-alphabet-string (event-addr (car (reverse event-records-per-tid)))))
+                         ,@(map (lambda (addr) (string-append "volatile int* "
+			 (number-to-alphabet-string addr) ", ")) (but-last addresses))
+                         ,(string-append "volatile int* " (number-to-alphabet-string (car (reverse addresses))))
                          ")"
                          ))
-  )
+  ))
 
 (define (count predicate collection)
   (let loop ((coll collection) (cnt 0))
