@@ -146,26 +146,9 @@
          )
   )
 
-(define (generate-observer-code events-one-addr addr-list)
-  (let ((events-one-addr-reworked (map (lambda (ev) (event (event-uid ev)
-									(event-eid ev)
-									(event-addr ev)
-									(event-co ev) ; in observer thread programme order is same as coherence order
-									(event-co ev)
-									(event-addr ev)
-									(event-val ev)
-									'read)) events-one-addr)))
-  (apply string-append `(
-			,(generate-thread-signature (list (car events-one-addr-reworked)) addr-list)
-			" {\n"
-                        ,(generate-thread-body events-one-addr-reworked)
-			"}\n")
-  ))
-)
-
 (define (generate-header)
   (apply string-append '(
-                         "C Test Name \n"
+                         "C Name \n"
                          "Some Very Useful Information\n"
                          "{}\n\n"
                          ))
@@ -200,7 +183,6 @@
   (apply string-append `(
                          ,(generate-header)
                          ,@(apply append (map (lambda (events-one-tid)  (list (generate-thread-code   events-one-tid tid-list)  "\n")) events-per-tid-sorted))
-                         ;,@(apply append (map (lambda (writes-one-addr) (list (generate-observer-code writes-one-addr addr-list) "\n")) writes-per-addr-sorted))
                          ,(generate-assert events-per-tid-sorted tid-list)
                          ))
   )
@@ -241,21 +223,6 @@
 	   )
       (display (generate-litmus-PC (append events-per-tid-sorted reads-per-addr) (append tid-list addr-list) writes-per-addr-sorted addr-list))
 
-      ;(newline)
-      ;(display event-writes)
-      ;(newline)
-      ;(newline)
-      ;(display addr-list)
-      ;(newline)
-      ;(newline)
-      ;(display writes-per-addr)
-      ;(newline)
-      ;(newline)
-      ;(display reads-per-addr)
-      ;(newline)
-      ;(newline)
-      ;(display writes-per-addr-sorted)
-      ;(newline)
-      )))
+     )))
 
 (start-command main)
