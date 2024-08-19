@@ -48,12 +48,12 @@
                    (eq? (event-tid event-record) tid))
                  event-records))
        tids))
-            
+
 (define (get-writes-per-addr write-events write-addresses)
   (map (lambda (address)
-	 (filter (lambda (event-record)
-		   (eq? (event-addr event-record) address))
-		 write-events))
+         (filter (lambda (event-record)
+                   (eq? (event-addr event-record) address))
+                 write-events))
        write-addresses))
 
 (define (number-to-alphabet-string n)
@@ -200,29 +200,29 @@
 
     (let* ((event-records-all (extract-event-records model-from-file))
            (event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
-	   
-	   (tid-list (get-tids event-records))
-	   (events-per-tid (records-per-tid event-records tid-list))
-	   (events-per-tid-sorted (sort-records events-per-tid event-po))
-           
-	   (event-writes (filter (lambda (ev) (eq? (event-op ev) 'write)) event-records))
+
+           (tid-list (get-tids event-records))
+           (events-per-tid (records-per-tid event-records tid-list))
+           (events-per-tid-sorted (sort-records events-per-tid event-po))
+
+           (event-writes (filter (lambda (ev) (eq? (event-op ev) 'write)) event-records))
            (addr-list (get-write-addresses event-writes))
            (writes-per-addr (get-writes-per-addr event-writes addr-list))
            (writes-per-addr-sorted (sort-records writes-per-addr event-co))
            (reads-per-addr (map (lambda (events-one-addr)                                                            
-								       (map (lambda (ev) (event (event-uid ev)
-									(event-eid ev)
-									(event-addr ev)
-									(event-co ev) ; in observer thread programme order is same as coherence order
-									(event-co ev)
-									(event-addr ev)
-									(event-val ev)
-									'read)) events-one-addr)
-				)   writes-per-addr-sorted
-		))
-	   )
+                                  (map (lambda (ev) (event (event-uid ev)
+                                                           (event-eid ev)
+                                                           (event-addr ev)
+                                                           (event-co ev) ; in observer thread programme order is same as coherence order
+                                                           (event-co ev)
+                                                           (event-addr ev)
+                                                           (event-val ev)
+                                                           'read)) events-one-addr)
+                                  )   writes-per-addr-sorted
+                                ))
+           )
       (display (generate-litmus-PC (append events-per-tid-sorted reads-per-addr) (append tid-list addr-list) writes-per-addr-sorted addr-list))
 
-     )))
+      )))
 
 (start-command main)
