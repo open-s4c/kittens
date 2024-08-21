@@ -232,3 +232,4 @@
                 writes-per-addr-sorted addr-list))
 
       )))
+(start-command main)
