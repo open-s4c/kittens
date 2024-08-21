@@ -9,7 +9,7 @@ fi
 
 PREFIX="test"
 FLAGS="-model aarch64.cat"
-while IFS= read -r kitten; do
+while read -r kitten; do
     if [ -z "$kitten" ]; then
         continue
     fi

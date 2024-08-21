@@ -9,7 +9,7 @@ fi
 
 PREFIX="test"
 FLAGS="-c11 -model fences.cat"
-while IFS= read -r kitten; do
+while read -r kitten; do
     if [ -z "$kitten" ]; then
         continue
     fi
