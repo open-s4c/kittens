@@ -63,13 +63,13 @@
                             (separate-label rst)))))))
     (set! lines (separate-label lines))
 
-    ; 6. remove nop and ret instructions
+    ; 6. remove nop, ret, and other unsupported instructions
     (define (remove-nop-ret lst res)
       (if (null? lst)
           res
           (let* ((line (car lst))
                  (mnm (cadr line)))
-            (if (member mnm '("RET" "NOP"))
+            (if (member mnm '("RET" "NOP" "PRFM"))
                 (remove-nop-ret (cdr lst) res)
                 (remove-nop-ret (cdr lst) (cons line res))))))
     (set! lines (reverse (remove-nop-ret lines '())))
