@@ -3,7 +3,9 @@
 (import (scheme base)
         (scheme file)
         (kittens utils)
-        (kittens command))
+        (kittens command)
+	(srfi 1) ; filter
+	(srfi 130))
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -39,8 +41,16 @@
        (loop (cdr lst) (+ index 1) (cons index indices)))
       (else (loop (cdr lst) (+ index 1) indices)))))
 
+
+(define (convert-rels rels)
+   (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix? "]" rel))
+                    (string->symbol (substring rel 1 (- (string-length rel) 1)))
+   (string->symbol rel)))
+                           rels))
+
 (define (generate rels)
-  (let* ((rels (map string->symbol rels))
+  (let* ((brcks (filter (lambda (rel) (string-prefix? "[" rel)) rels))
+	 (rels (convert-rels rels))
          (nedges (length rels))
          (nnums (seq nedges))
          (fr-rels (find-indices rels 'fr))
@@ -50,7 +60,6 @@
          (event-fr->symbol (string/n->symbol "evfr"))
          (edge->symbol (string/n->symbol "ed"))
          (edge-fr->symbol (string/n->symbol "edfr")))
-
     (append
      ; Constraints for po
      (if (eq? 1 (length (find-indices rels 'po)))
@@ -112,10 +121,10 @@
           (map event-fr->symbol fr-rels))
 
      ; enforce event ids
-     (map (lambda (e id)
-            `(assert (= (eid ,e) ,id)))
-          (map event->symbol nnums)
-          nnums)
+     ;(map (lambda (e id)
+      ;      `(assert (= (eid ,e) ,id)))
+       ;   (map event->symbol nnums)
+        ;  nnums)
 
      (map (lambda (e)
             `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
@@ -194,7 +203,7 @@
                       (= 0 (val ,(event-fr->symbol rel)))))
             ) fr-rels)
 
-     (if (not (eq? (+ 1 (length (find-indices rels 'po))) nedges))
+     (if (not (eq? (+ 1 (length (find-indices rels 'po))) (- nedges (length brcks))))
          (map (lambda (ev1 ev2)
                 `(assert (= (and
                              (not (exists ((ed Edge))

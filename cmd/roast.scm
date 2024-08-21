@@ -204,7 +204,9 @@
          (model-from-file (cons 'model file-content)))
 
     (let* ((event-records-all (extract-event-records model-from-file))
-           (event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
+           (eids (unique (map event-eid event-records-all)))
+	   (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
+	   ;(event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
 
            (tid-list (get-tids event-records))
            (events-per-tid (records-per-tid event-records tid-list))
@@ -225,7 +227,10 @@
                                                            'read)) events-one-addr)
                                   )   writes-per-addr-sorted
                                 ))
-           )                       
+           )
+                    ;(display (filter (lambda (ev) (eq? (event-eid eid) 0)) event-records-all))
+           ;(display (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
+	    ;                                        (display eids)
       (display (generate-litmus-PC 
                 (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
                 (append tid-list addr-list) 

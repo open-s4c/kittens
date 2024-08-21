@@ -5,13 +5,17 @@
 ; -----------------------------------------------------------------------------
 (declare-datatype
  Operation ((read)
-            (write)))
+            (write)
+	    (RMW)))
 
 (declare-datatype
  Relation ((po)
            (co)
            (rf)
-           (fr)))
+           (fr)
+	   (W)
+	   (R)
+	   (RMW)))
 
 (declare-datatype
  Event ((mk-event (uid Int)
@@ -52,6 +56,20 @@
                          (= (op (trg e)) (as write Operation))
 			 (not (= (val (trg e)) (val (src e))))))))
 
+; Constraints for [W]
+(assert (forall ((e Edge))
+		(=> (and (= (rel e) (as W Relation)) (inEdgeSet e))
+		    (and (= (eid (src e)) (eid (trg e)))
+			 (= (op (src e)) (as write Operation))
+			 (= (op (trg e)) (as write Operation))))))
+ 
+; Constraints for [R]
+(assert (forall ((e Edge))
+		(=> (and (= (rel e) (as R Relation)) (inEdgeSet e))
+		    (and (= (eid (src e)) (eid (trg e)))
+			 (= (op (src e)) (as read Operation))
+			 (= (op (trg e)) (as read Operation))))))
+ 
 ; Constraint rf has only one source
 (assert (forall ((e1 Edge) (e2 Edge))
 		(=> (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
