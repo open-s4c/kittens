@@ -8,7 +8,7 @@ if [ -z "$INPUT" ]; then
 fi
 
 PREFIX="test"
-FLAGS="-c11 -model fences.cat"
+FLAGS="-model aarch64.cat"
 while IFS= read -r kitten; do
     if [ -z "$kitten" ]; then
         continue
@@ -16,11 +16,14 @@ while IFS= read -r kitten; do
     echo "[TEST] $kitten"
     (
         cd $KITTENS_DIR
-        cmd/grill.scm $kitten | z3 -in | cmd/roast.scm - > $PREFIX.c
-        herd7 $FLAGS $PREFIX.c > $PREFIX.log
+        diyone7 -arch C $kitten > $PREFIX.litc
+	cmd/nope $PREFIX.litc > $PREFIX.litmus
+        herd7 $FLAGS $PREFIX.litmus > $PREFIX.log
         echo -n "       "
         if ! grep Sometimes $PREFIX.log; then
-           cat $PREFIX.c
+           cat $PREFIX.litc
+           echo "-----------------------------------------------------"
+           cat $PREFIX.litmus
            echo "-----------------------------------------------------"
            cat $PREFIX.log
            exit 1
