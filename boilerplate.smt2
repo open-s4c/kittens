@@ -35,13 +35,6 @@
 ; Define relations
 ; -----------------------------------------------------------------------------
 
-; Constraints for po
-;(assert (forall ((e Edge))
-;                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
-;                    (and (< (porder (src e)) (porder (trg e)))
-;                         (not (= (addr (src e)) (addr (trg e))))
-;			 (= (tid (src e)) (tid (trg e)))))))
-
 ; Constraints for rf
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
@@ -59,12 +52,14 @@
                          (= (op (trg e)) (as write Operation))
 			 (not (= (val (trg e)) (val (src e))))))))
 
+; Constraint rf has only one source
 (assert (forall ((e1 Edge) (e2 Edge))
 		(=> (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
 		         (= (rel e2) (as rf Relation)) (inEdgeSet e2)
 			 (= (eid (trg e1)) (eid (trg e2))))
 		    (= (eid (src e1)) (eid (src e2))))))
 
+; Constraint same eid implies all fields same
 (assert (forall ((e1 Event) (e2 Event)) 
 		(=> (and (= (eid e1) (eid e2))
 		         (inEventSet e1)
@@ -75,6 +70,12 @@
 			 (= (addr e1) (addr e2))
 			 (= (val e1) (val e2))
 			 (= (op e1) (op e2))))))
+
+; Constraint positive values and addresses of events
+(assert (forall ((e1 Event))
+		(=> (inEventSet e1)
+		    (and (>= (val e1) 0)
+			 (>= (addr e1) 0)))))
 
 ; -----------------------------------------------------------------------------
 ; definition of events and edges

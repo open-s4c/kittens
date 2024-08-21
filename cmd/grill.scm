@@ -61,7 +61,7 @@
          '((assert (forall ((e Edge))
                            (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
                                (and (< (porder (src e)) (porder (trg e)))
-                                    (not (= (addr (src e)) (addr (trg e))))
+                                    ;(not (= (addr (src e)) (addr (trg e))))
                                     (= (tid (src e)) (tid (trg e))))))))
          )
      ; event declarations
@@ -124,10 +124,10 @@
           )
 
      (if (> (length fr-rels) 0)
-     `((assert (distinct ,@(map (lambda (e)
-                                  `(uid ,(event-fr->symbol e)))
-                                fr-rels))))
-     )
+         `((assert (distinct ,@(map (lambda (e)
+                                      `(uid ,(event-fr->symbol e)))
+                                    fr-rels))))
+         )
      `((assert (distinct ,@(map (lambda (e)
                                   `(uid ,(event->symbol e)))
                                 nnums))))
@@ -193,22 +193,25 @@
                                     (= (eid e) (eid ,(event-fr->symbol rel))))))
                       (= 0 (val ,(event-fr->symbol rel)))))
             ) fr-rels)
-     (map (lambda (ev1 ev2)
-            `(assert (= (and
-                         (not (exists ((ed Edge))
-                                      (and
-                                       (inEdgeSet ed)
-                                       (or
-                                        (and (= (src ed) ,ev1)
-                                             (= (trg ed) ,ev2)
-                                             (= (rel ed) (as po Relation)))
-                                        (and (= (src ed) ,ev2)
-                                             (= (trg ed) ,ev1)
-                                             (= (rel ed) (as po Relation)))))))
-                         (not (= (eid ,ev2) (eid ,ev1))))
-                        (not (= (tid ,ev2) (tid ,ev1)))
-                        ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
 
+     (if (not (eq? (+ 1 (length (find-indices rels 'po))) nedges))
+         (map (lambda (ev1 ev2)
+                `(assert (= (and
+                             (not (exists ((ed Edge))
+                                          (and
+                                           (inEdgeSet ed)
+                                           (or
+                                            (and (= (src ed) ,ev1)
+                                                 (= (trg ed) ,ev2)
+                                                 (= (rel ed) (as po Relation)))
+                                            (and (= (src ed) ,ev2)
+                                                 (= (trg ed) ,ev1)
+                                                 (= (rel ed) (as po Relation)))))))
+                             (not (= (eid ,ev2) (eid ,ev1))))
+                            (not (= (tid ,ev2) (tid ,ev1)))
+                            ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
+         '()
+         )
      )))
 
 (define (main args)
