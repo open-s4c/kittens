@@ -6,6 +6,9 @@ INPUT="$KITTENS_DIR/test/kittens.dat"
 PREFIX="test"
 FLAGS="-c11 -model fences.cat"
 while IFS= read -r kitten; do
+    if [ -z "$kitten" ]; then
+        continue
+    fi
     echo "[TEST] $kitten"
     (
         cd $KITTENS_DIR
