@@ -8,6 +8,8 @@
         (kittens utils)
         (kittens command))
 
+(define type "a")
+
 (define (usage)
   (print "roast <z3 model>"))
 
@@ -106,41 +108,58 @@
   (number->string (
                    count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-po ev) (event-po event)))) event-records-per-tid
                    )))
+(define (print-event-read event event-records-per-tid)
+  (match type
+         ("n" 
+          (apply string-append `(
+                                 ,(string-append "int r"
+                                                 (
+                                                  get-read-t-number event event-records-per-tid
+                                                  )
+                                                 " = *")
+                                 ,(number-to-alphabet-string (event-addr event))
+                                 ";"
+                                 )))
+
+         ("a"
+          (apply string-append `(
+                                 ,(string-append "int r"
+                                                 (
+                                                  get-read-t-number event event-records-per-tid
+                                                  )
+                                                 " = atomic_load_explicit("
+                                                 )
+                                 ,(number-to-alphabet-string (event-addr event)
+
+                                                             )
+                                 ", memory_order_seq_cst);"
+                                 )))))
 
 (define (print-event event event-records-per-tid)
   (apply string-append `(
                          "    "
-			 ,(match (event-op event) 
-				('read 
-				 (apply string-append `(
-                                                     ,(string-append "int r"
-                                                                     (
-                                                                      get-read-t-number event event-records-per-tid
-                                                                      )
-                                                                     " = *");
-                                                     ,(number-to-alphabet-string (event-addr event))
-                                                     ";"
-                                                     )
-                                     ) )
-				('write
-				 (apply string-append `(
-                                                     "*"
-                                                     ,(number-to-alphabet-string (event-addr event))
-                                                     " = "
-                                                     ,(number->string (event-val event))
-                                                     ";"
-                                                     )
-                                     ) )
-				(else 
-				 (apply string-append `(
-				                    "RMW("
-                                                      ,(number-to-alphabet-string (event-addr event))
-						    ", "
-                                                      ,(number->string (event-val event))
-						    ")"
-						    )
-				    ) )
-			 )
+                         ,(match (event-op event) 
+                                 ('read 
+                                  (print-event-read event event-records-per-tid))
+                                 ('write
+                                  (apply string-append `(
+                                                         "*"
+                                                         ,(number-to-alphabet-string (event-addr event))
+                                                         " = "
+                                                         ,(number->string (event-val event))
+                                                         ";"
+                                                         )
+                                         ) )
+                                 (else 
+                                  (apply string-append `(
+                                                         "RMW("
+                                                         ,(number-to-alphabet-string (event-addr event))
+                                                         ", "
+                                                         ,(number->string (event-val event))
+                                                         ")"
+                                                         )
+                                         ) )
+                                 )
                          ))
   )
 
@@ -216,15 +235,15 @@
 
     (let* ((event-records-all (extract-event-records model-from-file))
            (eids (unique (map event-eid event-records-all)))
-	   (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
-	   ;(event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
+           (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
+           ;(event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
 
            (tid-list (get-tids event-records))
            (events-per-tid (records-per-tid event-records tid-list))
            (events-per-tid-sorted (sort-records events-per-tid event-po))
 
            (event-writes (filter (lambda (ev) (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
-	   ev) 'write))) event-records))
+                                                                                               ev) 'write))) event-records))
            (addr-list (get-write-addresses event-writes))
            (writes-per-addr (get-writes-per-addr event-writes addr-list))
            (writes-per-addr-sorted (sort-records writes-per-addr event-co))
@@ -240,9 +259,9 @@
                                   )   writes-per-addr-sorted
                                 ))
            )
-                    ;(display (filter (lambda (ev) (eq? (event-eid eid) 0)) event-records-all))
-           ;(display (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
-	    ;                                        (display eids)
+      ;(display (filter (lambda (ev) (eq? (event-eid eid) 0)) event-records-all))
+      ;(display (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
+      ;                                        (display eids)
       (display (generate-litmus-PC 
                 (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
                 (append tid-list addr-list) 
