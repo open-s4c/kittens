@@ -6,7 +6,7 @@
 (declare-datatype
  Operation ((read)
             (write)
-	    (RMW)))
+	    (read-modify-write)))
 
 (declare-datatype
  Relation ((po)
@@ -42,8 +42,8 @@
 ; Constraints for rf
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
-                    (and (= (op (src e)) (as write Operation))
-                         (= (op (trg e)) (as read Operation))
+                    (and (or (= (op (src e)) (as write Operation)) (= (op (src e)) (as read-modify-write Operation)))
+                         (or (= (op (trg e)) (as read Operation)) (= (op (src e)) (as read-modify-write Operation)))
                          (= (addr (src e)) (addr (trg e)))
 			 (= (val (src e)) (val (trg e)))))))
 
@@ -69,6 +69,12 @@
 		    (and (= (eid (src e)) (eid (trg e)))
 			 (= (op (src e)) (as read Operation))
 			 (= (op (trg e)) (as read Operation))))))
+; Constraints for [RMW]
+(assert (forall ((e Edge))
+		(=> (and (= (rel e) (as RMW Relation)) (inEdgeSet e))
+		    (and (= (eid (src e)) (eid (trg e)))
+			 (= (op (src e)) (as read-modify-write Operation))
+			 (= (op (trg e)) (as read-modify-write Operation))))))
  
 ; Constraint rf has only one source
 (assert (forall ((e1 Edge) (e2 Edge))
