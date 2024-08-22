@@ -84,17 +84,16 @@
     (apply string-append `(
                            "P"
                            ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
-			   " ("
+                           " ("
                            ,@(map (lambda (addr) (string-append (get-event-type)
-								"* "
+                                                                "* "
                                                                 (number-to-alphabet-string addr) ", ")) (but-last addresses))
                            ,(string-append 
-				    (get-event-type)
-				    "* "
-				    (number-to-alphabet-string (car (reverse addresses))))
+                             (get-event-type)
+                             "* "
+                             (number-to-alphabet-string (car (reverse addresses))))
                            ")"
-                           ))
-    ))
+                           ))))
 
 (define (count predicate collection)
   (let loop ((coll collection) (cnt 0))
@@ -113,10 +112,9 @@
                    count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-po ev) (event-po event)))) event-records-per-tid)))
 
 (define (get-event-type)
-    (match type
-      ("n" "volatile int" )
-      ("a" "atomic_int"))
-)
+  (match type
+         ("n" "volatile int" )
+         ("a" "atomic_int")))
 
 (define (print-event-read event event-records-per-tid)
   (match type
@@ -146,27 +144,40 @@
                                  )))))
 
 (define (print-event-write event)
-    (match type 
-    ("n"
-      (apply string-append `(
-                                                         "*"
-                                                         ,(number-to-alphabet-string (event-addr event))
-                                                         " = "
-                                                         ,(number->string (event-val event))
-                                                         ";"
-                                                         ))
-    )
-    ("a"
-       (apply string-append `(
-         "atomic_store_explicit("
-         ,(number-to-alphabet-string (event-addr event))
-	 ", "
-	 ,(number->string (event-val event))
-	 ", memory_order_seq_cst);"
-       ))
-    )
-    )
-)                              
+  (match type 
+         ("n"
+          (apply string-append `(
+                                 "*"
+                                 ,(number-to-alphabet-string (event-addr event))
+                                 " = "
+                                 ,(number->string (event-val event))
+                                 ";"
+                                 )))
+         ("a"
+          (apply string-append `(
+                                 "atomic_store_explicit("
+                                 ,(number-to-alphabet-string (event-addr event))
+                                 ", "
+                                 ,(number->string (event-val event))
+                                 ", memory_order_seq_cst);"
+                                 )))))
+
+(define (print-event-RMW event)
+  (match type
+         ("n"  (apply string-append `(
+                                      "RMW("
+                                      ,(number-to-alphabet-string (event-addr event))
+                                      ", "
+                                      ,(number->string (event-val event))
+                                      ")"
+                                      )))
+         ("a"  (apply string-append `(
+                                      "RMW("
+                                      ,(number-to-alphabet-string (event-addr event))
+                                      ", "
+                                      ,(number->string (event-val event))
+                                      ")"
+                                      )))))
 
 (define (print-event event event-records-per-tid)
   (apply string-append `(
@@ -177,13 +188,7 @@
                                  ('write
                                   (print-event-write event))
                                  (else 
-                                  (apply string-append `(
-                                                         "RMW("
-                                                         ,(number-to-alphabet-string (event-addr event))
-                                                         ", "
-                                                         ,(number->string (event-val event))
-                                                         ")"
-                                                         )))))))
+                                  (print-event-RMW event))))))
 
 (define (generate-thread-body event-records-per-tid)
   (apply string-append `(
@@ -258,7 +263,6 @@
     (let* ((event-records-all (extract-event-records model-from-file))
            (eids (unique (map event-eid event-records-all)))
            (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
-           ;(event-records (filter (lambda (ev) (number? (event-uid ev))) event-records-all))
 
            (tid-list (get-tids event-records))
            (events-per-tid (records-per-tid event-records tid-list))
@@ -281,9 +285,6 @@
                                   )   writes-per-addr-sorted
                                 ))
            )
-      ;(display (filter (lambda (ev) (eq? (event-eid eid) 0)) event-records-all))
-      ;(display (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
-      ;                                        (display eids)
       (display (generate-litmus-PC 
                 (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
                 (append tid-list addr-list) 
