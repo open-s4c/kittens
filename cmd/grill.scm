@@ -7,7 +7,7 @@
         (srfi 1) ; filter
         (srfi 130))
 
-(define maxi-threads #t)
+(define maxi-threads #f)
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -268,7 +268,10 @@
                                      (not (= (tid ,ev2) (tid ,ev1)))
                                      ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
                    
-		'()))
+		  '()
+		  )
+                '()
+		)
               )))
 
 (define (main args)
