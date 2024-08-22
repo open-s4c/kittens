@@ -4,8 +4,8 @@
         (scheme file)
         (kittens utils)
         (kittens command)
-	(srfi 1) ; filter
-	(srfi 130))
+        (srfi 1) ; filter
+        (srfi 130))
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -43,14 +43,14 @@
 
 
 (define (convert-rels rels)
-   (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix? "]" rel))
-                    (string->symbol (substring rel 1 (- (string-length rel) 1)))
-   (string->symbol rel)))
-                           rels))
+  (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix? "]" rel))
+                         (string->symbol (substring rel 1 (- (string-length rel) 1)))
+                         (string->symbol rel)))
+       rels))
 
 (define (generate rels)
   (let* ((brcks (filter (lambda (rel) (string-prefix? "[" rel)) rels))
-	 (rels (convert-rels rels))
+         (rels (convert-rels rels))
          (nedges (length rels))
          (nnums (seq nedges))
          (fr-rels (find-indices rels 'fr))
@@ -113,9 +113,9 @@
                        (>= (val ,e) 10)
                        (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
           (map event->symbol nnums))
-     
+
      '(newline)
-     
+
      (map (lambda (e)
             `(assert (and
                       (>= (val ,e) 0)
@@ -137,7 +137,7 @@
                                       `(uid ,(event-fr->symbol e)))
                                     fr-rels))))
          )
-     
+
      '(newline)
 
      `((assert (distinct ,@(map (lambda (e)
@@ -189,7 +189,7 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           rels
           nnums)
-     
+
      '(newline)
 
      (map (lambda (rel i)
@@ -199,7 +199,7 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           (map (lambda (x) 'co) fr-rels)
           fr-rels)
-     
+
      '(newline)
 
      (map (lambda (rel i)
@@ -209,7 +209,7 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           (map (lambda (x) 'rf) fr-rels)
           fr-rels)
-     
+
      '(newline)
 
      (map (lambda (rel)
@@ -224,10 +224,10 @@
      '(newline)
 
      ; if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to
-	; explicit po from first to second-to-last event
+     ; explicit po from first to second-to-last event
 
      ; if that's not the case, separate all consecutive events that are not connected by a po
-	; in order to maximise the amount of threads
+     ; in order to maximise the amount of threads
      (if (not (eq? (+ 1 (length (find-indices rels 'po))) (- nedges (length brcks))))
          (map (lambda (ev1 ev2)
                 `(assert (= (and
@@ -255,7 +255,7 @@
     (print-boilerplate)
     (for-each (lambda (e)
                 (if (not (eq? e 'newline)) (display e))
-		
+
                 (newline))
               edges)
     (print-epilogue)
