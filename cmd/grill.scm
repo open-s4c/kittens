@@ -7,7 +7,7 @@
         (srfi 1) ; filter
         (srfi 130))
 
-(define maxi-threads #f)
+(define maxi-threads #t)
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -51,7 +51,7 @@
 
 
 (define (convert-rels rels)
-  (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix?  rel))
+  (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix? "]" rel))
                          (string->symbol (substring rel 1 (- (string-length rel) 1)))
                          (string->symbol rel)))
        rels))
@@ -267,8 +267,8 @@
                                       (not (= (eid ,ev2) (eid ,ev1))))
                                      (not (= (tid ,ev2) (tid ,ev1)))
                                      ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
-                   )
-		'())
+                   
+		'()))
               )))
 
 (define (main args)
