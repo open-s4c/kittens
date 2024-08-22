@@ -10,7 +10,7 @@
 
 (define type "a")
 
-(define explicit-init-events "t")
+(define explicit-init-events "f")
 
 (define (usage)
   (print "roast <z3 model>"))
@@ -111,7 +111,7 @@
 
 (define (get-read-t-number event event-records-per-tid)
   (number->string (
-                   count (lambda (ev) (and (eq? (event-op ev) 'read) (< (event-po ev) (event-po event)))) event-records-per-tid)))
+                   count (lambda (ev) (and (or (eq? (event-op ev) 'RMW) (eq? (event-op ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
 
 (define (get-event-type)
   (match type
@@ -164,17 +164,21 @@
                                  ", memory_order_seq_cst);"
                                  )))))
 
-(define (print-event-RMW event)
+(define (print-event-RMW event event-records-per-tid)
   (match type
          ("n"  (apply string-append `(
-                                      "RMW("
+				      "int r"
+				      ,(get-read-t-number event event-records-per-tid)
+                                      " = atomic_exchange_explicit("
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
                                       ,(number->string (event-val event))
                                       ")"
                                       )))
          ("a"  (apply string-append `(
-                                      "RMW("
+				      "int r"
+				      ,(get-read-t-number event event-records-per-tid)
+                                      " = atomic_exchange_explicit("
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
                                       ,(number->string (event-val event))
@@ -190,7 +194,7 @@
                                  ('write
                                   (print-event-write event))
                                  (else 
-                                  (print-event-RMW event))))))
+                                  (print-event-RMW event event-records-per-tid))))))
 
 (define (generate-thread-body event-records-per-tid)
   (apply string-append `(
