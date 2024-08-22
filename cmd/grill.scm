@@ -70,7 +70,7 @@
          '((assert (forall ((e Edge))
                            (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
                                (and (< (porder (src e)) (porder (trg e)))
-                                    ;(not (= (addr (src e)) (addr (trg e))))
+                                    (not (= (addr (src e)) (addr (trg e))))
                                     (= (tid (src e)) (tid (trg e))))))))
          )
      ; event declarations
@@ -113,18 +113,16 @@
                        (>= (val ,e) 10)
                        (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
           (map event->symbol nnums))
-
+     
+     '(newline)
+     
      (map (lambda (e)
             `(assert (and
                       (>= (val ,e) 0)
                       (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))
           (map event-fr->symbol fr-rels))
 
-     ; enforce event ids
-     ;(map (lambda (e id)
-      ;      `(assert (= (eid ,e) ,id)))
-       ;   (map event->symbol nnums)
-        ;  nnums)
+     '(newline)
 
      (map (lambda (e)
             `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
@@ -132,22 +130,32 @@
           (map event-fr->symbol fr-rels)
           )
 
+     '(newline)
+
      (if (> (length fr-rels) 0)
          `((assert (distinct ,@(map (lambda (e)
                                       `(uid ,(event-fr->symbol e)))
                                     fr-rels))))
          )
+     
+     '(newline)
+
      `((assert (distinct ,@(map (lambda (e)
                                   `(uid ,(event->symbol e)))
                                 nnums))))
+     '(newline)
 
      (map (lambda (e)
             `(assert (< (uid ,(event-fr->symbol e)) 0)))
           fr-rels)
 
+     '(newline)
+
      (map (lambda (e)
             `(assert (> (uid ,(event->symbol e)) 0)))
           nnums)
+
+     '(newline)
 
      ; assertions to stop smt from creating edges
      ; without inSet the solver will create edges to make the latter forall assertions fail
@@ -160,6 +168,8 @@
                          (= (inEdgeSet e)
                             (or ,@equalis ,@equalis-fr))))))
 
+     '(newline)
+
      (let* ((equalis (map (lambda (event) `(= e ,event))
                           (map event->symbol nnums)))
 
@@ -169,6 +179,8 @@
                          (= (inEventSet e)
                             (or ,@equalis ,@equalis-fr))))))
 
+     '(newline)
+
      ; assert relations
      (map (lambda (rel i)
             (let ((edge (edge->symbol i))
@@ -177,6 +189,9 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           rels
           nnums)
+     
+     '(newline)
+
      (map (lambda (rel i)
             (let ((edge (edge-fr->symbol (modulo (+ 1 i) nedges)))
                   (ev/i (event-fr->symbol i))
@@ -184,6 +199,8 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           (map (lambda (x) 'co) fr-rels)
           fr-rels)
+     
+     '(newline)
 
      (map (lambda (rel i)
             (let ((edge (edge-fr->symbol i))
@@ -192,6 +209,8 @@
               `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
           (map (lambda (x) 'rf) fr-rels)
           fr-rels)
+     
+     '(newline)
 
      (map (lambda (rel)
             `(assert (=>
@@ -202,7 +221,13 @@
                                     (= (eid e) (eid ,(event-fr->symbol rel))))))
                       (= 0 (val ,(event-fr->symbol rel)))))
             ) fr-rels)
+     '(newline)
 
+     ; if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to
+	; explicit po from first to second-to-last event
+
+     ; if that's not the case, separate all consecutive events that are not connected by a po
+	; in order to maximise the amount of threads
      (if (not (eq? (+ 1 (length (find-indices rels 'po))) (- nedges (length brcks))))
          (map (lambda (ev1 ev2)
                 `(assert (= (and
@@ -219,7 +244,7 @@
                              (not (= (eid ,ev2) (eid ,ev1))))
                             (not (= (tid ,ev2) (tid ,ev1)))
                             ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
-         '()
+         '(newline)
          )
      )))
 
@@ -229,7 +254,8 @@
   (let ((edges (generate args)))
     (print-boilerplate)
     (for-each (lambda (e)
-                (display e)
+                (if (not (eq? e 'newline)) (display e))
+		
                 (newline))
               edges)
     (print-epilogue)
