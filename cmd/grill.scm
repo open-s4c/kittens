@@ -106,6 +106,8 @@
            (map event->symbol nnums)
            (map event-fr->symbol fr-rels)))
 
+     ; main write events on cycle can only write large values
+     ; only fr events (INIT events) can write smaller values - 0
      (map (lambda (e)
             `(assert (=>
                       (= (op ,e) (as write Operation))
@@ -116,6 +118,7 @@
 
      '(newline)
 
+     ; FR events can write a 0 for initialisation 
      (map (lambda (e)
             `(assert (and
                       (>= (val ,e) 0)
@@ -124,6 +127,7 @@
 
      '(newline)
 
+     ; keep eid of events withing a reasonable (small) range for readability 
      (map (lambda (e)
             `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
                           (>= (eid ,e) 0))))
@@ -132,6 +136,7 @@
 
      '(newline)
 
+     ; uid is unique/distinct for all events
      (if (> (length fr-rels) 0)
          `((assert (distinct ,@(map (lambda (e)
                                       `(uid ,(event-fr->symbol e)))
@@ -140,17 +145,20 @@
 
      '(newline)
 
+     ; uid is unique/distinct for all events
      `((assert (distinct ,@(map (lambda (e)
                                   `(uid ,(event->symbol e)))
                                 nnums))))
      '(newline)
 
+     ; in order to distinguish between main events and fr events, fr events have uid < 0
      (map (lambda (e)
             `(assert (< (uid ,(event-fr->symbol e)) 0)))
           fr-rels)
 
      '(newline)
 
+     ; in order to distinguish between main events and fr events, main events have uid > 0
      (map (lambda (e)
             `(assert (> (uid ,(event->symbol e)) 0)))
           nnums)
@@ -170,6 +178,7 @@
 
      '(newline)
 
+     ; assertions to stop smt from creating events
      (let* ((equalis (map (lambda (event) `(= e ,event))
                           (map event->symbol nnums)))
 
@@ -181,7 +190,7 @@
 
      '(newline)
 
-     ; assert relations
+     ; assert relations between events in the main cycle
      (map (lambda (rel i)
             (let ((edge (edge->symbol i))
                   (ev/i (event->symbol i))
@@ -192,6 +201,7 @@
 
      '(newline)
 
+     ; each fr edge gets a new co edge
      (map (lambda (rel i)
             (let ((edge (edge-fr->symbol (modulo (+ 1 i) nedges)))
                   (ev/i (event-fr->symbol i))
@@ -202,6 +212,7 @@
 
      '(newline)
 
+     ; each fr edge gets a new rf edge
      (map (lambda (rel i)
             (let ((edge (edge-fr->symbol i))
                   (ev/i (event-fr->symbol i))
@@ -212,6 +223,7 @@
 
      '(newline)
 
+     ; each fr edge gets a new event that is tied to both the rf and the co edges
      (map (lambda (rel)
             `(assert (=>
                       (not (exists ((e Event))
@@ -222,6 +234,7 @@
                       (= 0 (val ,(event-fr->symbol rel)))))
             ) fr-rels)
      '(newline)
+
 
      ; if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to
      ; explicit po from first to second-to-last event
