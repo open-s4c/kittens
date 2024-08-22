@@ -35,6 +35,8 @@
 (declare-fun inEdgeSet (Edge) Bool)
 (declare-fun inEventSet (Event) Bool)
 
+(declare-const rels String)
+
 ; -----------------------------------------------------------------------------
 ; Define relations
 ; -----------------------------------------------------------------------------

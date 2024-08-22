@@ -18,6 +18,8 @@
 (define (if-comment cd str)
   (if cd (comment str) '()))
 
+(define (but-last xs) (reverse (cdr (reverse xs))))
+
 (define (print-boilerplate)
   (with-input-from-file
    "boilerplate.smt2"
@@ -56,9 +58,9 @@
                          (string->symbol rel)))
        rels))
 
-(define (generate rels)
-  (let* ((brcks (filter (lambda (rel) (string-prefix? "[" rel)) rels))
-         (rels (convert-rels rels))
+(define (generate rels-input)
+  (let* ((brcks (filter (lambda (rel) (string-prefix? "[" rel)) rels-input))
+         (rels (convert-rels rels-input))
          (nedges (length rels))
          (nnums (seq nedges))
          (fr-rels (find-indices rels 'fr))
@@ -272,6 +274,11 @@
 		  )
                 '()
 		)
+              ;(display (apply string-append (apply append (list (map (lambda (rel) (string-append rel "+")) (but-last rels-input))
+	      ;(list (car (reverse rels-input)))))))
+	      `((assert (= rels ,(apply string-append (apply append (list (map (lambda (rel) (string-append rel "+")) (but-last rels-input))
+	      (list (car (reverse rels-input)))))))))
+
               )))
 
 (define (main args)

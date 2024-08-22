@@ -38,6 +38,16 @@
           (list (event uid eid tid po co addr val op)))
          (else '())))
 
+(define (get-test-name expr)
+  (match expr
+          (('model . defs)
+	   (apply string-append (map get-test-name defs))) 
+	  (('define-fun _ _ 'String str)
+	   str)
+	  (else "")
+  )
+)
+
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
 (define (get-tids event-records)
@@ -211,9 +221,11 @@
          )
   )
 
-(define (generate-header)
-  (apply string-append '(
-                         "C Name \n"
+(define (generate-header name)
+  (apply string-append `(
+                         "C "
+			 ,name
+			 "\n"
                          "Some Very Useful Information\n"
                          "{}\n\n"
                          ))
@@ -244,9 +256,9 @@
                            ")\n"
                            ))))
 
-(define (generate-litmus-PC events-per-tid-sorted tid-list writes-per-addr-sorted addr-list)
+(define (generate-litmus-PC name events-per-tid-sorted tid-list writes-per-addr-sorted addr-list)
   (apply string-append `(
-                         ,(generate-header)
+                         ,(generate-header name)
                          ,@(apply append (map (lambda (events-one-tid)  (list (generate-thread-code   events-one-tid tid-list)  "\n")) events-per-tid-sorted))
                          ,(generate-assert events-per-tid-sorted tid-list)
                          ))
@@ -267,7 +279,8 @@
          (model-from-file (cons 'model file-content)))
 	
 
-    (let* ((event-records-from-file (extract-event-records model-from-file))
+    (let* ((name (get-test-name model-from-file))
+	   (event-records-from-file (extract-event-records model-from-file))
            (event-records-all (match explicit-init-events  
 			("f" (filter (lambda (ev) (number? (event-uid ev))) event-records-from-file))
 			("t" event-records-from-file)))
@@ -301,7 +314,8 @@
     ;(display (number? (event-uid (cadr event-records-from-file))))
     ;(display (< (symbol->number (event-uid (cadr event-records-from-file))) 0))
     ;(display event-records-from-file)
-      (display (generate-litmus-PC 
+      ;(display (get-test-name model-from-file))
+      (display (generate-litmus-PC name
                 (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
                 (append tid-list addr-list) 
                 writes-per-addr-sorted addr-list))
