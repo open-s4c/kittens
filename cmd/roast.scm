@@ -173,7 +173,7 @@
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
                                       ,(number->string (event-val event))
-                                      ")"
+				      ", memory_order_seq_cst);"
                                       )))
          ("a"  (apply string-append `(
 				      "int r"
@@ -182,7 +182,7 @@
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
                                       ,(number->string (event-val event))
-                                      ")"
+				      ", memory_order_seq_cst);"
                                       )))))
 
 (define (print-event event event-records-per-tid)
