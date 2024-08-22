@@ -110,8 +110,9 @@
 (define (print-event event event-records-per-tid)
   (apply string-append `(
                          "    "
-                         ,(if (eq? (event-op event) 'read)
-                              (apply string-append `(
+			 ,(match (event-op event) 
+				('read 
+				 (apply string-append `(
                                                      ,(string-append "int r"
                                                                      (
                                                                       get-read-t-number event event-records-per-tid
@@ -120,16 +121,26 @@
                                                      ,(number-to-alphabet-string (event-addr event))
                                                      ";"
                                                      )
-                                     )
-                              (apply string-append `(
+                                     ) )
+				('write
+				 (apply string-append `(
                                                      "*"
                                                      ,(number-to-alphabet-string (event-addr event))
                                                      " = "
                                                      ,(number->string (event-val event))
                                                      ";"
                                                      )
-                                     )
-                              )
+                                     ) )
+				(else 
+				 (apply string-append `(
+				                    "RMW("
+                                                      ,(number-to-alphabet-string (event-addr event))
+						    ", "
+                                                      ,(number->string (event-val event))
+						    ")"
+						    )
+				    ) )
+			 )
                          ))
   )
 
@@ -212,7 +223,8 @@
            (events-per-tid (records-per-tid event-records tid-list))
            (events-per-tid-sorted (sort-records events-per-tid event-po))
 
-           (event-writes (filter (lambda (ev) (eq? (event-op ev) 'write)) event-records))
+           (event-writes (filter (lambda (ev) (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
+	   ev) 'write))) event-records))
            (addr-list (get-write-addresses event-writes))
            (writes-per-addr (get-writes-per-addr event-writes addr-list))
            (writes-per-addr-sorted (sort-records writes-per-addr event-co))
