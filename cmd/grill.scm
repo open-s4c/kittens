@@ -7,8 +7,16 @@
         (srfi 1) ; filter
         (srfi 130))
 
+(define maxi-threads #f)
+
 (define (usage)
   (print "grill <edge> ..."))
+
+(define (comment str)
+  (list (string-append "; " str)))
+
+(define (if-comment cd str)
+  (if cd (comment str) '()))
 
 (define (print-boilerplate)
   (with-input-from-file
@@ -43,7 +51,7 @@
 
 
 (define (convert-rels rels)
-  (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix? "]" rel))
+  (map (lambda (rel) (if (and (string-prefix? "[" rel) (string-suffix?  rel))
                          (string->symbol (substring rel 1 (- (string-length rel) 1)))
                          (string->symbol rel)))
        rels))
@@ -54,212 +62,214 @@
          (nedges (length rels))
          (nnums (seq nedges))
          (fr-rels (find-indices rels 'fr))
-         (nfredges (length fr-rels))
+         (fr (> (length fr-rels) 0))
+	 (nfredges (length fr-rels))
 
          (event->symbol (string/n->symbol "ev"))
          (event-fr->symbol (string/n->symbol "evfr"))
          (edge->symbol (string/n->symbol "ed"))
          (edge-fr->symbol (string/n->symbol "edfr")))
     (append
-     ; Constraints for po
-     (if (eq? 1 (length (find-indices rels 'po)))
-         '((assert (forall ((e Edge))
-                           (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
-                               (and (< (porder (src e)) (porder (trg e)))
-                                    (= (tid (src e)) (tid (trg e))))))))
-         '((assert (forall ((e Edge))
-                           (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
-                               (and (< (porder (src e)) (porder (trg e)))
-                                    (not (= (addr (src e)) (addr (trg e))))
-                                    (= (tid (src e)) (tid (trg e))))))))
-         )
-     ; event declarations
-     (map (lambda (e) `(declare-const ,e Event))
-          (map event->symbol nnums))
+              
+	      (if-comment maxi-threads "the addresses of reads and writes of either side of a po are different")
+	      (if maxi-threads   
+		    (if (eq? 1 (length (find-indices rels 'po)))
+	        	'((assert (forall ((e Edge))
+	        	                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
+	        	                    (and (< (porder (src e)) (porder (trg e)))
+	        		                 (= (tid (src e)) (tid (trg e))))))))
+	        	'((assert (forall ((e Edge))
+	        	                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
+	        	                    (and (< (porder (src e)) (porder (trg e)))
+				                 (not (= (addr (src e)) (addr (trg e))))
+			  	                 (= (tid (src e)) (tid (trg e))))))))
+		    ) 
+		'()
+	      )
+              '(newline)
+	      (comment "event declarations")
+              
+	      (map (lambda (e) `(declare-const ,e Event))
+                   (map event->symbol nnums))
 
-     ; event from fr declarations
-     (map (lambda (e) `(declare-const ,e Event))
-          (map event-fr->symbol fr-rels))
+              '(newline)
+              (if-comment fr "event from fr declarations")
+              (map (lambda (e) `(declare-const ,e Event))
+                   (map event-fr->symbol fr-rels))
 
-     ; edge declarations
-     (map (lambda (e) `(declare-const ,e Edge))
-          (map edge->symbol nnums))
+              '(newline)
+              (comment "edge declarations")
+              (map (lambda (e) `(declare-const ,e Edge))
+                   (map edge->symbol nnums))
 
-     ; edge declarations from fr decomp
-     (map (lambda (e) `(declare-const ,e Edge))
-          (map edge-fr->symbol fr-rels))
+              '(newline)
+              (if-comment fr "edge declarations from fr decomp")
+              (map (lambda (e) `(declare-const ,e Edge))
+                   (map edge-fr->symbol fr-rels))
 
-     (map (lambda (e) `(declare-const ,e Edge))
-          (map edge-fr->symbol
-               (map (lambda (j) (modulo (+ j 1) nedges)) fr-rels)))
+              (map (lambda (e) `(declare-const ,e Edge))
+                   (map edge-fr->symbol
+                        (map (lambda (j) (modulo (+ j 1) nedges)) fr-rels)))
 
-     ; force event fields to look reasonable
-     (map (lambda (e) `(assert (and (>= (tid ,e) 0)
-                                    (< (tid ,e) ,(+ (length fr-rels) nedges))
-                                    (>= (corder ,e) 300)
-                                    (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))
-                                    (>= (porder ,e) 200)
-                                    (< (porder ,e) ,(+ 200 (+ (length fr-rels) nedges)))
-                                    (>= (addr ,e) 100)
-                                    (< (addr ,e) ,(+ 100 (+ (length fr-rels) nedges))))))
-          (append
-           (map event->symbol nnums)
-           (map event-fr->symbol fr-rels)))
+              '(newline)
+              (comment "force event fields to look reasonable")
+              (map (lambda (e) `(assert (and (>= (tid ,e) 0)
+                                             (< (tid ,e) ,(+ (length fr-rels) nedges))
+                                             (>= (corder ,e) 300)
+                                             (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))
+                                             (>= (porder ,e) 200)
+                                             (< (porder ,e) ,(+ 200 (+ (length fr-rels) nedges)))
+                                             (>= (addr ,e) 100)
+                                             (< (addr ,e) ,(+ 100 (+ (length fr-rels) nedges))))))
+                   (append
+                    (map event->symbol nnums)
+                    (map event-fr->symbol fr-rels)))
 
-     ; main write events on cycle can only write large values
-     ; only fr events (INIT events) can write smaller values - 0
-     (map (lambda (e)
-            `(assert (=>
-                      (= (op ,e) (as write Operation))
-                      (and
-                       (>= (val ,e) 10)
-                       (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
-          (map event->symbol nnums))
+              '(newline)
+              (comment "main write events on cycle can only write large values")
+              (comment "only fr events (INIT events) can write smaller values - 0")
+              (map (lambda (e)
+                     `(assert (=>
+                               (= (op ,e) (as write Operation))
+                               (and
+                                (>= (val ,e) 10)
+                                (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
+                   (map event->symbol nnums))
 
-     '(newline)
+              '(newline)
+              (if-comment fr "fr events can write a 0 for initialisation") 
+              (map (lambda (e)
+                     `(assert (and
+                               (>= (val ,e) 0)
+                               (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))
+                   (map event-fr->symbol fr-rels))
 
-     ; FR events can write a 0 for initialisation 
-     (map (lambda (e)
-            `(assert (and
-                      (>= (val ,e) 0)
-                      (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))
-          (map event-fr->symbol fr-rels))
+              '(newline)
+              (if-comment fr "keep eid of events withing a reasonable (small) range for readability") 
+              (map (lambda (e)
+                     `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
+                                   (>= (eid ,e) 0))))
+                   (map event-fr->symbol fr-rels)
+                   )
 
-     '(newline)
+              '(newline)
+              (if-comment fr "uid is unique/distinct for all events")
+              (if (> (length fr-rels) 0)
+                  `((assert (distinct ,@(map (lambda (e)
+                                               `(uid ,(event-fr->symbol e)))
+                                             fr-rels))))
+                  )
 
-     ; keep eid of events withing a reasonable (small) range for readability 
-     (map (lambda (e)
-            `(assert (and (< (eid ,e) ,(+ (length fr-rels) nedges))
-                          (>= (eid ,e) 0))))
-          (map event-fr->symbol fr-rels)
-          )
+              '(newline)
+              (comment "uid is unique/distinct for all events")
+              `((assert (distinct ,@(map (lambda (e)
+                                           `(uid ,(event->symbol e)))
+                                         nnums))))
+              '(newline)
+              (if-comment fr "in order to distinguish between main events and fr events, fr events have uid < 0")
+              (map (lambda (e)
+                     `(assert (< (uid ,(event-fr->symbol e)) 0)))
+                   fr-rels)
 
-     '(newline)
+              '(newline)
+              (comment "in order to distinguish between main events and fr events, main events have uid > 0")
+              (map (lambda (e)
+                     `(assert (> (uid ,(event->symbol e)) 0)))
+                   nnums)
 
-     ; uid is unique/distinct for all events
-     (if (> (length fr-rels) 0)
-         `((assert (distinct ,@(map (lambda (e)
-                                      `(uid ,(event-fr->symbol e)))
-                                    fr-rels))))
-         )
+              '(newline)
+              (comment "assertions to stop smt from creating edges")
+              (comment "without inSet the solver will create edges to make the latter forall assertions fail")
+              (let* ((equalis (map (lambda (edge) `(= e ,edge))
+                                   (map edge->symbol nnums)))
 
-     '(newline)
+                     (equalis-fr (map (lambda (edge) `(= e ,edge))
+                                      (map edge-fr->symbol (apply append (map (lambda (x) `(,x ,(modulo (+ x 1) nedges))) fr-rels))))))
+                `((assert (forall ((e Edge))
+                                  (= (inEdgeSet e)
+                                     (or ,@equalis ,@equalis-fr))))))
 
-     ; uid is unique/distinct for all events
-     `((assert (distinct ,@(map (lambda (e)
-                                  `(uid ,(event->symbol e)))
-                                nnums))))
-     '(newline)
+              '(newline)
+              (comment "assertions to stop smt from creating events")
+              (let* ((equalis (map (lambda (event) `(= e ,event))
+                                   (map event->symbol nnums)))
 
-     ; in order to distinguish between main events and fr events, fr events have uid < 0
-     (map (lambda (e)
-            `(assert (< (uid ,(event-fr->symbol e)) 0)))
-          fr-rels)
+                     (equalis-fr (map (lambda (event) `(= e ,event))
+                                      (map event-fr->symbol fr-rels))))
+                `((assert (forall ((e Event))
+                                  (= (inEventSet e)
+                                     (or ,@equalis ,@equalis-fr))))))
 
-     '(newline)
+              '(newline)
+              (comment "assert relations between events in the main cycle")
+              (map (lambda (rel i)
+                     (let ((edge (edge->symbol i))
+                           (ev/i (event->symbol i))
+                           (ev/j (event->symbol (modulo (+ 1 i) nedges))))
+                       `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
+                   rels
+                   nnums)
 
-     ; in order to distinguish between main events and fr events, main events have uid > 0
-     (map (lambda (e)
-            `(assert (> (uid ,(event->symbol e)) 0)))
-          nnums)
+              '(newline)
+              (if-comment fr "each fr edge gets a new co edge")
+              
+	      (map (lambda (rel i)
+                     (let ((edge (edge-fr->symbol (modulo (+ 1 i) nedges)))
+                           (ev/i (event-fr->symbol i))
+                           (ev/j (event->symbol (modulo (+ 1 i) nedges))))
+                       `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
+                   (map (lambda (x) 'co) fr-rels)
+                   fr-rels)
 
-     '(newline)
-
-     ; assertions to stop smt from creating edges
-     ; without inSet the solver will create edges to make the latter forall assertions fail
-     (let* ((equalis (map (lambda (edge) `(= e ,edge))
-                          (map edge->symbol nnums)))
-
-            (equalis-fr (map (lambda (edge) `(= e ,edge))
-                             (map edge-fr->symbol (apply append (map (lambda (x) `(,x ,(modulo (+ x 1) nedges))) fr-rels))))))
-       `((assert (forall ((e Edge))
-                         (= (inEdgeSet e)
-                            (or ,@equalis ,@equalis-fr))))))
-
-     '(newline)
-
-     ; assertions to stop smt from creating events
-     (let* ((equalis (map (lambda (event) `(= e ,event))
-                          (map event->symbol nnums)))
-
-            (equalis-fr (map (lambda (event) `(= e ,event))
-                             (map event-fr->symbol fr-rels))))
-       `((assert (forall ((e Event))
-                         (= (inEventSet e)
-                            (or ,@equalis ,@equalis-fr))))))
-
-     '(newline)
-
-     ; assert relations between events in the main cycle
-     (map (lambda (rel i)
-            (let ((edge (edge->symbol i))
-                  (ev/i (event->symbol i))
-                  (ev/j (event->symbol (modulo (+ 1 i) nedges))))
-              `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
-          rels
-          nnums)
-
-     '(newline)
-
-     ; each fr edge gets a new co edge
-     (map (lambda (rel i)
-            (let ((edge (edge-fr->symbol (modulo (+ 1 i) nedges)))
-                  (ev/i (event-fr->symbol i))
-                  (ev/j (event->symbol (modulo (+ 1 i) nedges))))
-              `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
-          (map (lambda (x) 'co) fr-rels)
-          fr-rels)
-
-     '(newline)
-
-     ; each fr edge gets a new rf edge
-     (map (lambda (rel i)
-            (let ((edge (edge-fr->symbol i))
-                  (ev/i (event-fr->symbol i))
-                  (ev/j (event->symbol (modulo i nedges))))
-              `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
-          (map (lambda (x) 'rf) fr-rels)
-          fr-rels)
-
-     '(newline)
-
-     ; each fr edge gets a new event that is tied to both the rf and the co edges
-     (map (lambda (rel)
-            `(assert (=>
-                      (not (exists ((e Event))
-                                   (and
-                                    (not (= (uid e) (uid ,(event-fr->symbol rel))))
-                                    (inEventSet e)
-                                    (= (eid e) (eid ,(event-fr->symbol rel))))))
-                      (= 0 (val ,(event-fr->symbol rel)))))
-            ) fr-rels)
-     '(newline)
+              '(newline)
+              (if-comment fr "each fr edge gets a new rf edge")
+              (map (lambda (rel i)
+                     (let ((edge (edge-fr->symbol i))
+                           (ev/i (event-fr->symbol i))
+                           (ev/j (event->symbol (modulo i nedges))))
+                       `(assert (= ,edge (mk-edge ,ev/i ,ev/j ,rel)))))
+                   (map (lambda (x) 'rf) fr-rels)
+                   fr-rels)
 
 
-     ; if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to
-     ; explicit po from first to second-to-last event
+              '(newline)
+              (if-comment fr "each fr edge gets a new event that is tied to both the rf and the co edges")
+              (map (lambda (rel)
+                     `(assert (=>
+                               (not (exists ((e Event))
+                                            (and
+                                             (not (= (uid e) (uid ,(event-fr->symbol rel))))
+                                             (inEventSet e)
+                                             (= (eid e) (eid ,(event-fr->symbol rel))))))
+                               (= 0 (val ,(event-fr->symbol rel)))))
+                     ) fr-rels)
 
-     ; if that's not the case, separate all consecutive events that are not connected by a po
-     ; in order to maximise the amount of threads
-     (if (not (eq? (+ 1 (length (find-indices rels 'po))) (- nedges (length brcks))))
-         (map (lambda (ev1 ev2)
-                `(assert (= (and
-                             (not (exists ((ed Edge))
-                                          (and
-                                           (inEdgeSet ed)
-                                           (or
-                                            (and (= (src ed) ,ev1)
-                                                 (= (trg ed) ,ev2)
-                                                 (= (rel ed) (as po Relation)))
-                                            (and (= (src ed) ,ev2)
-                                                 (= (trg ed) ,ev1)
-                                                 (= (rel ed) (as po Relation)))))))
-                             (not (= (eid ,ev2) (eid ,ev1))))
-                            (not (= (tid ,ev2) (tid ,ev1)))
-                            ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
-         '(newline)
-         )
-     )))
+              '(newline)
+              (if-comment maxi-threads "if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to")
+              (if-comment maxi-threads "explicit po from first to second-to-last event")
+              (if-comment maxi-threads "if that's not the case, separate all consecutive events that are not connected by a po")
+              (if-comment maxi-threads "in order to maximise the amount of threads")  
+
+              (if maxi-threads 	      
+		(if (not (eq? (+ 1 (length (find-indices rels 'po))) (- nedges (length brcks))))
+                  (map (lambda (ev1 ev2)
+                         `(assert (= (and
+                                      (not (exists ((ed Edge))
+                                                   (and
+                                                    (inEdgeSet ed)
+                                                    (or
+                                                     (and (= (src ed) ,ev1)
+                                                          (= (trg ed) ,ev2)
+                                                          (= (rel ed) (as po Relation)))
+                                                     (and (= (src ed) ,ev2)
+                                                          (= (trg ed) ,ev1)
+                                                          (= (rel ed) (as po Relation)))))))
+                                      (not (= (eid ,ev2) (eid ,ev1))))
+                                     (not (= (tid ,ev2) (tid ,ev1)))
+                                     ))) (map event->symbol nnums) (map  event->symbol (map (lambda (x) (modulo (+ x 1) nedges)) nnums)))
+                   )
+		'())
+              )))
 
 (define (main args)
   (die-unless (not (zero? (length args))) "edge list")
