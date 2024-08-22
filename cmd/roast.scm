@@ -10,6 +10,8 @@
 
 (define type "a")
 
+(define explicit-init-events "t")
+
 (define (usage)
   (print "roast <z3 model>"))
 
@@ -259,9 +261,13 @@
                               ;;
                               (read)))))
          (model-from-file (cons 'model file-content)))
+	
 
-    (let* ((event-records-all (extract-event-records model-from-file))
-           (eids (unique (map event-eid event-records-all)))
+    (let* ((event-records-from-file (extract-event-records model-from-file))
+           (event-records-all (match explicit-init-events  
+			("f" (filter (lambda (ev) (number? (event-uid ev))) event-records-from-file))
+			("t" event-records-from-file)))
+	   (eids (unique (map event-eid event-records-all)))
            (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
 
            (tid-list (get-tids event-records))
@@ -285,6 +291,12 @@
                                   )   writes-per-addr-sorted
                                 ))
            )
+    
+    ;(display (event-uid (car event-records-from-file)))
+    ;(display (event-uid (cadr event-records-from-file)))
+    ;(display (number? (event-uid (cadr event-records-from-file))))
+    ;(display (< (symbol->number (event-uid (cadr event-records-from-file))) 0))
+    ;(display event-records-from-file)
       (display (generate-litmus-PC 
                 (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
                 (append tid-list addr-list) 
