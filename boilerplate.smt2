@@ -41,6 +41,12 @@
 ; Define relations
 ; -----------------------------------------------------------------------------
 
+; Basic constraints for po
+(assert (forall ((e Edge))
+		(=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
+		    (and (= (tid (src e)) (tid (trg e)))
+			 (< (porder (src e)) (porder (trg e)))))))
+
 ; Constraints for rf
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
