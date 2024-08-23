@@ -45,7 +45,7 @@
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
                     (and (or (= (op (src e)) (as write Operation)) (= (op (src e)) (as read-modify-write Operation)))
-                         (or (= (op (trg e)) (as read Operation)) (= (op (src e)) (as read-modify-write Operation)))
+                         (or (= (op (trg e)) (as read Operation)) (= (op (trg e)) (as read-modify-write Operation)))
                          (= (addr (src e)) (addr (trg e)))
                          (= (val (src e)) (val (trg e)))))))
 
