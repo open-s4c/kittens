@@ -10,7 +10,7 @@
 
 (define type "a")
 
-(define explicit-init-events "f")
+(define explicit-init-events #t)
 
 (define (usage)
   (print "roast <z3 model>"))
@@ -40,13 +40,13 @@
 
 (define (get-test-name expr)
   (match expr
-          (('model . defs)
-	   (apply string-append (map get-test-name defs))) 
-	  (('define-fun _ _ 'String str)
-	   str)
-	  (else "")
+         (('model . defs)
+          (apply string-append (map get-test-name defs)))
+         (('define-fun _ _ 'String str)
+          str)
+         (else "")
+         )
   )
-)
 
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
@@ -100,7 +100,7 @@
                            ,@(map (lambda (addr) (string-append (get-event-type)
                                                                 "* "
                                                                 (number-to-alphabet-string addr) ", ")) (but-last addresses))
-                           ,(string-append 
+                           ,(string-append
                              (get-event-type)
                              "* "
                              (number-to-alphabet-string (car (reverse addresses))))
@@ -130,7 +130,7 @@
 
 (define (print-event-read event event-records-per-tid)
   (match type
-         ("n" 
+         ("n"
           (apply string-append `(
                                  ,(string-append "int r"
                                                  (
@@ -142,21 +142,17 @@
                                  )))
 
          ("a"
-          (apply string-append `(
-                                 ,(string-append "int r"
-                                                 (
-                                                  get-read-t-number event event-records-per-tid
-                                                  )
-                                                 " = atomic_load_explicit("
-                                                 )
-                                 ,(number-to-alphabet-string (event-addr event)
-
-                                                             )
-                                 ", memory_order_seq_cst);"
-                                 )))))
+          (apply string-append
+                 `(,(string-append
+                     "int r"
+                     (get-read-t-number event event-records-per-tid)
+                     " = atomic_load_explicit(")
+                   ,(number-to-alphabet-string (event-addr event))
+                   ", memory_order_seq_cst);"
+                   )))))
 
 (define (print-event-write event)
-  (match type 
+  (match type
          ("n"
           (apply string-append `(
                                  "*"
@@ -177,40 +173,40 @@
 (define (print-event-RMW event event-records-per-tid)
   (match type
          ("n"  (apply string-append `(
-				      "int r"
-				      ,(get-read-t-number event event-records-per-tid)
+                                      "int r"
+                                      ,(get-read-t-number event event-records-per-tid)
                                       " = atomic_exchange_explicit("
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
                                       ,(number->string (event-val event))
-				      ", memory_order_seq_cst);"
+                                      ", memory_order_seq_cst);"
                                       )))
          ("a"  (apply string-append `(
-				      "int r"
-				      ,(get-read-t-number event event-records-per-tid)
+                                      "int r"
+                                      ,(get-read-t-number event event-records-per-tid)
                                       " = atomic_exchange_explicit("
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
                                       ,(number->string (event-val event))
-				      ", memory_order_seq_cst);"
+                                      ", memory_order_seq_cst);"
                                       )))))
 
 (define (print-event event event-records-per-tid)
   (apply string-append `(
                          "    "
-                         ,(match (event-op event) 
-                                 ('read 
+                         ,(match (event-op event)
+                                 ('read
                                   (print-event-read event event-records-per-tid))
                                  ('write
                                   (print-event-write event))
-                                 (else 
+                                 (else
                                   (print-event-RMW event event-records-per-tid))))))
 
 (define (generate-thread-body event-records-per-tid)
-  (apply string-append `(
-                         ,@(apply append (map (lambda (event) (list (print-event event event-records-per-tid) "\n")) event-records-per-tid))
-                         ))
-  )
+  (apply string-append
+         `(,@(apply append (map (lambda (event)
+                                  (list (print-event event event-records-per-tid) "\n"))
+                                event-records-per-tid)))))
 
 (define (generate-thread-code events-one-tid tid-list)
   (apply string-append `(
@@ -224,8 +220,8 @@
 (define (generate-header name)
   (apply string-append `(
                          "C "
-			 ,name
-			 "\n"
+                         ,name
+                         "\n"
                          "Some Very Useful Information\n"
                          "{}\n\n"
                          ))
@@ -277,14 +273,15 @@
                               ;;
                               (read)))))
          (model-from-file (cons 'model file-content)))
-	
+
 
     (let* ((name (get-test-name model-from-file))
-	   (event-records-from-file (extract-event-records model-from-file))
-           (event-records-all (match explicit-init-events  
-			("f" (filter (lambda (ev) (number? (event-uid ev))) event-records-from-file))
-			("t" event-records-from-file)))
-	   (eids (unique (map event-eid event-records-all)))
+           (event-records-from-file (extract-event-records model-from-file))
+           (event-records-all (if explicit-init-events
+                                  event-records-from-file
+                                  (filter (lambda (ev) (number? (event-uid ev)))
+                                          event-records-from-file)))
+           (eids (unique (map event-eid event-records-all)))
            (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
 
            (tid-list (get-tids event-records))
@@ -308,17 +305,17 @@
                                   )   writes-per-addr-sorted
                                 ))
            )
-    
-    ;(display (event-uid (car event-records-from-file)))
-    ;(display (event-uid (cadr event-records-from-file)))
-    ;(display (number? (event-uid (cadr event-records-from-file))))
-    ;(display (< (symbol->number (event-uid (cadr event-records-from-file))) 0))
-    ;(display event-records-from-file)
+
+      ;(display (event-uid (car event-records-from-file)))
+      ;(display (event-uid (cadr event-records-from-file)))
+      ;(display (number? (event-uid (cadr event-records-from-file))))
+      ;(display (< (symbol->number (event-uid (cadr event-records-from-file))) 0))
+      ;(display event-records-from-file)
       ;(display (get-test-name model-from-file))
       (display (generate-litmus-PC name
-                (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))) 
-                (append tid-list addr-list) 
-                writes-per-addr-sorted addr-list))
+                                   (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r)))))
+                                   (append tid-list addr-list)
+                                   writes-per-addr-sorted addr-list))
 
       )))
 (start-command main)
