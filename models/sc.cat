@@ -3,8 +3,15 @@ SC
 (* Define co (and fr) *)
 include "cos.cat"
 
+let rmw = (faa | xchg | cmpxchg)
+
+let rfx = (rmw ; rf ; rmw |
+	     w ; rf ; rmw |
+	   rmw ; rf ; r   |
+	     w ; rf ; r)
+           
 (* All communication relations *)
-let com = (rf | fr | co)
+let com = (rfx | fr | co)
 
 (* Sequential consistency *)
 acyclic po | com as sc

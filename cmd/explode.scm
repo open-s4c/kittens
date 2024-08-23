@@ -51,14 +51,35 @@
               stmts)
     ht))
 
+(define (flatten lst)
+  (cond
+      ((null? lst) '())
+          ((not (pair? (car lst)))
+	       (cons (car lst) (flatten (cdr lst))))
+	      (else
+	           (append (flatten (car lst)) (flatten (cdr lst))))))
+
+
+(define (cartesian-product lst-of-lsts)
+  (if (null? lst-of-lsts)
+      '(())  ; Base 
+      (let ((rest-products (cartesian-product (cdr lst-of-lsts))))
+        (apply append
+               (map (lambda (x)
+                      (map (lambda (y) (cons x y))
+                           rest-products))
+                    (car lst-of-lsts))))))
+
 (define (explode-expr expr ht)
   (define (explode expr)
     (match expr
-           (('union . exprs) (apply append (map explode exprs)))
+           (('union . exprs) (apply append (map explode  exprs)))
+           (('seq . exprs) 
+            (cartesian-product (map explode exprs)))
            (('rel . label) (if (hash-table-exists? ht label)
                                (explode (hash-table-ref ht label))
-                               (list expr)))
-           (else `(,expr))
+                               (list label)))
+           (else (list expr))
            ))
   (explode expr))
 
@@ -71,12 +92,20 @@
   (if (eq? d 0)
       (list path)
       (apply append (map (lambda (edge)
-                           (dfs edges (append path (list (cdr edge))) (- d 1))
+                           (dfs edges (append path  edge) (- d 1))
                            ) edges))))
 
 (define (cycles-print cycles)
   (define (print-plus cycle)
-    (display cycle)
+    (display 
+    (match cycle
+        ("r" "[R]") 
+        ("w" "[W]")
+	("rmw" "[RMW]")
+	("faa" "[FAA]")
+	("xchg" "[XCHG]")
+        ("cmpxchg" "[CMPXCHG]")
+	(else cycle)))
     (display " ")
     )
   (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el)) cycle) (newline)) cycles))
@@ -84,11 +113,6 @@
 (define (main args)
   (die-unless (= (length args) 2) "wrong arguments")
 
-  ; car , cdr
-  ; (list 1 2 3) == '(1 2 3)
-  ; lst <- '(1 2 3)
-  ; (car lst) -> 1
-  ; (cdr lst) -> '(2 3)
 
   (let* ((fn (car args))
          (len (car (cdr args)))
@@ -98,15 +122,17 @@
     (print "# cycle len: " len)
 
     (let ((tokens (tokenize-cat fn)))
-      ;(pretty-print tokens)
-      ;(newline)
-      ;(display "-------------------------------------------------")
-      ;(newline)
       (let* ((model (parse-cat tokens))
              (model (include-files model))
              (ht (get-hash-table model))
              (edges (explode-accs model ht))
-             (cycles (dfs edges '() len)))
+             (edges (map (lambda (e) (flatten (list e))) edges))
+	     (cycles (dfs edges '() len)))
+        
+        ;(display model)
+	;(newline)
+	;(display edges)
+        ;(newline)
         (cycles-print cycles))))
   0)
 
