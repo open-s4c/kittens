@@ -17,7 +17,7 @@
 
 (define-record-type
   event-record
-  (event uid eid tid po co addr val op)
+  (event uid eid tid po co addr val-r val-w val-e op)
   event?
   (uid event-uid)
   (eid event-eid)
@@ -25,7 +25,9 @@
   (po event-po)
   (co event-co)
   (addr event-addr)
-  (val event-val)
+  (val-r event-val-r)
+  (val-w event-val-w)
+  (val-e event-val-e)
   (op event-op))
 
 (define (extract-event-records expr)
@@ -34,8 +36,8 @@
           (apply append (map extract-event-records defs)))
          (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co addr val op)
-          (list (event uid eid tid po co addr val op)))
+         (('mk-event uid eid tid po co addr val-r val-w val-e op)
+          (list (event uid eid tid po co addr val-r val-w val-e op)))
          (else '())))
 
 (define (get-test-name expr)
@@ -121,7 +123,8 @@
 
 (define (get-read-t-number event event-records-per-tid)
   (number->string (
-                   count (lambda (ev) (and (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
+                   count (lambda (ev) (and (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
+		   ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
 
 (define (get-event-type)
   (match type
@@ -158,7 +161,7 @@
                                  "*"
                                  ,(number-to-alphabet-string (event-addr event))
                                  " = "
-                                 ,(number->string (event-val event))
+                                 ,(number->string (event-val-w event))
                                  ";"
                                  )))
          ("a"
@@ -166,7 +169,7 @@
                                  "atomic_store_explicit("
                                  ,(number-to-alphabet-string (event-addr event))
                                  ", "
-                                 ,(number->string (event-val event))
+                                 ,(number->string (event-val-w event))
                                  ", memory_order_seq_cst);"
                                  )))))
 
@@ -178,7 +181,7 @@
                                       " = atomic_exchange_explicit("
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
-                                      ,(number->string (event-val event))
+                                      ,(number->string (event-val-w event))
                                       ", memory_order_seq_cst);"
                                       )))
          ("a"  (apply string-append `(
@@ -187,7 +190,7 @@
                                       " = atomic_exchange_explicit("
                                       ,(number-to-alphabet-string (event-addr event))
                                       ", "
-                                      ,(number->string (event-val event))
+                                      ,(number->string (event-val-w event))
                                       ", memory_order_seq_cst);"
                                       )))))
 
@@ -235,8 +238,10 @@
                                                   ":r"
                                                   ,(get-read-t-number event event-records-per-tid)
                                                   "="
-                                                  ,(number->string (event-val event)))
-                            )) (filter (lambda (event) (eq? (event-op event) 'read))event-records-per-tid)
+                                                  ,(number->string (event-val-r event)))
+                            )) (filter (lambda (event) (or (eq? (event-op event) 'read) 
+							   (eq? (event-op event)
+							   'read-modify-write))) event-records-per-tid)
            )
 
     )
@@ -296,11 +301,13 @@
            (reads-per-addr (map (lambda (events-one-addr)
                                   (map (lambda (ev) (event (event-uid ev)
                                                            (event-eid ev)
-                                                           (event-addr ev)
+                                                           (event-addr ev) ; tid
                                                            (event-co ev) ; in observer thread programme order is same as coherence order
                                                            (event-co ev)
                                                            (event-addr ev)
-                                                           (event-val ev)
+                                                           (event-val-w ev) ; make the read value be the written value
+                                                           (event-val-w ev)
+                                                           (event-val-w ev)
                                                            'read)) events-one-addr)
                                   )   writes-per-addr-sorted
                                 ))

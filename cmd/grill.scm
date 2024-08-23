@@ -7,7 +7,7 @@
         (srfi 1) ; filter
         (srfi 130))
 
-(define maxi-threads #f)
+(define maxi-threads #t)
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -134,16 +134,16 @@
                      `(assert (=>
                                (= (op ,e) (as write Operation))
                                (and
-                                (>= (val ,e) 10)
-                                (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
+                                (>= (val-w ,e) 10)
+                                (< (val-w ,e) ,(+ 10 (+ (length fr-rels) nedges)))))))
                    (map event->symbol nnums))
 
               '(newline)
               (if-comment fr "fr events can write a 0 for initialisation") 
               (map (lambda (e)
                      `(assert (and
-                               (>= (val ,e) 0)
-                               (< (val ,e) ,(+ 10 (+ (length fr-rels) nedges))))))
+                               (>= (val-w ,e) 0)
+                               (< (val-w ,e) ,(+ 10 (+ (length fr-rels) nedges))))))
                    (map event-fr->symbol fr-rels))
 
               '(newline)
@@ -235,7 +235,8 @@
 
 
               '(newline)
-              (if-comment fr "each fr edge gets a new event that is tied to both the rf and the co edges")
+              (if-comment fr "each fr edge gets a new event. if there is no other event with the
+	      same eid, this fr event is an INIT event. this merges rf -> x <- rf edges")
               (map (lambda (rel)
                      `(assert (=>
                                (not (exists ((e Event))
@@ -243,7 +244,7 @@
                                              (not (= (uid e) (uid ,(event-fr->symbol rel))))
                                              (inEventSet e)
                                              (= (eid e) (eid ,(event-fr->symbol rel))))))
-                               (= 0 (val ,(event-fr->symbol rel)))))
+                               (= 0 (val-w ,(event-fr->symbol rel)))))
                      ) fr-rels)
 
               '(newline)
