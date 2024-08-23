@@ -8,7 +8,7 @@
         (kittens utils)
         (kittens command))
 
-(define type "a")
+(define type "n")
 
 (define explicit-init-events #t)
 
@@ -121,7 +121,7 @@
 
 (define (get-read-t-number event event-records-per-tid)
   (number->string (
-                   count (lambda (ev) (and (or (eq? (event-op ev) 'RMW) (eq? (event-op ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
+                   count (lambda (ev) (and (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
 
 (define (get-event-type)
   (match type
