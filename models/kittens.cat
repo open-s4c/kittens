@@ -1,0 +1,7 @@
+KITTENS
+
+let rf = [W];rfx | [XCHG];rfx | [FAA];rfx
+
+//let fr = [W];frx | [XCHG];frx | frx;[W]
+
+acyclic rf;rf

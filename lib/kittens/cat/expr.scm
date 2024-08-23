@@ -5,10 +5,12 @@
          F ; fences
          W ; write operations
          R ; read operations
-         RMW ; read-modify-write operations
-         ACQ ; atomic operation with Acq barrier
-         REL ; atomic operation with Rel barrier
-         SC ; atomic operation with SC barrier
+         RMW  ; read-modify-write operations
+         XCHG ;
+         FAA  ; fetch and add
+         ACQ  ; atomic operation with Acq barrier
+         REL  ; atomic operation with Rel barrier
+         SC   ; atomic operation with SC barrier
          Marked ; marked atomic operation
          Plain ; Unmarked operation
          )))
@@ -107,4 +109,5 @@
    (rel
     (((! preset) r <- 'id) (cons 'rel r))
     ((r <- 'rel) (cons 'rel r))
+    (('obrack s <- sets 'cbrack) (cons 'self s))
     (('oparen a <- rels 'cparen) a))))

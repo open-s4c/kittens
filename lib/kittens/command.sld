@@ -5,12 +5,14 @@
           start-command
 
           ; reexport
+          exit
           display
           newline
           string-join)
 
   (import (scheme base)
           (scheme write)
+          (scheme process-context)
           (only (srfi 130) string-contains)
           (only (srfi 193) command-args command-line)
           (only (srfi 130) string-join)
@@ -24,8 +26,13 @@
       (syntax-rules ()
         ((_ cnd msg)
          (unless cnd
+           (error 'cnd msg)))
+        ((_ cnd msg usage)
+         (unless cnd
+           (display "USAGE: ")
            (usage)
-           (error 'argument-error msg 'cnd)))))
+           (newline)
+           (error 'cnd msg)))))
 
     (define (parse-or-die parser generator)
       (let ((result (parser (base-generator->results generator))))
