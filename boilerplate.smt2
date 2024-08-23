@@ -60,7 +60,8 @@
                 (=> (and (= (rel e) (as co Relation)) (inEdgeSet e))
                     (and (= (addr (src e)) (addr (trg e)))
                          (< (corder (src e)) (corder (trg e)))
-                         (= (op (src e)) (as write Operation))
+                         (or (= (op (src e)) (as write Operation))
+			     (= (op (src e)) (as read-modify-write Operation)))
                          (= (op (trg e)) (as write Operation))
                          (not (= (val (trg e)) (val (src e))))))))
 
