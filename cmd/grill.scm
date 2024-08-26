@@ -7,7 +7,7 @@
         (srfi 1) ; filter
         (srfi 130))
 
-(define maxi-threads-flag #t)
+(define maxi-threads-flag #f)
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -52,7 +52,7 @@
   (define (helper lst in-chain count)
     (cond
       ((null? lst) count)
-      ((eq? (car lst) 'po)
+      ((equal? (car lst) "po")
        (if in-chain
            (helper (cdr lst) #t count)
            (helper (cdr lst) #t (+ count 1))))
@@ -107,7 +107,7 @@
 	 (maxi-threads (and maxi-threads-flag (not (single-po-chain no-brcks)))))
     (append
      ;(display (single-po-chain? rels))
-     (display maxi-threads)
+     ;(display maxi-threads)
 
      (if-comment maxi-threads "the addresses of reads and writes of either side of a po are different")
      (if maxi-threads   
@@ -121,7 +121,7 @@
                                (=> (and (= (rel e) (as po Relation)) (inEdgeSet e))
                                    (and (< (porder (src e)) (porder (trg e)))
                                         (= (tid (src e)) (tid (trg e))))))))
-        )
+     )
     '(newline)
      (comment "event declarations")
 
