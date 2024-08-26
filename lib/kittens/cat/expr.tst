@@ -70,7 +70,7 @@
 
 (let ((r (parse '((obrack) (id . "FAA") (cbrack) (seq) (id . "rfx")))))
   (test-assert (parse-result-successful? r))
-  (test '(seq (self . (seq . "FAA")) (id . "rfx"))
+  (test '(seq (self . (set . "FAA")) (rel . "rfx"))
         (parse-result-semantic-value r)))
 
 (test-end)
