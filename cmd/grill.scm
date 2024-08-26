@@ -61,7 +61,9 @@
 (define (generate rels-input)
   (let* ((brcks (filter (lambda (rel) (string-prefix? "[" rel)) rels-input))
          (rels (convert-rels rels-input))
-         (nedges (length rels))
+         (rels (map (lambda (rel) (if (equal? rel 'rfx) 'rf rel)) rels))
+	 
+	 (nedges (length rels))
          (nnums (seq nedges))
          (fr-rels (find-indices rels 'fr))
          (fr (> (length fr-rels) 0))
@@ -72,7 +74,6 @@
          (edge->symbol (string/n->symbol "ed"))
          (edge-fr->symbol (string/n->symbol "edfr")))
     (append
-              
 	      (if-comment maxi-threads "the addresses of reads and writes of either side of a po are different")
 	      (if maxi-threads   
 		    (if (eq? 1 (length (find-indices rels 'po)))
