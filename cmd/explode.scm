@@ -37,7 +37,7 @@
                            (istmts (caddr imodel)))
                       (iter rest (append istmts nstmts)))
                     (begin
-                      (print "WARNING: cannot include '" (cadr stmt) "'")
+                      (print "# WARNING: cannot include '" (cadr stmt) "'")
                       (iter rest nstmts)))
                 (iter rest (cons stmt nstmts))))))
     (list 'model (cadr model) (reverse (iter stmts '())))))
@@ -45,8 +45,8 @@
 (define (include-file model fn)
   (if (file-exists? fn)
       (let* ((tks (tokenize-cat fn)))
-        (display tks)
-        (newline)
+        ;(display tks)
+        ;(newline)
         (let* ((imodel (parse-cat tks))
                (istmts (caddr imodel))
                (stmts (caddr model)))
@@ -135,8 +135,8 @@
     (print "# cycle len: " len)
 
     (let ((tokens (tokenize-cat fn)))
-      (display tokens)
-      (newline)
+      ;(display tokens)
+      ;(newline)
 
       (let* ((model (parse-cat tokens))
              (model (include-file model "models/kittens.cat"))
