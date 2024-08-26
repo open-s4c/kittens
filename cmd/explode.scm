@@ -135,8 +135,6 @@
     (print "# cycle len: " len)
 
     (let ((tokens (tokenize-cat fn)))
-      ;(display tokens)
-      ;(newline)
 
       (let* ((model (parse-cat tokens))
              (model (include-file model "models/kittens.cat"))
@@ -149,6 +147,7 @@
                (edges (map (lambda (e) (flatten (list e))) edges))
                (cycles (dfs edges '() len)))
 
+	  (display ht)
           ;(display model)
           ;(newline)
           ;(display edges)

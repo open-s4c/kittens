@@ -7,7 +7,9 @@
         (srfi 1) ; filter
         (srfi 130))
 
-(define maxi-threads-flag #f)
+(define maxi-threads-flag #t)
+
+(define maxi-addr-flag #f)
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -104,10 +106,14 @@
          (event-fr->symbol (string/n->symbol "evfr"))
          (edge->symbol (string/n->symbol "ed"))
          (edge-fr->symbol (string/n->symbol "edfr"))
-	 (maxi-threads (and maxi-threads-flag (not (single-po-chain no-brcks)))))
+	 (maxi-addr (and maxi-addr-flag (not (= (length (find-indices rels 'po)) 1))))
+	 (maxi-threads (and maxi-threads-flag (not (= (- (length no-brcks) (length (find-indices rels 'po))) 1)))))
     (append
      ;(display (single-po-chain? rels))
      ;(display maxi-threads)
+
+     ;(display (not (= (length (find-indices rels 'po)) 1)))
+     ;(display (find-indices rels 'po))
 
      (if-comment maxi-threads "the addresses of reads and writes of either side of a po are different")
      (if maxi-threads   
@@ -281,12 +287,12 @@
             ) fr-rels)
 
      '(newline)
-     (if-comment maxi-threads "if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to")
-     (if-comment maxi-threads "explicit po from first to second-to-last event")
-     (if-comment maxi-threads "if that's not the case, separate all consecutive events that are not connected by a po")
-     (if-comment maxi-threads "in order to maximise the amount of threads")  
+     (if-comment maxi-addr "if there are exactly k po-s and 1 non po edge, then all events are on the same thread due to")
+     (if-comment maxi-addr "explicit po from first to second-to-last event")
+     (if-comment maxi-addr "if that's not the case, separate all consecutive events that are not connected by a po")
+     (if-comment maxi-addr "in order to maximise the amount of threads")  
 
-     (if maxi-threads 	      
+     (if maxi-addr	      
              (map (lambda (ev1 ev2)
                     `(assert (= (and
                                  (not (exists ((ed Edge))

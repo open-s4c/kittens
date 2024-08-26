@@ -8,9 +8,9 @@
         (kittens utils)
         (kittens command))
 
-(define type "n")
+(define type "a")
 
-(define explicit-init-events #t)
+(define explicit-init-events #f)
 
 (define (usage)
   (print "roast <z3 model>"))

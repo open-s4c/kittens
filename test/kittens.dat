@@ -1,7 +1,343 @@
-po rf po rf
-po fr rf
-po co po co
-po [W] po rf
-po [RMW] po rf
-po po rf
-po [R] po rf
+po po po 
+po po [W] rfx [R] 
+po po [RMW] rfx [R] 
+po po [W] rfx [RMW] 
+po po [RMW] rfx [RMW] 
+po po fr 
+po po co 
+po [W] rfx [R] po 
+po [W] rfx [R] [W] rfx [R] 
+po [W] rfx [R] [RMW] rfx [R] 
+po [W] rfx [R] [W] rfx [RMW] 
+po [W] rfx [R] [RMW] rfx [RMW] 
+po [W] rfx [R] fr 
+po [W] rfx [R] co 
+po [RMW] rfx [R] po 
+po [RMW] rfx [R] [W] rfx [R] 
+po [RMW] rfx [R] [RMW] rfx [R] 
+po [RMW] rfx [R] [W] rfx [RMW] 
+po [RMW] rfx [R] [RMW] rfx [RMW] 
+po [RMW] rfx [R] fr 
+po [RMW] rfx [R] co 
+po [W] rfx [RMW] po 
+po [W] rfx [RMW] [W] rfx [R] 
+po [W] rfx [RMW] [RMW] rfx [R] 
+po [W] rfx [RMW] [W] rfx [RMW] 
+po [W] rfx [RMW] [RMW] rfx [RMW] 
+po [W] rfx [RMW] fr 
+po [W] rfx [RMW] co 
+po [RMW] rfx [RMW] po 
+po [RMW] rfx [RMW] [W] rfx [R] 
+po [RMW] rfx [RMW] [RMW] rfx [R] 
+po [RMW] rfx [RMW] [W] rfx [RMW] 
+po [RMW] rfx [RMW] [RMW] rfx [RMW] 
+po [RMW] rfx [RMW] fr 
+po [RMW] rfx [RMW] co 
+po fr po 
+po fr [W] rfx [R] 
+po fr [RMW] rfx [R] 
+po fr [W] rfx [RMW] 
+po fr [RMW] rfx [RMW] 
+po fr fr 
+po fr co 
+po co po 
+po co [W] rfx [R] 
+po co [RMW] rfx [R] 
+po co [W] rfx [RMW] 
+po co [RMW] rfx [RMW] 
+po co fr 
+po co co 
+[W] rfx [R] po po 
+[W] rfx [R] po [W] rfx [R] 
+[W] rfx [R] po [RMW] rfx [R] 
+[W] rfx [R] po [W] rfx [RMW] 
+[W] rfx [R] po [RMW] rfx [RMW] 
+[W] rfx [R] po fr 
+[W] rfx [R] po co 
+[W] rfx [R] [W] rfx [R] po 
+[W] rfx [R] [W] rfx [R] [W] rfx [R] 
+[W] rfx [R] [W] rfx [R] [RMW] rfx [R] 
+[W] rfx [R] [W] rfx [R] [W] rfx [RMW] 
+[W] rfx [R] [W] rfx [R] [RMW] rfx [RMW] 
+[W] rfx [R] [W] rfx [R] fr 
+[W] rfx [R] [W] rfx [R] co 
+[W] rfx [R] [RMW] rfx [R] po 
+[W] rfx [R] [RMW] rfx [R] [W] rfx [R] 
+[W] rfx [R] [RMW] rfx [R] [RMW] rfx [R] 
+[W] rfx [R] [RMW] rfx [R] [W] rfx [RMW] 
+[W] rfx [R] [RMW] rfx [R] [RMW] rfx [RMW] 
+[W] rfx [R] [RMW] rfx [R] fr 
+[W] rfx [R] [RMW] rfx [R] co 
+[W] rfx [R] [W] rfx [RMW] po 
+[W] rfx [R] [W] rfx [RMW] [W] rfx [R] 
+[W] rfx [R] [W] rfx [RMW] [RMW] rfx [R] 
+[W] rfx [R] [W] rfx [RMW] [W] rfx [RMW] 
+[W] rfx [R] [W] rfx [RMW] [RMW] rfx [RMW] 
+[W] rfx [R] [W] rfx [RMW] fr 
+[W] rfx [R] [W] rfx [RMW] co 
+[W] rfx [R] [RMW] rfx [RMW] po 
+[W] rfx [R] [RMW] rfx [RMW] [W] rfx [R] 
+[W] rfx [R] [RMW] rfx [RMW] [RMW] rfx [R] 
+[W] rfx [R] [RMW] rfx [RMW] [W] rfx [RMW] 
+[W] rfx [R] [RMW] rfx [RMW] [RMW] rfx [RMW] 
+[W] rfx [R] [RMW] rfx [RMW] fr 
+[W] rfx [R] [RMW] rfx [RMW] co 
+[W] rfx [R] fr po 
+[W] rfx [R] fr [W] rfx [R] 
+[W] rfx [R] fr [RMW] rfx [R] 
+[W] rfx [R] fr [W] rfx [RMW] 
+[W] rfx [R] fr [RMW] rfx [RMW] 
+[W] rfx [R] fr fr 
+[W] rfx [R] fr co 
+[W] rfx [R] co po 
+[W] rfx [R] co [W] rfx [R] 
+[W] rfx [R] co [RMW] rfx [R] 
+[W] rfx [R] co [W] rfx [RMW] 
+[W] rfx [R] co [RMW] rfx [RMW] 
+[W] rfx [R] co fr 
+[W] rfx [R] co co 
+[RMW] rfx [R] po po 
+[RMW] rfx [R] po [W] rfx [R] 
+[RMW] rfx [R] po [RMW] rfx [R] 
+[RMW] rfx [R] po [W] rfx [RMW] 
+[RMW] rfx [R] po [RMW] rfx [RMW] 
+[RMW] rfx [R] po fr 
+[RMW] rfx [R] po co 
+[RMW] rfx [R] [W] rfx [R] po 
+[RMW] rfx [R] [W] rfx [R] [W] rfx [R] 
+[RMW] rfx [R] [W] rfx [R] [RMW] rfx [R] 
+[RMW] rfx [R] [W] rfx [R] [W] rfx [RMW] 
+[RMW] rfx [R] [W] rfx [R] [RMW] rfx [RMW] 
+[RMW] rfx [R] [W] rfx [R] fr 
+[RMW] rfx [R] [W] rfx [R] co 
+[RMW] rfx [R] [RMW] rfx [R] po 
+[RMW] rfx [R] [RMW] rfx [R] [W] rfx [R] 
+[RMW] rfx [R] [RMW] rfx [R] [RMW] rfx [R] 
+[RMW] rfx [R] [RMW] rfx [R] [W] rfx [RMW] 
+[RMW] rfx [R] [RMW] rfx [R] [RMW] rfx [RMW] 
+[RMW] rfx [R] [RMW] rfx [R] fr 
+[RMW] rfx [R] [RMW] rfx [R] co 
+[RMW] rfx [R] [W] rfx [RMW] po 
+[RMW] rfx [R] [W] rfx [RMW] [W] rfx [R] 
+[RMW] rfx [R] [W] rfx [RMW] [RMW] rfx [R] 
+[RMW] rfx [R] [W] rfx [RMW] [W] rfx [RMW] 
+[RMW] rfx [R] [W] rfx [RMW] [RMW] rfx [RMW] 
+[RMW] rfx [R] [W] rfx [RMW] fr 
+[RMW] rfx [R] [W] rfx [RMW] co 
+[RMW] rfx [R] [RMW] rfx [RMW] po 
+[RMW] rfx [R] [RMW] rfx [RMW] [W] rfx [R] 
+[RMW] rfx [R] [RMW] rfx [RMW] [RMW] rfx [R] 
+[RMW] rfx [R] [RMW] rfx [RMW] [W] rfx [RMW] 
+[RMW] rfx [R] [RMW] rfx [RMW] [RMW] rfx [RMW] 
+[RMW] rfx [R] [RMW] rfx [RMW] fr 
+[RMW] rfx [R] [RMW] rfx [RMW] co 
+[RMW] rfx [R] fr po 
+[RMW] rfx [R] fr [W] rfx [R] 
+[RMW] rfx [R] fr [RMW] rfx [R] 
+[RMW] rfx [R] fr [W] rfx [RMW] 
+[RMW] rfx [R] fr [RMW] rfx [RMW] 
+[RMW] rfx [R] fr fr 
+[RMW] rfx [R] fr co 
+[RMW] rfx [R] co po 
+[RMW] rfx [R] co [W] rfx [R] 
+[RMW] rfx [R] co [RMW] rfx [R] 
+[RMW] rfx [R] co [W] rfx [RMW] 
+[RMW] rfx [R] co [RMW] rfx [RMW] 
+[RMW] rfx [R] co fr 
+[RMW] rfx [R] co co 
+[W] rfx [RMW] po po 
+[W] rfx [RMW] po [W] rfx [R] 
+[W] rfx [RMW] po [RMW] rfx [R] 
+[W] rfx [RMW] po [W] rfx [RMW] 
+[W] rfx [RMW] po [RMW] rfx [RMW] 
+[W] rfx [RMW] po fr 
+[W] rfx [RMW] po co 
+[W] rfx [RMW] [W] rfx [R] po 
+[W] rfx [RMW] [W] rfx [R] [W] rfx [R] 
+[W] rfx [RMW] [W] rfx [R] [RMW] rfx [R] 
+[W] rfx [RMW] [W] rfx [R] [W] rfx [RMW] 
+[W] rfx [RMW] [W] rfx [R] [RMW] rfx [RMW] 
+[W] rfx [RMW] [W] rfx [R] fr 
+[W] rfx [RMW] [W] rfx [R] co 
+[W] rfx [RMW] [RMW] rfx [R] po 
+[W] rfx [RMW] [RMW] rfx [R] [W] rfx [R] 
+[W] rfx [RMW] [RMW] rfx [R] [RMW] rfx [R] 
+[W] rfx [RMW] [RMW] rfx [R] [W] rfx [RMW] 
+[W] rfx [RMW] [RMW] rfx [R] [RMW] rfx [RMW] 
+[W] rfx [RMW] [RMW] rfx [R] fr 
+[W] rfx [RMW] [RMW] rfx [R] co 
+[W] rfx [RMW] [W] rfx [RMW] po 
+[W] rfx [RMW] [W] rfx [RMW] [W] rfx [R] 
+[W] rfx [RMW] [W] rfx [RMW] [RMW] rfx [R] 
+[W] rfx [RMW] [W] rfx [RMW] [W] rfx [RMW] 
+[W] rfx [RMW] [W] rfx [RMW] [RMW] rfx [RMW] 
+[W] rfx [RMW] [W] rfx [RMW] fr 
+[W] rfx [RMW] [W] rfx [RMW] co 
+[W] rfx [RMW] [RMW] rfx [RMW] po 
+[W] rfx [RMW] [RMW] rfx [RMW] [W] rfx [R] 
+[W] rfx [RMW] [RMW] rfx [RMW] [RMW] rfx [R] 
+[W] rfx [RMW] [RMW] rfx [RMW] [W] rfx [RMW] 
+[W] rfx [RMW] [RMW] rfx [RMW] [RMW] rfx [RMW] 
+[W] rfx [RMW] [RMW] rfx [RMW] fr 
+[W] rfx [RMW] [RMW] rfx [RMW] co 
+[W] rfx [RMW] fr po 
+[W] rfx [RMW] fr [W] rfx [R] 
+[W] rfx [RMW] fr [RMW] rfx [R] 
+[W] rfx [RMW] fr [W] rfx [RMW] 
+[W] rfx [RMW] fr [RMW] rfx [RMW] 
+[W] rfx [RMW] fr fr 
+[W] rfx [RMW] fr co 
+[W] rfx [RMW] co po 
+[W] rfx [RMW] co [W] rfx [R] 
+[W] rfx [RMW] co [RMW] rfx [R] 
+[W] rfx [RMW] co [W] rfx [RMW] 
+[W] rfx [RMW] co [RMW] rfx [RMW] 
+[W] rfx [RMW] co fr 
+[W] rfx [RMW] co co 
+[RMW] rfx [RMW] po po 
+[RMW] rfx [RMW] po [W] rfx [R] 
+[RMW] rfx [RMW] po [RMW] rfx [R] 
+[RMW] rfx [RMW] po [W] rfx [RMW] 
+[RMW] rfx [RMW] po [RMW] rfx [RMW] 
+[RMW] rfx [RMW] po fr 
+[RMW] rfx [RMW] po co 
+[RMW] rfx [RMW] [W] rfx [R] po 
+[RMW] rfx [RMW] [W] rfx [R] [W] rfx [R] 
+[RMW] rfx [RMW] [W] rfx [R] [RMW] rfx [R] 
+[RMW] rfx [RMW] [W] rfx [R] [W] rfx [RMW] 
+[RMW] rfx [RMW] [W] rfx [R] [RMW] rfx [RMW] 
+[RMW] rfx [RMW] [W] rfx [R] fr 
+[RMW] rfx [RMW] [W] rfx [R] co 
+[RMW] rfx [RMW] [RMW] rfx [R] po 
+[RMW] rfx [RMW] [RMW] rfx [R] [W] rfx [R] 
+[RMW] rfx [RMW] [RMW] rfx [R] [RMW] rfx [R] 
+[RMW] rfx [RMW] [RMW] rfx [R] [W] rfx [RMW] 
+[RMW] rfx [RMW] [RMW] rfx [R] [RMW] rfx [RMW] 
+[RMW] rfx [RMW] [RMW] rfx [R] fr 
+[RMW] rfx [RMW] [RMW] rfx [R] co 
+[RMW] rfx [RMW] [W] rfx [RMW] po 
+[RMW] rfx [RMW] [W] rfx [RMW] [W] rfx [R] 
+[RMW] rfx [RMW] [W] rfx [RMW] [RMW] rfx [R] 
+[RMW] rfx [RMW] [W] rfx [RMW] [W] rfx [RMW] 
+[RMW] rfx [RMW] [W] rfx [RMW] [RMW] rfx [RMW] 
+[RMW] rfx [RMW] [W] rfx [RMW] fr 
+[RMW] rfx [RMW] [W] rfx [RMW] co 
+[RMW] rfx [RMW] [RMW] rfx [RMW] po 
+[RMW] rfx [RMW] [RMW] rfx [RMW] [W] rfx [R] 
+[RMW] rfx [RMW] [RMW] rfx [RMW] [RMW] rfx [R] 
+[RMW] rfx [RMW] [RMW] rfx [RMW] [W] rfx [RMW] 
+[RMW] rfx [RMW] [RMW] rfx [RMW] [RMW] rfx [RMW] 
+[RMW] rfx [RMW] [RMW] rfx [RMW] fr 
+[RMW] rfx [RMW] [RMW] rfx [RMW] co 
+[RMW] rfx [RMW] fr po 
+[RMW] rfx [RMW] fr [W] rfx [R] 
+[RMW] rfx [RMW] fr [RMW] rfx [R] 
+[RMW] rfx [RMW] fr [W] rfx [RMW] 
+[RMW] rfx [RMW] fr [RMW] rfx [RMW] 
+[RMW] rfx [RMW] fr fr 
+[RMW] rfx [RMW] fr co 
+[RMW] rfx [RMW] co po 
+[RMW] rfx [RMW] co [W] rfx [R] 
+[RMW] rfx [RMW] co [RMW] rfx [R] 
+[RMW] rfx [RMW] co [W] rfx [RMW] 
+[RMW] rfx [RMW] co [RMW] rfx [RMW] 
+[RMW] rfx [RMW] co fr 
+[RMW] rfx [RMW] co co 
+fr po po 
+fr po [W] rfx [R] 
+fr po [RMW] rfx [R] 
+fr po [W] rfx [RMW] 
+fr po [RMW] rfx [RMW] 
+fr po fr 
+fr po co 
+fr [W] rfx [R] po 
+fr [W] rfx [R] [W] rfx [R] 
+fr [W] rfx [R] [RMW] rfx [R] 
+fr [W] rfx [R] [W] rfx [RMW] 
+fr [W] rfx [R] [RMW] rfx [RMW] 
+fr [W] rfx [R] fr 
+fr [W] rfx [R] co 
+fr [RMW] rfx [R] po 
+fr [RMW] rfx [R] [W] rfx [R] 
+fr [RMW] rfx [R] [RMW] rfx [R] 
+fr [RMW] rfx [R] [W] rfx [RMW] 
+fr [RMW] rfx [R] [RMW] rfx [RMW] 
+fr [RMW] rfx [R] fr 
+fr [RMW] rfx [R] co 
+fr [W] rfx [RMW] po 
+fr [W] rfx [RMW] [W] rfx [R] 
+fr [W] rfx [RMW] [RMW] rfx [R] 
+fr [W] rfx [RMW] [W] rfx [RMW] 
+fr [W] rfx [RMW] [RMW] rfx [RMW] 
+fr [W] rfx [RMW] fr 
+fr [W] rfx [RMW] co 
+fr [RMW] rfx [RMW] po 
+fr [RMW] rfx [RMW] [W] rfx [R] 
+fr [RMW] rfx [RMW] [RMW] rfx [R] 
+fr [RMW] rfx [RMW] [W] rfx [RMW] 
+fr [RMW] rfx [RMW] [RMW] rfx [RMW] 
+fr [RMW] rfx [RMW] fr 
+fr [RMW] rfx [RMW] co 
+fr fr po 
+fr fr [W] rfx [R] 
+fr fr [RMW] rfx [R] 
+fr fr [W] rfx [RMW] 
+fr fr [RMW] rfx [RMW] 
+fr fr fr 
+fr fr co 
+fr co po 
+fr co [W] rfx [R] 
+fr co [RMW] rfx [R] 
+fr co [W] rfx [RMW] 
+fr co [RMW] rfx [RMW] 
+fr co fr 
+fr co co 
+co po po 
+co po [W] rfx [R] 
+co po [RMW] rfx [R] 
+co po [W] rfx [RMW] 
+co po [RMW] rfx [RMW] 
+co po fr 
+co po co 
+co [W] rfx [R] po 
+co [W] rfx [R] [W] rfx [R] 
+co [W] rfx [R] [RMW] rfx [R] 
+co [W] rfx [R] [W] rfx [RMW] 
+co [W] rfx [R] [RMW] rfx [RMW] 
+co [W] rfx [R] fr 
+co [W] rfx [R] co 
+co [RMW] rfx [R] po 
+co [RMW] rfx [R] [W] rfx [R] 
+co [RMW] rfx [R] [RMW] rfx [R] 
+co [RMW] rfx [R] [W] rfx [RMW] 
+co [RMW] rfx [R] [RMW] rfx [RMW] 
+co [RMW] rfx [R] fr 
+co [RMW] rfx [R] co 
+co [W] rfx [RMW] po 
+co [W] rfx [RMW] [W] rfx [R] 
+co [W] rfx [RMW] [RMW] rfx [R] 
+co [W] rfx [RMW] [W] rfx [RMW] 
+co [W] rfx [RMW] [RMW] rfx [RMW] 
+co [W] rfx [RMW] fr 
+co [W] rfx [RMW] co 
+co [RMW] rfx [RMW] po 
+co [RMW] rfx [RMW] [W] rfx [R] 
+co [RMW] rfx [RMW] [RMW] rfx [R] 
+co [RMW] rfx [RMW] [W] rfx [RMW] 
+co [RMW] rfx [RMW] [RMW] rfx [RMW] 
+co [RMW] rfx [RMW] fr 
+co [RMW] rfx [RMW] co 
+co fr po 
+co fr [W] rfx [R] 
+co fr [RMW] rfx [R] 
+co fr [W] rfx [RMW] 
+co fr [RMW] rfx [RMW] 
+co fr fr 
+co fr co 
+co co po 
+co co [W] rfx [R] 
+co co [RMW] rfx [R] 
+co co [W] rfx [RMW] 
+co co [RMW] rfx [RMW] 
+co co fr 
+co co co 
