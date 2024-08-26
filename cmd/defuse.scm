@@ -23,7 +23,7 @@
          (('equal ('read-var p v) rhs)
           (display (string-append v "_P" (number->string p) " == " rhs)))
          (('equal ('deref-var v) rhs)
-          (display (string-append v " == " rhs)))))
+          (display (string-append "(*(int*)&" v ") == " rhs)))))
 
 
 

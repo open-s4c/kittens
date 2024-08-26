@@ -1,6 +1,7 @@
 #ifndef _STDATOMIC_H_
 #define _STDATOMIC_H_
 
+//#define VATOMIC_ENABLE_ATOMIC_SC
 #include <vsync/atomic.h>
 #include <vsync/atomic/dispatch.h>
 
@@ -11,5 +12,6 @@
 
 #define atomic_exchange_explicit(a, v, mo) vatomic_xchg(a, v)
 #define atomic_store_explicit(a, v, mo) vatomic_write(a, v)
+#define atomic_load_explicit(a, mo) vatomic_read(a)
 
 #endif

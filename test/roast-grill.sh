@@ -18,13 +18,13 @@ while read -r kitten; do
         cd $KITTENS_DIR
         cmd/grill.scm $kitten > $PREFIX.smt
         if z3 $PREFIX.smt > $PREFIX.model; then
-            cmd/roast.scm $PREFIX.model > $PREFIX.c
-            herd7 $FLAGS $PREFIX.c > $PREFIX.log
+            cmd/roast.scm $PREFIX.model > $PREFIX.litc
+            herd7 $FLAGS $PREFIX.litc > $PREFIX.litc.log
             echo -n "       "
-            if ! grep Sometimes $PREFIX.log; then
-               cat $PREFIX.c
+            if ! grep Sometimes $PREFIX.litc.log; then
+               cat $PREFIX.litc
                echo "-----------------------------------------------------"
-               cat $PREFIX.log
+               cat $PREFIX.litc.log
                exit 1
            fi
         fi
