@@ -9,7 +9,7 @@
 
 (define maxi-threads-flag #t)
 
-(define maxi-addr-flag #f)
+(define maxi-addr-flag #t)
 
 (define (usage)
   (print "grill <edge> ..."))
@@ -106,8 +106,8 @@
          (event-fr->symbol (string/n->symbol "evfr"))
          (edge->symbol (string/n->symbol "ed"))
          (edge-fr->symbol (string/n->symbol "edfr"))
-	 (maxi-addr (and maxi-addr-flag (not (= (length (find-indices rels 'po)) 1))))
-	 (maxi-threads (and maxi-threads-flag (not (= (- (length no-brcks) (length (find-indices rels 'po))) 1)))))
+	 (maxi-threads (and maxi-threads-flag (not (= (length (find-indices rels 'po)) 1))))
+	 (maxi-addr (and maxi-addr-flag (not (= (- (length no-brcks) (length (find-indices rels 'po))) 1)))))
     (append
      ;(display (single-po-chain? rels))
      ;(display maxi-threads)
