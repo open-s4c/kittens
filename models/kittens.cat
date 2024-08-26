@@ -1,7 +1,6 @@
 KITTENS
 
-let rf = [W];rfx | [XCHG];rfx | [FAA];rfx
+let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] | 
+	 [W] ; rfx ; [RMW] | [RMW] ; rfx ; [RMW]
 
-//let fr = [W];frx | [XCHG];frx | frx;[W]
-
-acyclic rf;rf
+let [RMW] = [XCHG]
