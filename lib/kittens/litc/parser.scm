@@ -28,7 +28,27 @@
               (loop (cons ch acc) (parse-results-next results)))
              ((and ch (char-ci>=? ch #\0) (char-ci<=? ch #\9))
               (loop (cons ch acc) (parse-results-next results)))
-             ((and ch (memv ch '( #\_ #\. #\- )))
+             ((and ch (memv ch '( #\_ #\. #\-)))
+              (loop (cons ch acc) (parse-results-next results)))
+             ((null? acc)
+              (make-expected-result
+               (parse-results-position starting-results) 'id))
+             (else
+              (make-result (list->string (reverse acc)) results))))))
+
+     (define (name-id starting-results)
+       (let loop ((acc '()) (results starting-results))
+         (let ((ch (parse-results-token-value results)))
+           (cond
+             ((and ch (null? acc) (memv ch '(#\space #\tab #\newline)))
+              (loop acc (parse-results-next results)))
+             ((and ch (char-ci>=? ch #\A) (char-ci<=? ch #\Z))
+              (loop (cons ch acc) (parse-results-next results)))
+             ((and ch (char-ci>=? ch #\a) (char-ci<=? ch #\z))
+              (loop (cons ch acc) (parse-results-next results)))
+             ((and ch (char-ci>=? ch #\0) (char-ci<=? ch #\9))
+              (loop (cons ch acc) (parse-results-next results)))
+             ((and ch (memv ch '( #\_ #\. #\- #\+ #\[ #\])))
               (loop (cons ch acc) (parse-results-next results)))
              ((null? acc)
               (make-expected-result
@@ -77,7 +97,7 @@
                 `(procs ,@x)
                 e)))
 
-   (litc-name (('#\C x <- cat-id) (cons "C" x)))
+   (litc-name (('#\C x <- name-id) (cons "C" x)))
 
    (preamble ((x <- litc-name xs <- preamble+) (cons x xs)))
    (preamble+ ((x <- preamble-line '#\newline xs <- preamble+) (cons x xs))
@@ -118,5 +138,4 @@
    (comment*/ (((str "*/")) 'comment)
               (((skip comment*/)) 'comment))
 
-   (return (() 'empty))
-   ))
+   (return (() 'empty))))
