@@ -2,15 +2,6 @@
 set -e
 
 KITTENS_DIR=$(dirname $(dirname "$0"))
-INPUT="$1"
-if [ -z "$INPUT" ]; then
-    INPUT="$KITTENS_DIR/test/kittens.dat"
-fi
-
-if [ "$INPUT" = "-in" ]; then
-    INPUT=/dev/stdin
-fi
-
 PREFIX="test"
 LITC_FLAGS="-c11 -cat fences.cat"
 HERD7_FLAGS="-cat aarch64.cat"
@@ -20,6 +11,18 @@ HERD7_ENABLED=
 DAT3M_ENABLED=
 RMW_ENABLED=
 VATOMIC_ENABLED=
+
+INPUT="$1"
+if [ -z "$INPUT" ]; then
+    INPUT="$KITTENS_DIR/test/kittens.dat"
+fi
+
+if [ "$INPUT" = "-in" ]; then
+    INPUT=/dev/stdin
+fi
+
+VATOMIC_ENABLED=true
+
 
 function echopfx {
     echo -n "      "
@@ -68,7 +71,7 @@ function roast {
 
 function vatomic_check {
     if [ "$VATOMIC_ENABLED" = "true" ]; then
-        if [ ! -f include/stdatomic.h ; then
+        if [ ! -f include/stdatomic.h ]; then
             cp include/stdatomic.bak.h include/stdatomic.h
         fi
     else
