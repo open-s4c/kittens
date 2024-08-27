@@ -52,13 +52,21 @@
 ; Constraints for rf
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
-                    (and
 		    (and (or (= (op (src e)) (as write Operation)) (= (op (src e)) (as read-modify-write Operation)))
                          (or (= (op (trg e)) (as read Operation)) (= (op (trg e)) (as read-modify-write Operation)))
                          (= (addr (src e)) (addr (trg e)))
-                         (= (val-w (src e)) (val-r (trg e))))
-		    (=> (= (op (trg e)) (as read-modify-write Operation))
-			(< (corder (src e)) (corder (trg e))))))))
+                         (= (val-w (src e)) (val-r (trg e)))))))
+		    
+; Constraints for rf, rf on RMW imples co
+;(assert (forall ((e Edge))
+;                (=> (and (= (rel e) (as rf Relation)) (inEdgeSet e))
+;                    (and
+;		    (and (or (= (op (src e)) (as write Operation)) (= (op (src e)) (as read-modify-write Operation)))
+;                         (or (= (op (trg e)) (as read Operation)) (= (op (trg e)) (as read-modify-write Operation)))
+;                         (= (addr (src e)) (addr (trg e)))
+;                         (= (val-w (src e)) (val-r (trg e))))
+;		    (=> (= (op (trg e)) (as read-modify-write Operation))
+;			(< (corder (src e)) (corder (trg e)))))))) 
 
 ; Constraints for co
 (assert (forall ((e Edge))
