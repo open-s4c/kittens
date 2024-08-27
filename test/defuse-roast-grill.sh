@@ -22,6 +22,8 @@ if [ "$INPUT" = "-in" ]; then
 fi
 
 VATOMIC_ENABLED=true
+RMW_ENABLED=true
+DAT3M_ENABLED=true
 
 
 function echopfx {
