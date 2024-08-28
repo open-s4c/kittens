@@ -121,32 +121,34 @@
 (define (contains-isomorphism res cycle)
   (define (helper res cycle n)
     (if (eq? n 0)
-      #f
-      (if (or (member cycle res)
-	      (member (reverse cycle) res))
-        #t
-	(helper res (rotate-list cycle) (- n 1))
-      )
+        #f
+        (if (or (member cycle res)
+                (member (reverse cycle) res))
+            #t
+            (helper res (rotate-list cycle) (- n 1))
+            )
+        )
     )
-  )
   (helper res cycle (length res))
-)
+  )
 
 (define (rotate-list lst)
   (if (null? lst)
-    lst
-    (append (cdr lst) (list (car lst)))))
+      lst
+      (append (cdr lst) (list (car lst)))))
 
 (define (remove-dub res remaining)
   (if (null? remaining)
-    res
-    (if (contains-isomorphism res (car remaining))
-      (remove-dub res (cdr remaining))
-      (remove-dub (append res (list (car remaining))) (cdr remaining)))))
+      res
+      (if (contains-isomorphism res (car remaining))
+          (remove-dub res (cdr remaining))
+          (remove-dub (append res (list (car remaining))) (cdr remaining)))))
 
 (define (cycles-print cycles)
   (define (print-plus cycle)
-    (display cycle)
+    (display (match cycle
+                    ("rfx" "rf")
+                    (else cycle)))
     (display " "))
   (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el)) cycle) (newline)) cycles))
 
@@ -173,17 +175,17 @@
                (edges (map (lambda (e) (flatten (list e))) edges))
                (cycles (dfs edges '() len)))
 
-	  ;(display ht)
+          ;(display ht)
           ;(display model)
           ;(newline)
           ;(display edges)
           ;(newline)
           ;(display (length cycles))
-	  ;(newline)
-	  ;(display (length (remove-dub '() cycles)))
-	  ;(cycles-print cycles)
+          ;(newline)
+          ;(display (length (remove-dub '() cycles)))
+          ;(cycles-print cycles)
           (cycles-print (remove-dub '() cycles))
-	  ))))
+          ))))
   0)
 
 (start-command main)
