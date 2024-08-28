@@ -1,5 +1,6 @@
 (define-library (kittens cat)
   (export lexer
+          expr-parser
           model-parser)
   (import (scheme base)
           (scheme file)
