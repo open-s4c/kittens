@@ -15,7 +15,8 @@
            (fr)
            (W)
            (R)
-           (RMW)))
+           (RMW)
+	   (ext)))
 
 (declare-datatype
  Event ((mk-event (uid Int)
@@ -75,7 +76,8 @@
                          (< (corder (src e)) (corder (trg e)))
                          (or (= (op (src e)) (as write Operation))
 			     (= (op (src e)) (as read-modify-write Operation)))
-                         (= (op (trg e)) (as write Operation))
+                         (or (= (op (trg e)) (as write Operation))
+			     (= (op (trg e)) (as read-modify-write Operation)))
                          (not (= (val-w (trg e)) (val-w (src e))))))))
 
 ; Constraints for [W]
@@ -98,6 +100,11 @@
                          (= (op (src e)) (as read-modify-write Operation))
                          (= (op (trg e)) (as read-modify-write Operation))
 			 (not (= (val-r (src e)) (val-w (trg e))))))))
+ 
+; Constraints for ext
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as ext Relation)) (inEdgeSet e))
+                    (not (= (tid (src e)) (tid (trg e)))))))
 
 ; Constraint rf has only one source
 (assert (forall ((e1 Edge) (e2 Edge))
