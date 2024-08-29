@@ -4,3 +4,7 @@ let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] |
 	 [W] ; rfx ; [RMW] | [RMW] ; rfx ; [RMW]
 
 let [RMW] = [XCHG]
+
+let fre = fr & ext
+let coe = co & ext
+let rfe = rf & ext
