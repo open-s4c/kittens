@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-KITTENS_DIR=$(dirname $(dirname "$0"))
-PREFIX="test"
+DIR=$(dirname $(dirname "$0"))
+PREFIX="kitten"
 
 RMW_ENABLED=true
 VATOMIC_ENABLED=true
@@ -11,6 +11,13 @@ HERD7_ENABLED=true
 DAT3M_ENABLED=false
 MODEL=aarch64
 INPUT=
+
+CC=gcc
+INC=$DIR/include
+CROSS_COMPILE=aarch64-linux-gnu-
+CROSS_CC="${CROSS_COMPILE}gcc"
+CROSS_OBJDUMP="${CROSS_COMPILE}objdump"
+
 
 function fail-usage {
     echo "$1 [options] <FILENAME|-in>"
@@ -91,7 +98,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$INPUT" ]; then
-    INPUT="$KITTENS_DIR/test/kittens.dat"
+    INPUT="$DIR/test/kittens.dat"
 fi
 
 LITC_FLAGS="-c11 -cat fences.cat"
@@ -145,20 +152,34 @@ function roast {
 
 function vatomic_check {
     if [ "$VATOMIC_ENABLED" = "true" ]; then
-        if [ ! -f include/stdatomic.h ]; then
-            cp include/stdatomic.bak.h include/stdatomic.h
+        if [ ! -f $INC/stdatomic.h ]; then
+            cp $INC/stdatomic.bak.h $INC/stdatomic.h
         fi
     else
-        rm -f include/stdatomic.h
+        rm -f $INC/stdatomic.h
     fi
 }
 
 function defuse {
-    if ! cmd/nope $PREFIX.litc > $PREFIX.litmus 2> $PREFIX.err; then
+    herd7 -cat sc.cat $PREFIX.litmus
+
+    if ! cmd/defuse.scm $PREFIX.litc > $PREFIX.c; then
         echop "defuse failed"
-        echo
-        cat $PREFIX.err
-        cat $PREFIX.litc
+        return 1
+    fi
+
+    if ! $CROSS_CC -I$INC -O3 -c -o $PREFIX.o $PREFIX.c; then
+        echop "lowering failed"
+        return 1
+    fi
+
+    if ! $CROSS_OBJDUMP -S $PREFIX.o > $PREFIX.dump; then
+        echop "objdump failed"
+        return 1
+    fi
+
+    if ! cmd/pasm.scm $PREFIX.litc $PREFIX.dump; then
+        echop "lifting failed"
         return 1
     fi
 
@@ -169,7 +190,7 @@ function native {
     if [ "$NATIVE_ENABLED" != "true" ]; then
         return 0
     fi
-    if ! gcc -o $PREFIX.bin $PREFIX.c -lpthread; then
+    if ! $CC -o $PREFIX.bin $PREFIX.c -lpthread; then
         return 1
     fi
     if ./$PREFIX.bin; then
@@ -228,7 +249,7 @@ function dat3m-check {
 }
 
 (
-    cd $KITTENS_DIR
+    cd $DIR
     vatomic_check
 
     while read -r kitten; do
