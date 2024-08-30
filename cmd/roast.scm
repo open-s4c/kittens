@@ -10,7 +10,7 @@
 
 (define type "a")
 
-(define explicit-init-events #f)
+(define explicit-init-events #t)
 
 (define (usage)
   (print "roast <z3 model>"))
@@ -46,9 +46,7 @@
           (apply string-append (map get-test-name defs)))
          (('define-fun _ _ 'String str)
           str)
-         (else "")
-         )
-  )
+         (else "")))
 
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
@@ -223,7 +221,9 @@
 (define (generate-header name)
   (apply string-append `(
                          "C "
-                         ,name
+                         ;"\""
+			 ,name
+			 ;"\""
                          "\n"
                          "Some Very Useful Information\n"
                          "{}\n\n"
