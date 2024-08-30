@@ -135,19 +135,29 @@
 			 (>= (val-e e1) 0)
                          (>= (addr e1) 0)))))
 
-; All
-(assert (forall ((ev Event))
-                (=> (and (inEventSet ev)
-                         (or (= (op ev) (as read Operation))
-			     (= (op ev) (as read-modify-write Operation)))
-			 (exists ((e1 Edge) (e2 Edge))
-                                 (and (inEdgeSet e1) (inEdgeSet e2)
-                                      (= (eid (trg e1)) (eid ev))
-                                      (= (eid (src e2)) (eid ev))
-                                      (= (rel e1) (as po Relation))
-                                      )))
-                    (= (val-r ev) 0))))
-
+; reads and RMW have to read from an rf or from an init event (thus reading 0)
+;(assert (forall ((ev Event))
+;                (=> (and (inEventSet ev)
+;                         (or (= (op ev) (as read Operation))
+;			     (= (op ev) (as read-modify-write Operation)))
+;			 (not (exists ((e1 Edge))
+;                                 (and (inEdgeSet e1)
+;                                      (= (eid (trg e1)) (eid ev))
+;                                      (= (rel e1) (as rf Relation))
+;                                      ))))
+;                    (= (val-r ev) 0))))
+; 
+;(assert
+;                (=> (and 
+;                         (or (= (op ev) (as read Operation))
+;			     (= (op ev) (as read-modify-write Operation)))
+;			 (not (exists ((e1 Edge))
+;                                 (and (inEdgeSet e1)
+;                                      (= (eid (trg e1)) (eid ev))
+;                                      (= (rel e1) (as rf Relation))
+;                                      ))))
+;                    (= (val-r ev) 0)))
+ 
 ; -----------------------------------------------------------------------------
 ; definition of events and edges
 ; -----------------------------------------------------------------------------

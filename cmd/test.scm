@@ -59,7 +59,7 @@
 	 (hash-table-set! edges-count name-base (+ (hash-table-ref edges-count name-base) 1))
 	 (hash-table-set! edges-count name-base 1)
        )
-       (string-append name-base (number->string (hash-table-ref edges-count name-base)))
+       (string-append name-base "-" (number->string (hash-table-ref edges-count name-base)))
     )))
  
 (define (find-indices lst target)
@@ -73,6 +73,7 @@
 (define (flatten lst)
   (cond
     ((null? lst) '())
+    ((not (pair? lst)) lst)
     ((not (pair? (car lst)))
      (cons (car lst) (flatten (cdr lst))))
     (else
@@ -110,7 +111,7 @@
     (('inv . rest)
         (make-edges er el rest))  ; just swap er and el
     (('self . ('set . rel))
-         (edge el er rel (edge->name el er)))
+         (list (edge el er rel (edge->name el er))))
     (else "hjuj")))
 
 (define (generate-constraints edges)
@@ -243,6 +244,22 @@
 
      
 
+     '(newline)
+     (comment "reads abd RNW have to read from an rf edge or from an init event")
+
+     (map (lambda (ev) 
+	   `(assert
+	                    (=> (and
+	                             (or (= (op ,ev) (as read Operation))
+	                                 (= (op ,ev) (as read-modify-write Operation)))
+	                             (not (exists ((e1 Edge))
+	                                     (and (inEdgeSet e1)
+	                                          (= (eid (trg e1)) (eid ,ev))
+	                                          (= (rel e1) (as rf Relation))
+	                                          ))))
+	                        (= (val-r ,ev) 0)))
+	) event-names)
+
      ;'(newline)
      ;(if-comment fr "each fr edge gets a new event. if there is no other event with the same eid, this fr event is an INIT event. this merges rf -> x <- rf edges")
      ;(map (lambda (rel)
@@ -292,8 +309,10 @@
 
   (let* ((expr (car args))
 	(expr (parse-expr expr))
-	(edges (flatten (make-edges 0 100 expr)))
+	(edges (flatten (make-edges 0 1000 expr)))
         (constraints (generate-constraints edges)))
+    ;(display (list? expr))
+
     (print-boilerplate)
     (for-each (lambda (e)
                 (if (not (eq? e 'newline)) (display e))
