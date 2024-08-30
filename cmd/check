@@ -3,15 +3,13 @@ set -e
 
 KITTENS_DIR=$(dirname $(dirname "$0"))
 PREFIX="test"
-LITC_FLAGS="-c11 -cat fences.cat"
-HERD7_FLAGS="-cat aarch64.cat"
-DAT3M_FLAGS="-bound 5 -cat models/aarch64.cat"
 
 RMW_ENABLED=true
 VATOMIC_ENABLED=true
 NATIVE_ENABLED=true
 HERD7_ENABLED=true
 DAT3M_ENABLED=false
+MODEL=aarch64
 INPUT=
 
 function fail-usage {
@@ -21,6 +19,7 @@ function fail-usage {
     echo "  -dat3m BOOL        Enable Dartagnan check (default: $DAT3M_ENABLED)"
     echo "  -vatomic BOOL      Enable use of vatomic (default: $VATOMIC_ENABLED)"
     echo "  -rmw BOOL          Enable use of RMW (default: $RMW_ENABLED)"
+    echo "  -model STR         Which model to use (default: $MODEL)"
     echo
     exit 1
 }
@@ -66,6 +65,10 @@ while [ $# -gt 0 ]; do
                 VATOMIC_ENABLED=
             fi
             ;;
+        -model)
+            shift
+            MODEL="$1"
+            ;;
         -rmw)
             shift
             if bool_val $1; then
@@ -90,6 +93,10 @@ done
 if [ -z "$INPUT" ]; then
     INPUT="$KITTENS_DIR/test/kittens.dat"
 fi
+
+LITC_FLAGS="-c11 -cat fences.cat"
+HERD7_FLAGS="-cat $MODEL.cat"
+DAT3M_FLAGS="-bound 5 -cat models/$MODEL.cat"
 
 function echopfx {
     echo -n "      "
@@ -192,6 +199,7 @@ function herd7-check {
     herd7 $HERD7_FLAGS $PREFIX.litmus > $PREFIX.litmus.log 2>&1
     if grep Sometimes $PREFIX.litmus.log > /dev/null; then
         echop "herd7:  FAILED"
+        echo "# herd7 $HERD7_FLAGS $PREFIX.litmus"
         return 1
     elif grep "unrolling limit exceeded" $PREFIX.litmus.log > /dev/null; then
         echop "herd7:  UNKNOWN"
@@ -213,6 +221,7 @@ function dat3m-check {
         echop "dat3m:  OK"
     else
         echop "dat3m:  FAILED"
+        echo "# dat3m $DAT3M_FLAGS $PREFIX.litmus"
         return 1
     fi
     return 0
