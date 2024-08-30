@@ -26,7 +26,7 @@ function fail-usage {
     echo "  -dat3m BOOL        Enable Dartagnan check (default: $DAT3M_ENABLED)"
     echo "  -vatomic BOOL      Enable use of vatomic (default: $VATOMIC_ENABLED)"
     echo "  -rmw BOOL          Enable use of RMW (default: $RMW_ENABLED)"
-    echo "  -model STR         Which model to use (default: $MODEL)"
+    echo "  -cat STR           Which cat model to use (default: $MODEL)"
     echo
     exit 1
 }
@@ -71,6 +71,10 @@ while [ $# -gt 0 ]; do
             else
                 VATOMIC_ENABLED=
             fi
+            ;;
+        -cat)
+            shift
+            MODEL="$1"
             ;;
         -model)
             shift
@@ -119,7 +123,7 @@ function grill {
 
     if ! cmd/grill.scm $kitten > $PREFIX.smt; then
         echop grill failed
-        return 1
+        exit 1
     fi
 
     if ! z3 $PREFIX.smt > $PREFIX.model; then
@@ -133,18 +137,14 @@ function grill {
 function roast {
     if ! cmd/roast.scm $PREFIX.model > $PREFIX.litc; then
         echop roast failed
-        return 1
+        exit 1
     fi
 
     herd7 $LITC_FLAGS $PREFIX.litc > $PREFIX.litc.log
     if ! grep Sometimes $PREFIX.litc.log > /dev/null; then
-       echop herd7 failed
-       echo "-----------------------------------------------------"
-       cat $PREFIX.litc
-       echo "-----------------------------------------------------"
-       cat $PREFIX.litc.log
-       echo "-----------------------------------------------------"
-       return 1
+        echop herd7 with litc failed
+        echo "# herd7 $LITC_FLAGS $PREFIX.litc"
+        exit 1
     fi
 
     echop roasted
@@ -161,8 +161,6 @@ function vatomic_check {
 }
 
 function defuse {
-    herd7 -cat sc.cat $PREFIX.litmus
-
     if ! cmd/defuse.scm $PREFIX.litc > $PREFIX.c; then
         echop "defuse failed"
         return 1
@@ -178,7 +176,7 @@ function defuse {
         return 1
     fi
 
-    if ! cmd/pasm.scm $PREFIX.litc $PREFIX.dump; then
+    if ! cmd/pasm.scm $PREFIX.litc $PREFIX.dump > $PREFIX.litmus; then
         echop "lifting failed"
         return 1
     fi
@@ -197,7 +195,7 @@ function native {
         echop native: OK
         return 0
     else
-        return 1
+        exit 1
     fi
 }
 
@@ -260,6 +258,12 @@ function dat3m-check {
         if echo "$kitten" | grep -e "^#" > /dev/null; then
             continue
         fi
+
+        # cleanup
+        for suf in o dump litmus litc c; do
+            rm -f $PREFIX.$suf
+            rm -f $PREFIX.$suf.log
+        done
 
         # valid kitten, start loop
         echo
