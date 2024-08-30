@@ -7,6 +7,7 @@ LITC_FLAGS="-c11 -cat fences.cat"
 HERD7_FLAGS="-cat aarch64.cat"
 DAT3M_FLAGS="-bound 5 -cat models/aarch64.cat"
 
+NATIVE_ENABLED=
 HERD7_ENABLED=
 DAT3M_ENABLED=
 RMW_ENABLED=
@@ -21,6 +22,7 @@ if [ "$INPUT" = "-in" ]; then
     INPUT=/dev/stdin
 fi
 
+NATIVE_ENABLED=true
 VATOMIC_ENABLED=true
 RMW_ENABLED=true
 HERD7_ENABLED=true
@@ -92,6 +94,21 @@ function defuse {
     fi
 
     echop defused
+}
+
+function native {
+    if [ "$NATIVE_ENABLED" != "true" ]; then
+        return 0
+    fi
+    if ! gcc -o $PREFIX.bin $PREFIX.c -lpthread; then
+        return 1
+    fi
+    if ./$PREFIX.bin; then
+        echop native: OK
+        return 0
+    else
+        return 1
+    fi
 }
 
 function drop  {
@@ -173,6 +190,10 @@ function dat3m-check {
         fi
 
         if ! defuse; then
+            exit 1
+        fi
+
+        if ! native; then
             exit 1
         fi
 
