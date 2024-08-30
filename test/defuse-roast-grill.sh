@@ -24,6 +24,7 @@ fi
 VATOMIC_ENABLED=true
 RMW_ENABLED=true
 HERD7_ENABLED=true
+DAT3M_ENABLED=
 
 
 function echopfx {
@@ -109,8 +110,8 @@ function herd7-check {
         return 0
     fi
 
-    herd7 $HERD7_FLAGS $PREFIX.litmus > $PREFIX.litmus.log
-    if grep Sometimes $PREFIX.litmus.log; then
+    herd7 $HERD7_FLAGS $PREFIX.litmus > $PREFIX.litmus.log 2>&1
+    if grep Sometimes $PREFIX.litmus.log > /dev/null; then
        echop "unexpected failure"
        cat $PREFIX.litc
        echo "-----------------------------------------------------"
@@ -119,7 +120,11 @@ function herd7-check {
        cat $PREFIX.litmus.log
        return 1
     fi
-    echop herd7: OK
+    if grep "unrolling limit exceeded" $PREFIX.litmus.log > /dev/null; then
+        echop herd7: UNKNOWN
+    else
+        echop herd7: OK
+    fi
 }
 
 function dat3m-check {
