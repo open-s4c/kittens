@@ -7,27 +7,81 @@ LITC_FLAGS="-c11 -cat fences.cat"
 HERD7_FLAGS="-cat aarch64.cat"
 DAT3M_FLAGS="-bound 5 -cat models/aarch64.cat"
 
-NATIVE_ENABLED=
-HERD7_ENABLED=
+RMW_ENABLED=true
+VATOMIC_ENABLED=true
+NATIVE_ENABLED=true
+HERD7_ENABLED=true
 DAT3M_ENABLED=
-RMW_ENABLED=
-VATOMIC_ENABLED=
+INPUT=
 
-INPUT="$1"
+function fail-usage {
+    echo "$1 [options] <FILENAME|-in>"
+    echo "Options:"
+    echo "  -herd7 BOOL        Enable Herd7 check (default: true)"
+    echo "  -dat3m BOOL        Enable Dartagnan check (default: false)"
+    echo "  -vatomic BOOL      Enable use of vatomic (default: true)"
+    echo "  -rmw BOOL          Enable use of RMW (default: true)"
+    echo
+    exit 1
+}
+
+function bool_val {
+    if [ "$1" = "on" ] || [ "$1" = "true" ]; then
+        return 0
+    elif [ "$1" = "off" ] || [ "$1" = "false" ]; then
+        return 1
+    else
+        echo "error: invalid BOOL '$1'"
+        exit 1
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -in)
+            [ -z "$INPUT" ] || fail-usage
+            INPUT=/dev/stdin
+            ;;
+        -herd7)
+            shift
+            if ! bool_val $1; then
+                HERD7_ENABLED=
+            fi
+            ;;
+        -dat3m)
+            shift
+            if bool_val $1; then
+                DAT3M_ENABLED=true
+            fi
+            ;;
+        -vatomic)
+            shift
+            if ! bool_val $1; then
+                VATOMIC_ENABLED=
+            fi
+            ;;
+        -rmw)
+            shift
+            if ! bool_val $1; then
+                RMW_ENABLED=
+            fi
+            ;;
+        -h)
+            fail-usage "$0"
+            ;;
+        *)
+            [ -z "$INPUT" ] || fail-usage $0
+            if [ $# != 1 ]; then
+                INPUT="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
 if [ -z "$INPUT" ]; then
     INPUT="$KITTENS_DIR/test/kittens.dat"
 fi
-
-if [ "$INPUT" = "-in" ]; then
-    INPUT=/dev/stdin
-fi
-
-NATIVE_ENABLED=true
-VATOMIC_ENABLED=true
-RMW_ENABLED=true
-HERD7_ENABLED=true
-DAT3M_ENABLED=
-
 
 function echopfx {
     echo -n "      "
@@ -35,7 +89,7 @@ function echopfx {
 
 function echop {
     echopfx
-    echo $*
+    echo "$*"
 }
 
 function grill {
@@ -129,19 +183,14 @@ function herd7-check {
 
     herd7 $HERD7_FLAGS $PREFIX.litmus > $PREFIX.litmus.log 2>&1
     if grep Sometimes $PREFIX.litmus.log > /dev/null; then
-       echop "unexpected failure"
-       cat $PREFIX.litc
-       echo "-----------------------------------------------------"
-       cat $PREFIX.litmus
-       echo "-----------------------------------------------------"
-       cat $PREFIX.litmus.log
-       return 1
-    fi
-    if grep "unrolling limit exceeded" $PREFIX.litmus.log > /dev/null; then
-        echop herd7: UNKNOWN
+        echop "herd7:  FAILED"
+        return 1
+    elif grep "unrolling limit exceeded" $PREFIX.litmus.log > /dev/null; then
+        echop "herd7:  UNKNOWN"
     else
-        echop herd7: OK
+        echop "herd7:  OK"
     fi
+    return 0
 }
 
 function dat3m-check {
@@ -151,13 +200,14 @@ function dat3m-check {
 
     dat3m $DAT3M_FLAGS $PREFIX.litmus > $PREFIX.litmus.log
     if grep UNKNOWN $PREFIX.litmus.log > /dev/null; then
-        echop dat3m: UNKNOWN
+        echop "dat3m:  UNKNOWN"
     elif grep FAIL $PREFIX.litmus.log > /dev/null; then
-        echop dat3m: OK
+        echop "dat3m:  OK"
     else
-        echop dat3m: FAILED
+        echop "dat3m:  FAILED"
         return 1
     fi
+    return 0
 }
 
 (
