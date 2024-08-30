@@ -143,7 +143,8 @@
 			 (>= (porder e1) 200)
 			 (< (porder e1) 250)
 			 (>= (addr e1) 100)
-			 (< (addr e1) 150)))))
+			 (< (addr e1) 150)
+			 ))))
 
 ; reads and RMW have to read from an rf or from an init event (thus reading 0)
 ;(assert (forall ((ev Event))
