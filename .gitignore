@@ -3,6 +3,8 @@
 *.swo
 *.swp
 
+test/kittens.dat
+
 examples
 *.smt2
 *.txt
