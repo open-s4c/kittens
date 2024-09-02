@@ -70,23 +70,8 @@
                  write-events))
        write-addresses))
 
-(define (number-to-alphabet-string n)
-  (let loop ((n n) (result ""))
-    (let* ((quotient (quotient n 26))
-           (remainder (modulo n 26))
-           (char (integer->char (+ (char->integer #\a) remainder))))
-      (if (= quotient 0)
-          (string-append (string char) result)
-          (loop (- quotient 1) (string-append (string char) result))))))
-
-(define (enumerate-strings n)
-  (let loop ((i 0))
-    (when (< i n)
-      (display i)
-      (display " -> ")
-      (display (number-to-alphabet-string i))
-      (newline)
-      (loop (+ i 1)))))
+(define (var-name n)
+  (string-append "v" (number->string n)))
 
 (define (sort-records event-records criteria)
   (map (lambda (event-record) (sort event-record (lambda (l r) (< (criteria l) (criteria r))))) event-records))
@@ -99,11 +84,11 @@
                            " ("
                            ,@(map (lambda (addr) (string-append (get-event-type)
                                                                 "* "
-                                                                (number-to-alphabet-string addr) ", ")) (but-last addresses))
+                                                                (var-name addr) ", ")) (but-last addresses))
                            ,(string-append
                              (get-event-type)
                              "* "
-                             (number-to-alphabet-string (car (reverse addresses))))
+                             (var-name (car (reverse addresses))))
                            ")"
                            ))))
 
@@ -138,7 +123,7 @@
                                                   get-read-t-number event event-records-per-tid
                                                   )
                                                  " = *")
-                                 ,(number-to-alphabet-string (event-addr event))
+                                 ,(var-name (event-addr event))
                                  ";"
                                  )))
 
@@ -148,7 +133,7 @@
                      "int r"
                      (get-read-t-number event event-records-per-tid)
                      " = atomic_load_explicit(")
-                   ,(number-to-alphabet-string (event-addr event))
+                   ,(var-name (event-addr event))
                    ", memory_order_seq_cst);"
                    )))))
 
@@ -157,7 +142,7 @@
          ("n"
           (apply string-append `(
                                  "*"
-                                 ,(number-to-alphabet-string (event-addr event))
+                                 ,(var-name (event-addr event))
                                  " = "
                                  ,(number->string (event-val-w event))
                                  ";"
@@ -165,7 +150,7 @@
          ("a"
           (apply string-append `(
                                  "atomic_store_explicit("
-                                 ,(number-to-alphabet-string (event-addr event))
+                                 ,(var-name (event-addr event))
                                  ", "
                                  ,(number->string (event-val-w event))
                                  ", memory_order_seq_cst);"
@@ -177,7 +162,7 @@
                                       "int r"
                                       ,(get-read-t-number event event-records-per-tid)
                                       " = atomic_exchange_explicit("
-                                      ,(number-to-alphabet-string (event-addr event))
+                                      ,(var-name (event-addr event))
                                       ", "
                                       ,(number->string (event-val-w event))
                                       ", memory_order_seq_cst);"
@@ -186,7 +171,7 @@
                                       "int r"
                                       ,(get-read-t-number event event-records-per-tid)
                                       " = atomic_exchange_explicit("
-                                      ,(number-to-alphabet-string (event-addr event))
+                                      ,(var-name (event-addr event))
                                       ", "
                                       ,(number->string (event-val-w event))
                                       ", memory_order_seq_cst);"
