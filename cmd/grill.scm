@@ -161,7 +161,8 @@
                                     (< (corder ,e) ,(+ 300 (+ (length fr-rels) nedges)))
                                     (>= (porder ,e) 200)
                                     (< (porder ,e) ,(+ 200 (+ (length fr-rels) nedges)))
-                                    (>= (addr ,e) 100)
+                                    (> (val-w ,e) 0)
+				    (>= (addr ,e) 100)
                                     (< (addr ,e) ,(+ 100 (+ (length fr-rels) nedges))))))
           (append
            (map event->symbol nnums)
