@@ -132,7 +132,7 @@
                 (=> (inEventSet e1)
                     (and (>= (val-r e1) 0)
 			 (< (val-r e1) 20)
-			 (>= (val-w e1) 0)
+			 (>= (val-w e1) 1)
 			 (< (val-w e1) 20)
 			 (>= (val-e e1) 0)
 			 (< (val-e e1) 20)

@@ -17,6 +17,8 @@
 (define (usage)
   (print "explode <model file> <edges>"))
 
+(define (but-last xs) (reverse (cdr (reverse xs))))
+
 (define (tokenize-cat fn)
   (parse-or-die lexer (file-generator fn)))
 
@@ -149,8 +151,8 @@
     (display (match cycle
                     ("rfx" "rf")
                     (else cycle)))
-    (display " "))
-  (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el)) cycle) (newline)) cycles))
+   )
+  (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el) (display ";")) (but-last cycle)) (print-plus (car (reverse cycle))) (newline)) cycles))
 
 (define (main args)
   (die-unless (= (length args) 2) "wrong arguments" usage)
