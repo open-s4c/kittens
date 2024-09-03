@@ -3,7 +3,10 @@ KITTENS
 let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] | 
 	 [W] ; rfx ; [RMW] | [RMW] ; rfx ; [RMW]
 
-let [RMW] = [XCHG]
+let rmw = [RMW]
+
+let RMW = [XCHG] | [FAA]
+
 
 let fre = fr & ext
 let coe = co & ext
