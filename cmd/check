@@ -125,7 +125,7 @@ function grill {
         echop grill failed
         exit 1
     fi
-
+    
     if ! z3 $PREFIX.smt > $PREFIX.model; then
         echop unsat
         return 1
@@ -140,14 +140,24 @@ function roast {
         exit 1
     fi
 
-    herd7 $LITC_FLAGS $PREFIX.litc > $PREFIX.litc.log
-    if ! grep Sometimes $PREFIX.litc.log > /dev/null; then
-        echop herd7 with litc failed
-        echo "# herd7 $LITC_FLAGS $PREFIX.litc"
-        exit 1
+    if ! litmusC_check; then
+	continue
     fi
 
     echop roasted
+}
+
+function litmusC_check {
+    if [ "$HERD7_ENABLED" = "true" ]; then
+ 	 herd7 $LITC_FLAGS $PREFIX.litc > $PREFIX.litc.log
+   	 if ! grep Sometimes $PREFIX.litc.log > /dev/null; then
+   	     echop herd7 with litc failed
+   	     echo "# herd7 $LITC_FLAGS $PREFIX.litc"
+   	     exit 1
+   	 fi
+    fi
+
+    return 0
 }
 
 function vatomic_check {

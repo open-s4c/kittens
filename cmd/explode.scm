@@ -152,7 +152,7 @@
                     ("rfx" "rf")
                     (else cycle)))
    )
-  (for-each (lambda (cycle) (for-each (lambda (el) (print-plus el) (display ";")) (but-last cycle)) (print-plus (car (reverse cycle))) (newline)) cycles))
+  (for-each (lambda (cycle) (display "acyclic ") (for-each (lambda (el) (print-plus el) (display ";")) (but-last cycle)) (print-plus (car (reverse cycle))) (newline)) cycles))
 
 (define (main args)
   (die-unless (= (length args) 2) "wrong arguments" usage)

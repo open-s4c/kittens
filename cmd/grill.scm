@@ -16,8 +16,6 @@
 
 (define maxi-addr-flag #t)
 
-(define acyclic #t)
-
 (define edges-count (make-hash-table))
 
 (define (usage)
@@ -41,8 +39,8 @@
          (newline)
          (loop (read-line)))))))
 
-(define (print-epilogue name l r)
-  (if acyclic
+(define (print-epilogue name l r is-acyclic)
+  (if is-acyclic
   	(print "(assert (= (eid ev" (number->string l) ") (eid ev" (number->string r) ")))"))
   (newline)
   (print (string-append "(assert (= rels \"" name "\"))"))
@@ -190,11 +188,16 @@
 (define (main args)
   (die-unless (not (zero? (length args))) "edge list")
 
- ; (display (string? (car args)))
+  ;(display (string? (car args)))
   ;(display args)
   ;(display (parse-expr (car args)))
-  (let* ((expr (car args))
-	(expr (parse-expr expr))
+  ;(display (apply string-append args))
+  (let* ((expr (cadr args))
+	 (type (car args))
+	 (is-acyclic (equal? "acyclic" type)))
+  ;(display expr)
+  
+  (let* ((expr (parse-expr expr))
 	(edges (flatten (make-edges 0 10000 expr)))
         (constraints (generate-constraints edges)))
 
@@ -204,8 +207,8 @@
 
                 (newline))
               constraints)
-    (print-epilogue (car args) 0 10000)
-    )
+    (print-epilogue (car args) 0 10000 is-acyclic)
+    ))
 
   0)
 
