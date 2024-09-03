@@ -47,13 +47,9 @@
 (define (include-file model fn)
   (if (file-exists? fn)
       (let* ((tks (tokenize-cat fn)))
-        ;(display tks)
-        ;(newline)
         (let* ((imodel (parse-cat tks))
                (istmts (caddr imodel))
                (stmts (caddr model)))
-          ;(display istmts)
-          ;(newline)
           (list 'model (cadr model) (append istmts stmts))))
       model))
 
@@ -73,45 +69,6 @@
     (cond ((null? lst) '())
 	          ((not (pair? lst)) (list lst))
 		          (else (append (flatten (car lst)) (flatten (cdr lst))))))
-
-;(define (flatten lst)
-;  (cond
-;    ((null? lst) '())
-;    ((not (pair? (car lst)))
-;     (cons (car lst) (flatten (cdr lst))))
-;    (else
-;     (append (flatten (car lst)) (flatten (cdr lst))))))
-;
-
-(define (cartesian-product lst-of-lsts)
-  (if (null? lst-of-lsts)
-      '(())  ; Base
-      (let ((rest-products (cartesian-product (cdr lst-of-lsts))))
-        (apply append
-               (map (lambda (x)
-                      (map (lambda (y) (cons x y))
-                           rest-products))
-                    (car lst-of-lsts))))))
-
-(define (explode-expr expr ht)
-  (define (explode expr)
-    (match expr
-           (('union . exprs) (apply append (map explode exprs)))
-           (('seq . exprs)
-            (cartesian-product (map explode exprs)))
-           (('set . label) (list label))
-           (('self . label)
-            (map (lambda (l)
-                   (string-append "[" l "]"))
-                 (explode label)))
-           (('rel . label)
-            (if (pair? label)
-                (list (string-append "[" (cdr label) "]"))
-                (if (hash-table-exists? ht label)
-                    (explode (hash-table-ref ht label))
-                    (list label))))
-           (else (list expr))))
-  (explode expr))
 
 (define (explode-expr-t expr ht)
   (define (explode expr)
@@ -164,11 +121,6 @@
 
 (define (explode-acyclic-rule rule ht d)
   (map (lambda (a) (list 'acyclic a)) (generate-combinations (flatten-union (explode-expr-t rule ht)) d)))
-
-(define (explode-accs model ht)
-  (let* ((stmts (caddr model))
-         (accs (filter (lambda (x) (eq? (car x) 'acyclic)) stmts)))
-    (apply append (map (lambda (acc) (explode-expr-t (cadr acc) ht)) accs))))
 
 (define (generate-combinations edges n)
   (apply append (generate-combinations-h edges n)))
