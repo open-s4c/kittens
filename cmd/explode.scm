@@ -163,7 +163,6 @@
   (map (lambda (e) (list 'empty e)) (flatten-union (explode-expr-t rule ht))))
 
 (define (explode-acyclic-rule rule ht d)
-  ;(generate-combinations (flatten-union (explode-expr-t rule ht)) d)
   (map (lambda (a) (list 'acyclic a)) (generate-combinations (flatten-union (explode-expr-t rule ht)) d)))
 
 (define (explode-accs model ht)
@@ -172,46 +171,23 @@
     (apply append (map (lambda (acc) (explode-expr-t (cadr acc) ht)) accs))))
 
 (define (generate-combinations edges n)
-	(apply append (generate-combinations-h edges n)))
+  (apply append (generate-combinations-h edges n)))
 
 (define (generate-combinations-h edges n)
-    ;; Helper function to recursively generate combinations
-      (define (helper current-list n)
-	    (if (zero? n)
-		        current-list
-			        (map (lambda (edge)
-				                      (helper (list 'seq edge current-list) (- n 1)))
-				                  edges)))
-        
-        ;; Generate the combinations and ensure proper nesting
-	  (apply append (map (lambda (edge) (helper edge (- n 1))) edges)))
+  (define (helper current-list n)
+    (if (zero? n)
+	current-list
+	(map (lambda (edge)
+	     (helper (list 'seq edge current-list) (- n 1)))
+	     edges)))
+  (apply append (map (lambda (edge) (helper edge (- n 1))) edges)))
 
-;; Flattening function to only flatten lists with a single nested list
 (define (flatten-once lst)
-    (cond ((and (pair? lst) (null? (cdr lst)) (pair? (car lst)))
-	            (flatten-once (car lst)))  ;; Flatten if it's a single nested list
-	          ((pair? lst)
-		            (cons (flatten-once (car lst)) (flatten-once (cdr lst))))
-		          (else lst)))  ;; Return element as is
-
-(define (dfs-t edges path d)
-  (if (eq? d 0)
-      (list path)
-      (apply append (map (lambda (edge)
-                           (let ((new-path (if (null? path)
-					       edge
-					       (list 'seq edge path))))
-			    (dfs edges new-path (- d 1))))
-
-			 edges))))
-
-(define (dfs edges path d)
-  (if (eq? d 0)
-      (list path)
-      (apply append (map (lambda (edge)
-                           (dfs edges (append path  edge) (- d 1))
-                           ) edges))))
-
+  (cond ((and (pair? lst) (null? (cdr lst)) (pair? (car lst)))
+	 (flatten-once (car lst)))  
+	((pair? lst)
+	 (cons (flatten-once (car lst)) (flatten-once (cdr lst))))
+	(else lst)))  
 
 (define (contains-isomorphism res cycle)
   (define (helper res cycle n)
@@ -220,12 +196,8 @@
         (if (or (member cycle res)
                 (member (reverse cycle) res))
             #t
-            (helper res (rotate-list cycle) (- n 1))
-            )
-        )
-    )
-  (helper res cycle (length res))
-  )
+            (helper res (rotate-list cycle) (- n 1)))))
+  (helper res cycle (length res)))
 
 (define (rotate-list lst)
   (if (null? lst)
@@ -258,20 +230,13 @@
         (('seq . rest) (print-stmt (car rest) 'seq) (display ";") (print-stmt (cadr rest) 'seq))
         (('isect . rest) 
 		(print-stmt (car rest) 'isect) (display "&") (print-stmt (cadr rest) 'isect))
-        (('rel . rest) (display rest))
+        (('rel . rest) (display (match rest 
+				       ("rfx" "rf")
+				       (else rest))))
         (('self 'set . rest) (display "[") (display rest) (display "]"))
    	(else (display stmt)))
-  (if br (display ")"))
-  ))
+  (if br (display ")"))))
    
-(define (cycles-print cycles)
-  (define (print-plus cycle)
-    (display (match cycle
-                    ("rfx" "rf")
-                    (else cycle)))
-   )
-  (for-each (lambda (cycle) (display "acyclic ") (for-each (lambda (el) (print-plus el) (display ";")) (but-last cycle)) (print-plus (car (reverse cycle))) (newline)) cycles))
-
 (define (main args)
   (die-unless (= (length args) 2) "wrong arguments" usage)
 
@@ -288,55 +253,16 @@
              (model (include-file model "models/kittens.cat"))
              (model (include-files model)))
 
-        (display model)
-        (newline)
-        (newline)
-	(display (caddr model))
-	(newline)
-	(newline)
-	;(display (explode-expr-t test-expr '()))
-	;(display (explode-expr-t test-expr '()))
-	;(newline)
-	;(newline)
-	;(for-each (lambda (e) (print e)) (flatten-union (explode-expr-t test-expr '())))
-	;(newline)
-	;(newline)
 	(let* ((ht (get-hash-table model))
                (empty-rules (get-empties (caddr model)))
 	       (acyclic-rules (get-accs (caddr model)))
 	       (empties (apply append (map (lambda (e) (explode-empty-rule e ht)) empty-rules)))
 	       (acyclics (apply append (map (lambda (a) (explode-acyclic-rule a ht len)) acyclic-rules)))
-	       ;(edges (explode-accs model ht))
-               ;(edges (map (lambda (e) (flatten (list e))) edges))
-               );(cycles (dfs edges '() len)))
-  	  
-	            ;(display ht)
-          (newline)
-	  (newline)
-          
-	  (display empty-rules)
-	  (newline)
-	  (newline)
-	  (display acyclic-rules)
-
-
-	  (newline)
-	  (newline)
-	  
-	  (for-each print-empty empties)
-	  (newline)
+               )  	  
+          (for-each print-empty empties)
 	  (newline)
 	  (for-each print-acyclic acyclics)
-
-
-	  ;(display edges)
-          (newline)
-          ;(display (length cycles))
-          ;(newline)
-          ;(display (length (remove-dub '() cycles)))
-          ;(cycles-print cycles)
-          ;(cycles-print (remove-dub '() cycles))
-          ))))
+	  ))))
   0)
 
 (start-command main)
