@@ -5,9 +5,6 @@ let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] |
 
 let rmw = [RMW]
 
-let RMW = [XCHG] | [FAA]
-
-
 let fre = fr & ext
 let coe = co & ext
 let rfe = rf & ext

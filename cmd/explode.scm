@@ -117,29 +117,22 @@
     (else (list expr))))
 
 (define (explode-empty-rule rule ht)
-  (map (lambda (e) (list 'empty e)) (flatten-union (explode-expr-t rule ht))))
+  (generate-combinations (flatten-union (explode-expr-t rule ht)) 1))
 
 (define (explode-acyclic-rule rule ht d)
-  (map (lambda (a) (list 'acyclic a)) (generate-combinations (flatten-union (explode-expr-t rule ht)) d)))
+  (generate-combinations (flatten-union (explode-expr-t rule ht)) d))
 
 (define (generate-combinations edges n)
-  (apply append (generate-combinations-h edges n)))
+  (generate-combinations-h edges n))
 
 (define (generate-combinations-h edges n)
   (define (helper current-list n)
     (if (zero? n)
-	current-list
-	(map (lambda (edge)
+	(list current-list)
+	(apply append (map (lambda (edge)
 	     (helper (list 'seq edge current-list) (- n 1)))
-	     edges)))
+	     edges))))
   (apply append (map (lambda (edge) (helper edge (- n 1))) edges)))
-
-(define (flatten-once lst)
-  (cond ((and (pair? lst) (null? (cdr lst)) (pair? (car lst)))
-	 (flatten-once (car lst)))  
-	((pair? lst)
-	 (cons (flatten-once (car lst)) (flatten-once (cdr lst))))
-	(else lst)))  
 
 (define (contains-isomorphism res cycle)
   (define (helper res cycle n)
@@ -165,12 +158,12 @@
 
 (define (print-empty empty)
   (display "empty ")
-  (print-stmt (cadr empty) 'first)
+  (print-stmt empty 'first)
   (newline))
 
 (define (print-acyclic acyclic)
   (display "acyclic ")
-  (print-stmt (cadr acyclic) 'first)
+  (print-stmt acyclic 'first)
   (newline))
 
 (define (print-stmt stmt last)
@@ -211,7 +204,9 @@
 	       (empties (apply append (map (lambda (e) (explode-empty-rule e ht)) empty-rules)))
 	       (acyclics (apply append (map (lambda (a) (explode-acyclic-rule a ht len)) acyclic-rules)))
                )  	  
-          (for-each print-empty empties)
+          
+	  (newline)
+	  (for-each print-empty empties)
 	  (newline)
 	  (for-each print-acyclic acyclics)
 	  ))))
