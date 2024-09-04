@@ -205,9 +205,10 @@
   ))
 
 (define (print-constraints-h constraints n)
-  (apply string-append (map (lambda (e)
-    (string-append
-      (cond 
+  (string-append 
+    (apply string-append (map (lambda (e)
+      (string-append
+        (cond 
 	    ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
 	    ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
 	    ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
@@ -216,10 +217,23 @@
 	    ((string? e) e)
 	    (else "lalaLALALALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL")
       ) " ")
-  ) constraints)
+  ) (but-last constraints)))
 
-	 )
-)
+	 (let ((e (car (reverse constraints))))
+
+(cond 
+	    ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
+	    ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
+	    ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
+	    ((symbol? e) (symbol->string e))
+	    ((number? e) (number->string e))
+	    ((string? e) e)
+	    (else "lalaLALALALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL")
+      ) 
+
+	   )
+
+	))
 
 (define (print-constraints constraint)
   (newline)
