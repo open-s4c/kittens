@@ -122,11 +122,10 @@
          (event-names (map event->symbol events))
 	 (edge-names (map edge-name edges))
 	)
-    (append
+     (apply append (list
      
      '(newline)
      (comment "event declarations")
-     
      (map (lambda (e) `(declare-const ,e Event))
           event-names)
 
@@ -172,41 +171,63 @@
      (comment "reads abd RNW have to read from an rf edge or from an init event")
 
      (map (lambda (ev) 
-	   `(assert
-                    (=> (and (or (= (op ,ev) (as read Operation))
+	   `(assert 
+                    (=> (and (or (= (op ,ev) (as read Operation)) (newline)
 
-                                 (= (op ,ev) (as read-modify-write Operation)))
-                             (not (exists ((e1 Edge))
-                                     (and (inEdgeSet e1)
-                                          (= (eid (trg e1)) (eid ,ev))
+                                 (= (op ,ev) (as read-modify-write Operation))) (newline)
+                             (not (exists ((e1 Edge)) (newline)
+                                     (and (inEdgeSet e1) (newline)
+                                          (= (eid (trg e1)) (eid ,ev)) (newline)
                                           (= (rel e1) (as rf Relation))
-                                          ))))
-                        (= (val-r ,ev) 0)))
+                                          )))) (newline)
+                        (= (val-r ,ev) 0))) 
 	) event-names)
      
     
-     (map (lambda (e)
-     	`(assert (=> (and (= (rel ,e) (as RMW Relation)) 
-			  (inEdgeSet ,e)
+     (map (lambda (e) (append 
+     	`(assert (=> (and (= (rel ,e) (as RMW Relation)) (newline) 
+			  (inEdgeSet ,e) 
 		,@(apply append (map (lambda (e1)
-			 `((not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1) (newline) 
+			 `((newline) (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1) (newline) 
 			   	 (or (and (= (eid (src ,e)) (eid (src ,e1)))  (newline)
 			   		  (= (eid (trg ,e)) (eid (trg ,e1))))  (newline)
-			   	     (and (= (eid (src ,e)) (eid (src ,e1))) 
-			   		  (= (eid (trg ,e)) (eid (trg ,e1)))))))) 
+			   	     (and (= (eid (src ,e)) (eid (src ,e1))) (newline)
+			   		  (= (eid (trg ,e)) (eid (trg ,e1))))))))  
 			   ) edge-names)))
-         (not (= (val-r (src ,e)) (val-w (trg ,e))))))
+         (newline) (not (= (val-r (src ,e)) (val-w (trg ,e)))))) '(newline))
 	) edge-names)
-     )))
+     ))))
 
-(define (print-constraints constraints)
-  (for-each (lambda (e)
-     (if (not (eq? e 'newline)) 
-	 (display e))
+(define (tabbb n)
+  (if (eq? n 0)
+    ""
+    (apply string-append (list "    " (tabbb (- n 1)))) 
+  ))
 
-     (newline))
-  constraints)
+(define (print-constraints-h constraints n)
+  (apply string-append (map (lambda (e)
+    (string-append
+      (cond 
+	    ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
+	    ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
+	    ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
+	    ((symbol? e) (symbol->string e))
+	    ((number? e) (number->string e))
+	    ((string? e) e)
+	    (else "lalaLALALALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL")
+      ) " ")
+  ) constraints)
+
+	 )
 )
+
+(define (print-constraints constraint)
+  (newline)
+  (cond 
+    ((eq? constraint 'newline) (display "\n"))
+    ((string? constraint) (display constraint))
+    (else (display (string-append "(" (print-constraints-h constraint 0) ")"))))
+  )
 
 (define (main args)
   (die-unless (not (zero? (length args))) "edge list")
@@ -220,7 +241,7 @@
         (constraints (generate-constraints edges)))
 
     (print-boilerplate)
-    (print-constraints constraints)  
+    (for-each print-constraints constraints)  
     (print-epilogue (car args) 0 10000 is-acyclic)
     ))
 
