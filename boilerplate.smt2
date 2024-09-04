@@ -87,25 +87,8 @@
                 (=> (and (= (rel e) (as RMW Relation)) (inEdgeSet e))
                     (and (= (eid (src e)) (eid (trg e)))
                          (= (op (src e)) (as read-modify-write Operation))
-                         (= (op (trg e)) (as read-modify-write Operation))
-			; (=> (not (exists ((e1 Edge)) 
-			;	          (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
-			;	 	       (or (and (= (eid (src e)) (eid (src e1))) 
-			;				(= (eid (trg e)) (eid (trg e1)))) 
-			;			   (and (= (eid (src e)) (eid (src e1))) 
-			;				(= (eid (trg e)) (eid (trg e1))))))))			 
-			;     (not (= (val-r (src e)) (val-w (trg e)))))
-								       ))))
+                         (= (op (trg e)) (as read-modify-write Operation))))))
 
-;(=> (and (= (rel e) (as RMW Relation)) (inEdgeSet e) 
-;	 (not (exists ((e1 Edge)) 
-;	              (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
-;	 	           (or (and (= (eid (src e)) (eid (src e1))) 
-;			    	    (= (eid (trg e)) (eid (trg e1)))) 
-;			       (and (= (eid (src e)) (eid (src e1))) 
-;				    (= (eid (trg e)) (eid (trg e1)))))))))			 
-;     (not (= (val-r (src e)) (val-w (trg e)))))
- 
 ; Constraints for ext
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as ext Relation)) (inEdgeSet e))
@@ -151,29 +134,6 @@
 			 (< (addr e1) 150)
 			 ))))
 
-; reads and RMW have to read from an rf or from an init event (thus reading 0)
-;(assert (forall ((ev Event))
-;                (=> (and (inEventSet ev)
-;                         (or (= (op ev) (as read Operation))
-;			     (= (op ev) (as read-modify-write Operation)))
-;			 (not (exists ((e1 Edge))
-;                                 (and (inEdgeSet e1)
-;                                      (= (eid (trg e1)) (eid ev))
-;                                      (= (rel e1) (as rf Relation))
-;                                      ))))
-;                    (= (val-r ev) 0))))
-; 
-;(assert
-;                (=> (and 
-;                         (or (= (op ev) (as read Operation))
-;			     (= (op ev) (as read-modify-write Operation)))
-;			 (not (exists ((e1 Edge))
-;                                 (and (inEdgeSet e1)
-;                                      (= (eid (trg e1)) (eid ev))
-;                                      (= (rel e1) (as rf Relation))
-;                                      ))))
-;                    (= (val-r ev) 0)))
- 
 ; -----------------------------------------------------------------------------
 ; definition of events and edges
 ; -----------------------------------------------------------------------------
