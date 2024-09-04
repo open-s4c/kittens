@@ -99,7 +99,15 @@
                     (and (= (eid (src e)) (eid (trg e)))
                          (= (op (src e)) (as read-modify-write Operation))
                          (= (op (trg e)) (as read-modify-write Operation))
-			 (not (= (val-r (src e)) (val-w (trg e))))))))
+			 (=> (not (exists ((e1 Edge)) 
+				          (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
+				 	       (or (and (= (eid (src e)) (eid (src e1))) 
+							(= (eid (trg e)) (eid (trg e1)))) 
+						   (and (= (eid (src e)) (eid (src e1))) 
+							(= (eid (trg e)) (eid (trg e1)))))
+				    	       )))			 
+			     (not (= (val-r (src e)) (val-w (trg e)))))
+))))
  
 ; Constraints for ext
 (assert (forall ((e Edge))
