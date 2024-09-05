@@ -72,34 +72,24 @@
 ; Constraints for [W]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as W Relation)) (inEdgeSet e))
-                    (and (= (eid (src e)) (eid (trg e)))
-                         (= (op (src e)) (as write Operation))
+                    (and (= (op (src e)) (as write Operation))
                          (= (op (trg e)) (as write Operation))))))
 
 ; Constraints for [R]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as R Relation)) (inEdgeSet e))
-                    (and (= (eid (src e)) (eid (trg e)))
-                         (= (op (src e)) (as read Operation))
+                    (and (= (op (src e)) (as read Operation))
                          (= (op (trg e)) (as read Operation))))))
 ; Constraints for [RMW]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as RMW Relation)) (inEdgeSet e))
-                    (and (= (eid (src e)) (eid (trg e)))
-                         (= (op (src e)) (as read-modify-write Operation))
+                    (and (= (op (src e)) (as read-modify-write Operation))
                          (= (op (trg e)) (as read-modify-write Operation))))))
 
 ; Constraints for ext
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as ext Relation)) (inEdgeSet e))
                     (not (= (tid (src e)) (tid (trg e)))))))
-
-; Constraint rf has only one source
-(assert (forall ((e1 Edge) (e2 Edge))
-                (=> (and (= (rel e1) (as rf Relation)) (inEdgeSet e1)
-                         (= (rel e2) (as rf Relation)) (inEdgeSet e2)
-                         (= (eid (trg e1)) (eid (trg e2))))
-                    (= (eid (src e1)) (eid (src e2))))))
 
 ; Constraint same eid implies all fields same
 (assert (forall ((e1 Event) (e2 Event))

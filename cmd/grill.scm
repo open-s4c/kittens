@@ -39,9 +39,7 @@
          (newline)
          (loop (read-line)))))))
 
-(define (print-epilogue name l r is-acyclic)
-  (if is-acyclic
-  	(print "(assert (= (eid ev" (number->string l) ") (eid ev" (number->string r) ")))"))
+(define (print-epilogue name)
   (newline)
   (print (string-append "(assert (= rels \"" name "\"))"))
   (apply print "; " (map (lambda (_) "-") (seq 78)))
@@ -91,10 +89,54 @@
    (name edge-name))
 
 (define (parse-expr str)
-  ;(display str)
-   (let ((str-gen (str-generator str)))
+  (let ((str-gen (str-generator str)))
     (let ((token-gen (token-generator (parse-or-die lexer str-gen))))
       (parse-or-die expr-parser token-gen))))
+
+(define (all-pairs lst)
+  (apply append
+    (map (lambda (x)
+      (map (lambda (y)
+        (list x y))
+      lst))
+    lst)))
+
+
+(define (find-group groups x)
+    (find (lambda (group) (member x group)) groups))
+
+(define (remove-group groups g)
+    (filter (lambda (group) (not (equal? group g))) groups))
+
+(define (f groups pairs)
+  (if (null? pairs)
+      groups
+      (let* ((pair (car pairs))
+	     (a (find-group groups (car pair)))
+	     (b (find-group groups (cadr pair)))
+	     (new-group1 (remove-group groups a))
+	     (new-group2 (remove-group new-group1 b))
+	     (new-group3 (append new-group2 (list (unique (append a b))))))
+	
+	(f new-group3 (cdr pairs)))))
+
+(define (get-same-eid-rf edges)
+  (let* ((fr-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
+	 (fr-targets (unique (map edge-trg fr-edges)))
+  	 (ed-per-trg (map (lambda (ed1) (filter (lambda (ed2) (eq? ed1 (edge-trg ed2))) fr-edges)) fr-targets))
+	 (multiple-per-trg (filter (lambda (ed-l) (> (length ed-l) 1)) ed-per-trg))
+	 (srcs-per-trg (map (lambda (trg-lst) (map edge-src trg-lst)) multiple-per-trg))
+	 (pairs (unique (apply append (map (lambda (group) (all-pairs group)) srcs-per-trg))))
+	 (pairs (filter (lambda (p) (not (= (car p) (cadr p)))) pairs)))
+    pairs))
+
+(define (get-same-eid-set edges)
+  (let* ((set-edges (filter (lambda (edge) (or (equal? (edge-type edge) "RMW") (equal? (edge-type edge) "R") (equal? (edge-type edge) "W"))) edges))
+	 (pairs (map (lambda (edge) (list (edge-src edge) (edge-trg edge))) set-edges)))
+    pairs))
+
+(define (get-same-eid edges)
+  (append (get-same-eid-rf edges) (get-same-eid-set edges)))
 
 (define (make-edges el er expr)
   (match expr
@@ -115,11 +157,36 @@
         (make-edges er el rest))  ; just swap er and el
     (('self . ('set . rel))
          (list (edge el er rel (edge->name el er))))
-    (else "hjuj")))
+    (else "")))
 
-(define (generate-constraints edges)
-  (let* ((events (sort (unique (flatten (map (lambda (edge) (list (edge-trg edge) (edge-src edge))) edges)))))
-         (event-names (map event->symbol events))
+(define (equality-assertion lst)
+  (let* ((first (car lst))
+	 (rest (cdr lst))
+	 (constraints (map (lambda (x) 
+                             `(= (eid ,(string->symbol (string-append "ev" (number->string first))))
+				 (eid ,(string->symbol (string-append "ev" (number->string x))))))
+			   rest)))
+         `((assert (and ,@constraints)))))
+
+
+(define (distinct-assertion lst)
+  (let* ((constraints (map (lambda (x)
+			     `(eid ,(string->symbol (string-append "ev" (number->string x)))))
+			   lst)))
+         `((assert (distinct ,@constraints)))))
+
+(define (eid-constraints events same-eid)
+  (let* ((eid-groups (f (map list events) same-eid))
+	(multy (filter (lambda (lst) (> (length lst) 1)) eid-groups))
+	(cars (map car eid-groups)))
+    (append 
+      (apply append (map equality-assertion multy))
+      (distinct-assertion cars))
+    )
+  )
+
+(define (generate-constraints events edges same-eid)
+  (let* ((event-names (map event->symbol events))
 	 (edge-names (map edge-name edges))
 	)
      (apply append (list
@@ -129,10 +196,14 @@
      (map (lambda (e) `(declare-const ,e Event))
           event-names)
 
+     (eid-constraints events same-eid)
+
      '(newline)
      (comment "edge declarations")
      (map (lambda (e) `(declare-const ,e Edge))
           edge-names)
+
+
 
      '(newline)
      (comment "uid is distinct for all events")
@@ -196,7 +267,8 @@
 			   ) edge-names)))
          (newline) (not (= (val-r (src ,e)) (val-w (trg ,e)))))) '(newline))
 	) edge-names)
-     ))))
+
+          ))))
 
 (define (tabbb n)
   (if (eq? n 0)
@@ -215,25 +287,17 @@
 	    ((symbol? e) (symbol->string e))
 	    ((number? e) (number->string e))
 	    ((string? e) e)
-	    (else "lalaLALALALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL")
-      ) " ")
-  ) (but-last constraints)))
-
-	 (let ((e (car (reverse constraints))))
-
-(cond 
+	    (else "Not good")
+      ) " ")) (but-last constraints)))
+    (let ((e (car (reverse constraints))))
+	(cond 
 	    ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
 	    ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
 	    ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
 	    ((symbol? e) (symbol->string e))
 	    ((number? e) (number->string e))
 	    ((string? e) e)
-	    (else "lalaLALALALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL")
-      ) 
-
-	   )
-
-	))
+	    (else "Not good")))))
 
 (define (print-constraints constraint)
   (newline)
@@ -252,11 +316,14 @@
   
   (let* ((expr (parse-expr expr))
 	(edges (flatten (make-edges 0 10000 expr)))
-        (constraints (generate-constraints edges)))
+        (events (sort (unique (flatten (map (lambda (edge) (list (edge-trg edge) (edge-src edge))) edges)))))
+	(same-eid (get-same-eid edges))
+	(same-eid (if is-acyclic (append same-eid (list (list 10000 0))) same-eid))
+	(constraints (generate-constraints events edges same-eid)))
 
     (print-boilerplate)
     (for-each print-constraints constraints)  
-    (print-epilogue (car args) 0 10000 is-acyclic)
+    (print-epilogue (car args))
     ))
 
   0)
