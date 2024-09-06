@@ -121,9 +121,9 @@
 	(f new-group3 (cdr pairs)))))
 
 (define (get-same-eid-rf edges)
-  (let* ((fr-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
-	 (fr-targets (unique (map edge-trg fr-edges)))
-  	 (ed-per-trg (map (lambda (ed1) (filter (lambda (ed2) (eq? ed1 (edge-trg ed2))) fr-edges)) fr-targets))
+  (let* ((rf-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
+	 (rf-targets (unique (map edge-trg rf-edges)))
+  	 (ed-per-trg (map (lambda (ed1) (filter (lambda (ed2) (eq? ed1 (edge-trg ed2))) rf-edges)) rf-targets))
 	 (multiple-per-trg (filter (lambda (ed-l) (> (length ed-l) 1)) ed-per-trg))
 	 (srcs-per-trg (map (lambda (trg-lst) (map edge-src trg-lst)) multiple-per-trg))
 	 (pairs (unique (apply append (map (lambda (group) (all-pairs group)) srcs-per-trg))))
