@@ -91,20 +91,6 @@
                 (=> (and (= (rel e) (as ext Relation)) (inEdgeSet e))
                     (not (= (tid (src e)) (tid (trg e)))))))
 
-; Constraint same eid implies all fields same
-(assert (forall ((e1 Event) (e2 Event))
-                (=> (and (= (eid e1) (eid e2))
-                         (inEventSet e1)
-                         (inEventSet e2))
-                    (and (= (tid e1) (tid e2))
-                         (= (corder e1) (corder e2))
-                         (= (porder e1) (porder e2))
-                         (= (addr e1) (addr e2))
-                         (= (val-r e1) (val-r e2))
-                         (= (val-w e1) (val-w e2))
-                         (= (val-e e1) (val-e e2))
-                         (= (op e1) (op e2))))))
-
 ; Constraint positive values and addresses of events
 (assert (forall ((e1 Event))
                 (=> (inEventSet e1)

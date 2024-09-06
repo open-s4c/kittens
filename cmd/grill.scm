@@ -2,7 +2,8 @@
 
 (import (scheme base)
         (scheme file)
-        (kittens cat)
+        (scheme cxr)
+	(kittens cat)
 	(kittens utils)
         (kittens command)
 	(kittens generator)
@@ -15,6 +16,13 @@
 (define maxi-threads-flag #t)
 
 (define maxi-addr-flag #t)
+
+(define counter 1)
+
+(define (get-counter)
+  (let ((current counter))
+    (set! counter (+ counter 1))
+    current))
 
 (define edges-count (make-hash-table))
 
@@ -108,98 +116,139 @@
 (define (remove-group groups g)
     (filter (lambda (group) (not (equal? group g))) groups))
 
-(define (f groups pairs)
+(define (simple-uf groups pairs)
   (if (null? pairs)
       groups
       (let* ((pair (car pairs))
 	     (a (find-group groups (car pair)))
 	     (b (find-group groups (cadr pair)))
-	     (new-group1 (remove-group groups a))
-	     (new-group2 (remove-group new-group1 b))
-	     (new-group3 (append new-group2 (list (unique (append a b))))))
+	     (new-groups-1 (remove-group groups a))
+	     (new-groups-2 (remove-group new-groups-1 b))
+	     (new-groups-3 (append new-groups-2 (list (unique (append a b))))))
 	
-	(f new-group3 (cdr pairs)))))
+	(simple-uf new-groups-3 (cdr pairs)))))
+
+  (define (helper groups-h rf-pairs-h)
+    (if (null? rf-pairs-h)
+	groups-h
+	(let* ((pair (car rf-pairs-h))
+	       (trg1 (caar pair))
+	       (trg2 (cadar pair))
+	       (src1 (caadr pair))
+	       (src2 (cadadr pair))
+	       (c (find-group groups-h trg1))
+	       (d (find-group groups-h trg2))
+	       (flag (eq? c d))
+	       (a (find-group groups-h src1))
+	       (b (find-group groups-h src2))
+
+	       (new-groups-1 (if flag
+			       (remove-group groups-h a)
+			       groups-h))
+	       
+	       (new-groups-2 (if flag
+			       (remove-group new-groups-1 b)
+			       groups-h))
+	       
+	       (new-groups-3 (if flag
+			       (append new-groups-2 (list (unique (append a b))))
+			       groups-h)))
+	  
+	  (helper new-groups-3 (cdr rf-pairs-h)))))
+
+(define (rf-uf groups rf-pairs)
+  ;(display groups)
+  ;(newline)
+  ;(newline)
+
+  (let* ((new-groups (helper groups rf-pairs)))
+    (if (eq? (length new-groups) (length groups))
+	groups
+	(rf-uf new-groups rf-pairs))))
 
 (define (get-eid-partition events edges is-acyclic)
-  (let* (
+  (let* ((same-eid-sets (get-same-eid-set edges))
+	 (same-eid (if is-acyclic (append same-eid-sets (list (list 1 0))) same-eid-sets))
+	 (groups (simple-uf (map list events) same-eid)))
+    ;(display "groups after simple-uf:\n")
+    ;(display groups)
+    (let* ((rf-pairs (get-rf-pairs edges)) 
+	   (groups (rf-uf groups rf-pairs)))
+      ;(display "rf pairs:\n")
+      ;(display rf-pairs)
+      ;(newline)
+      ;(display "groups after rf-uf:\n")
+      ;(display groups)
+      ;(newline)
+      groups
+      )))
 
-	 (same-eid (get-same-eid edges))
-	 (same-eid (if is-acyclic (append same-eid (list (list 10000 0))) same-eid))
-
-	)
- 	(f (map list events) same-eid)
-    )
-  )
-
-(define (get-same-eid-rf edges)
+(define (get-rf-pairs edges)
   (let* ((rf-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
-	 (rf-targets (unique (map edge-trg rf-edges)))
-  	 (ed-per-trg (map (lambda (ed1) (filter (lambda (ed2) (eq? ed1 (edge-trg ed2))) rf-edges)) rf-targets))
-	 (multiple-per-trg (filter (lambda (ed-l) (> (length ed-l) 1)) ed-per-trg))
-	 (srcs-per-trg (map (lambda (trg-lst) (map edge-src trg-lst)) multiple-per-trg))
-	 (pairs (unique (apply append (map (lambda (group) (all-pairs group)) srcs-per-trg))))
-	 (pairs (filter (lambda (p) (not (= (car p) (cadr p)))) pairs)))
-    pairs))
+	 (rf-edges (map (lambda (e) (list (edge-src e) (edge-trg e))) rf-edges))
+	 (rf-pairs (all-pairs rf-edges))
+	 (rf-pairs (map (lambda (pair) (list (list (cadar pair) (cadadr pair)) (list (caar pair) (caadr pair)))) rf-pairs)))
+    rf-pairs 
+  ))
 
 (define (get-same-eid-set edges)
   (let* ((set-edges (filter (lambda (edge) (or (equal? (edge-type edge) "RMW") (equal? (edge-type edge) "R") (equal? (edge-type edge) "W"))) edges))
 	 (pairs (map (lambda (edge) (list (edge-src edge) (edge-trg edge))) set-edges)))
     pairs))
 
-(define (get-same-eid edges)
-  (append (get-same-eid-rf edges) (get-same-eid-set edges)))
-
 (define (make-edges el er expr)
   (match expr
-    (('rel . "fr") (list
-        (edge (floor (/ (+ el er) 2)) el "rf" (edge->name (floor (/ (+ el er) 2)) el))
-        (edge (floor (/ (+ el er) 2)) er "co" (edge->name (floor (/ (+ el er) 2)) er))))
+    (('rel . "fr") (let ((counter (get-counter))) (list
+        (edge (get-counter) el "rf" (edge->name counter el))
+        (edge (get-counter) er  "co" (edge->name counter er)))))
     (('rel . rel)
         (list (edge el er rel (edge->name el er))))
     (('seq . rest)
-        (list
-                 (make-edges el (floor (/ (+ el er) 2)) (car rest))
-                 (make-edges (floor (/ (+ el er) 2)) er (cadr rest))))
+       (let ((counter (get-counter)))   
+     (list
+                 (make-edges el counter (car rest))
+                 (make-edges counter er (cadr rest)))))
     (('isect . rest)
 
             (list (make-edges el er (car rest))
-                 (make-edges el er (cadr rest))))
+                  (make-edges el er (cadr rest))))
     (('inv . rest)
         (make-edges er el rest))  ; just swap er and el
     (('self . ('set . rel))
          (list (edge el er rel (edge->name el er))))
     (else "")))
 
-(define (equality-assertion lst)
+(define (equality-assertion lst field)
   (let* ((first (car lst))
 	 (rest (cdr lst))
 	 (constraints (map (lambda (x) 
-                             `(= (eid ,(string->symbol (string-append "ev" (number->string first))))
-				 (eid ,(string->symbol (string-append "ev" (number->string x))))))
+                             `(= (,field ,(string->symbol (string-append "ev" (number->string first))))
+				 (,field ,(string->symbol (string-append "ev" (number->string x))))))
 			   rest)))
          `((assert (and ,@constraints)))))
 
 
-(define (distinct-assertion lst)
+(define (distinct-assertion lst field)
   (let* ((constraints (map (lambda (x)
-			     `(eid ,(string->symbol (string-append "ev" (number->string x)))))
+			     `(,field ,(string->symbol (string-append "ev" (number->string x)))))
 			   lst)))
          `((assert (distinct ,@constraints)))))
 
-(define (eid-constraints events edges is-acyclic)
-  (let* ((eid-partition (get-eid-partition events edges is-acyclic))
-	 (multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
+(define (eid-constraints eid-partition field distinct)
+  (let* ((multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
 	 (cars (map car eid-partition)))
-    (append 
-      (apply append (map equality-assertion multy))
-      (distinct-assertion cars))
+    (if distinct 
+    	(append 
+      	  (apply append (map (lambda (el) (equality-assertion el field)) multy))
+      	  (distinct-assertion cars field))
+    	(apply append (map (lambda (el) (equality-assertion el field)) multy)))
     )
   )
 
 (define (generate-constraints events edges is-acyclic)
   (let* ((event-names (map event->symbol events))
 	 (edge-names (map edge-name edges))
-	)
+ 	 (eid-partition (get-eid-partition events edges is-acyclic)))
      (apply append (list
      
      '(newline)
@@ -207,8 +256,16 @@
      (map (lambda (e) `(declare-const ,e Event))
           event-names)
 
-     (eid-constraints events edges is-acyclic)
-
+     (eid-constraints eid-partition 'eid #t)
+     (eid-constraints eid-partition 'tid #f)
+     (eid-constraints eid-partition 'porder #t)
+     (eid-constraints eid-partition 'corder #t)
+     (eid-constraints eid-partition 'addr #f)
+     (eid-constraints eid-partition 'val-r #f)
+     (eid-constraints eid-partition 'val-w #f)
+     (eid-constraints eid-partition 'val-e #f)
+     (eid-constraints eid-partition 'op #f)
+     
      '(newline)
      (comment "edge declarations")
      (map (lambda (e) `(declare-const ,e Edge))
@@ -326,10 +383,12 @@
 	 (is-acyclic (equal? "acyclic" type)))
   
   (let* ((expr (parse-expr expr))
-	(edges (flatten (make-edges 0 10000 expr)))
+	(edges (flatten (make-edges 0 (get-counter) expr)))
         (events (sort (unique (flatten (map (lambda (edge) (list (edge-trg edge) (edge-src edge))) edges)))))
 	(constraints (generate-constraints events edges is-acyclic)))
-
+    ;(newline)
+    ;(display edges)
+    ;(newline)
     (print-boilerplate)
     (for-each print-constraints constraints)  
     (print-epilogue (car args))
