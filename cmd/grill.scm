@@ -262,7 +262,7 @@
      (eid-constraints eid-partition 'corder #t)
      (eid-constraints eid-partition 'addr #f)
      (eid-constraints eid-partition 'val-r #f)
-     (eid-constraints eid-partition 'val-w #f)
+     (eid-constraints eid-partition 'val-w #t)
      (eid-constraints eid-partition 'val-e #f)
      (eid-constraints eid-partition 'op #f)
      
