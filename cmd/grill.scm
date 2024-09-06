@@ -158,11 +158,7 @@
 	  (helper new-groups-3 (cdr rf-pairs-h)))))
 
 (define (rf-uf groups rf-pairs)
-  ;(display groups)
-  ;(newline)
-  ;(newline)
-
-  (let* ((new-groups (helper groups rf-pairs)))
+   (let* ((new-groups (helper groups rf-pairs)))
     (if (eq? (length new-groups) (length groups))
 	groups
 	(rf-uf new-groups rf-pairs))))
@@ -171,17 +167,9 @@
   (let* ((same-eid-sets (get-same-eid-set edges))
 	 (same-eid (if is-acyclic (append same-eid-sets (list (list 1 0))) same-eid-sets))
 	 (groups (simple-uf (map list events) same-eid)))
-    ;(display "groups after simple-uf:\n")
-    ;(display groups)
-    (let* ((rf-pairs (get-rf-pairs edges)) 
+   (let* ((rf-pairs (get-rf-pairs edges)) 
 	   (groups (rf-uf groups rf-pairs)))
-      ;(display "rf pairs:\n")
-      ;(display rf-pairs)
-      ;(newline)
-      ;(display "groups after rf-uf:\n")
-      ;(display groups)
-      ;(newline)
-      groups
+     groups
       )))
 
 (define (get-rf-pairs edges)
