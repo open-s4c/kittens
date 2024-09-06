@@ -120,6 +120,17 @@
 	
 	(f new-group3 (cdr pairs)))))
 
+(define (get-eid-partition events edges is-acyclic)
+  (let* (
+
+	 (same-eid (get-same-eid edges))
+	 (same-eid (if is-acyclic (append same-eid (list (list 10000 0))) same-eid))
+
+	)
+ 	(f (map list events) same-eid)
+    )
+  )
+
 (define (get-same-eid-rf edges)
   (let* ((rf-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
 	 (rf-targets (unique (map edge-trg rf-edges)))
@@ -175,17 +186,17 @@
 			   lst)))
          `((assert (distinct ,@constraints)))))
 
-(define (eid-constraints events same-eid)
-  (let* ((eid-groups (f (map list events) same-eid))
-	(multy (filter (lambda (lst) (> (length lst) 1)) eid-groups))
-	(cars (map car eid-groups)))
+(define (eid-constraints events edges is-acyclic)
+  (let* ((eid-partition (get-eid-partition events edges is-acyclic))
+	 (multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
+	 (cars (map car eid-partition)))
     (append 
       (apply append (map equality-assertion multy))
       (distinct-assertion cars))
     )
   )
 
-(define (generate-constraints events edges same-eid)
+(define (generate-constraints events edges is-acyclic)
   (let* ((event-names (map event->symbol events))
 	 (edge-names (map edge-name edges))
 	)
@@ -196,7 +207,7 @@
      (map (lambda (e) `(declare-const ,e Event))
           event-names)
 
-     (eid-constraints events same-eid)
+     (eid-constraints events edges is-acyclic)
 
      '(newline)
      (comment "edge declarations")
@@ -317,9 +328,7 @@
   (let* ((expr (parse-expr expr))
 	(edges (flatten (make-edges 0 10000 expr)))
         (events (sort (unique (flatten (map (lambda (edge) (list (edge-trg edge) (edge-src edge))) edges)))))
-	(same-eid (get-same-eid edges))
-	(same-eid (if is-acyclic (append same-eid (list (list 10000 0))) same-eid))
-	(constraints (generate-constraints events edges same-eid)))
+	(constraints (generate-constraints events edges is-acyclic)))
 
     (print-boilerplate)
     (for-each print-constraints constraints)  
