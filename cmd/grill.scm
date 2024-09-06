@@ -199,8 +199,8 @@
 (define (make-edges el er expr)
   (match expr
     (('rel . "fr") (let ((counter (get-counter))) (list
-        (edge (get-counter) el "rf" (edge->name counter el))
-        (edge (get-counter) er  "co" (edge->name counter er)))))
+        (edge counter el "rf" (edge->name counter el))
+        (edge counter er  "co" (edge->name counter er)))))
     (('rel . rel)
         (list (edge el er rel (edge->name el er))))
     (('seq . rest)
