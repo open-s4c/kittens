@@ -84,6 +84,7 @@
          ((x <- rel-seq) x)
          ((x <- rel-isect) x)
          ((x <- rel-cart) x)
+	 ((x <- rel-inv) x)
          ((x <- rel) x))
 
    (rel-union
@@ -104,6 +105,11 @@
    (rel-cart
     ((a <- set 'cart b <- rel-cart) (list 'cart a b))
     ((a <- set 'cart b <- set) (list 'cart a b))
+    ((a <- rel-inv) a))
+   
+   (rel-inv
+    ((a <- rel 'inv) (cons 'inv a))
+    ((a <- set 'inv) (cons 'inv a))
     ((a <- rel) a))
 
    (rel

@@ -51,7 +51,7 @@
              ""
              "include \"string.cat\" //"
              ""
-             "( A )[ A|B ] (* hello world *)"
+             "( A )[ A|B ^-1 ] (* hello world *)"
              ""
              "let hx = [R] D"
              ""
@@ -64,7 +64,7 @@
           (id . "another") (id . "final")
           (include) (string . "string.cat")
           (oparen) (id . "A") (cparen)
-          (obrack) (id . "A") (union) (id . "B") (cbrack)
+          (obrack) (id . "A") (union) (id . "B") (inv) (cbrack)
           (let) (id . "hx") (=)
           (obrack) (id . "R") (cbrack) (id ."D")
           (acyclic) (id . "hb"))

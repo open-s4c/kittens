@@ -83,8 +83,12 @@
           (((str ";")) '(seq))
           (((str ",")) '(comma))
           (((str "*")) '(cart))
-          (((str "~")) '(~))
-          (((str "+")) '(+))
+          (((str "~")) '(not))
+          (((str "+")) '(atone))
+          (((str "/")) '(diff))
+          (((str "?")) '(zone))
+
+          (((str "^-1")) '(inv))
 
           (((str "let")) '(let))
           (((str "show")) '(show))

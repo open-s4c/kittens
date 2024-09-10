@@ -18,6 +18,36 @@
   (test '(isect (set . "set1") (set . "set2"))
         (parse-result-semantic-value r)))
 
+(let* ((r (parse '((rel . "set1") (inv)))))
+  (test-assert (parse-result-successful? r))
+  (test '(inv . (rel . "set1"))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((rel . "set1") (union) (rel . "rel1") (inv)))))
+  (test-assert (parse-result-successful? r))
+  (test '(union (rel . "set1") (inv . (rel . "rel1")))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((obrack) (set . "rel1") (cbrack) (inv)))))
+  (test-assert (parse-result-successful? r))
+  (test '(inv self set . "rel1")
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((oparen) (rel . "rel1") (union) (rel . "rel2") (cparen) (inv)))))
+  (test-assert (parse-result-successful? r))
+  (test '(inv . (union (rel . "rel1") (rel . "rel2")))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((rel . "rel1") (isect) (rel . "rel2") (inv)))))
+  (test-assert (parse-result-successful? r))
+  (test '(isect (rel . "rel1") (inv . (rel . "rel2")))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((rel . "rel1") (seq) (rel . "rel2") (inv)))))
+  (test-assert (parse-result-successful? r))
+  (test '(seq (rel . "rel1") (inv . (rel . "rel2")))
+        (parse-result-semantic-value r)))
+
 (let* ((r (parse '((id . "W") (isect) (set . "set2")))))
   (test-assert (parse-result-successful? r))
   (test '(isect (set . "W") (set . "set2"))
