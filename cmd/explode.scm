@@ -72,6 +72,8 @@
 
 (define (explode-expr-t expr ht)
   (define (explode expr)
+    (display expr)
+    (newline)
     (match expr
 	  (('union . exprs) (list 'union (explode (car exprs)) (explode (cadr exprs))))
 	  
@@ -87,6 +89,8 @@
 	  
 	  (('self . expr) (combine-op-single (explode expr) 'self))
           
+	  (('not . rest) (combine-op-not (explode rest)))
+
 	  (('rel . label) 
 	   	(if (hash-table-exists? ht label)
 		    (explode (hash-table-ref ht label))
@@ -98,12 +102,36 @@
 		    expr))
 	  (else (error "Unrecognized expression type" expr))))
 
+  (define (combine-op-not expr)
+    (display "-- ")
+    (display expr)
+    (newline)
+    (match expr
+
+	  (('isect . rest) (let ((a (car rest))
+			         (b (cadr rest)))
+			  (explode `(union ,(cons 'not a) ,(cons 'not b)))))
+
+	  (('union . rest) (let ((a (car rest))
+			         (b (cadr rest)))
+			  (explode `(isect ,(cons 'not a) ,(cons 'not b)))))
+	 
+	  (('seq . rest) (let ((a (car rest))
+			       (b (cadr rest)))
+			  (explode `(union (seq ,(cons 'not a) ,b)
+				      	   (union (seq ,(cons 'not a) ,(cons 'not b))
+	  				     	  (seq ,a ,(cons 'not b)))))))
+	  (('not . rest) rest)
+	  
+	  (else (cons 'not expr))
+    ))
+
   (define (combine-op-single expr op)
     (match expr
 	   (('union . exprs) (list 'union
 				   (combine-op-single (car exprs) op)
 				   (combine-op-single (cadr exprs) op)))
-	    (else (list op expr))))
+	    (else (cons op expr))))
 
 
 
@@ -221,7 +249,8 @@
 				       ("rfx" "rf")
 				       (else rest))))
 	(('set . rest) (display rest))
-	(('inv . rest) (print-stmt (car rest) (parentheses 'inv (caar rest))) (display "^-1"))
+	(('inv . rest) (print-stmt rest (parentheses 'inv (car rest))) (display "^-1"))
+	(('not . rest) (display "~") (print-stmt rest (parentheses 'not (car rest))))
 	(else (display stmt)))
   (if br (display ")")))
    
@@ -248,6 +277,9 @@
 	       (acyclics (apply append (map (lambda (a) (explode-acyclic-rule a ht len)) acyclic-rules)))
                )  	  
           (for-each print-empty empties)
+	  (newline)
+	  (for-each print acyclics)
+	  (newline)
 	  (newline)
 	  (for-each print-acyclic acyclics)
 	  ))))

@@ -1,13 +1,13 @@
-SC
+TEST
 
-(* Define co (and fr) *)
-include "cos.cat"
+let a = b|c|~d
 
-(* All communication relations *)
-let com = (rf | fr | co?)
+let b = ~b1;b2
 
-(* Sequential consistency *)
-acyclic po | com as sc
+let c = c1&~c2
 
-(* Atomicity *)
-empty rmw & (fre;coe)
+let d = ~d1 | d2^-1
+
+let m = ~a
+
+acyclic m
