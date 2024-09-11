@@ -72,8 +72,8 @@
 
 (define (explode-expr-t expr ht)
   (define (explode expr)
-    (display expr)
-    (newline)
+    ;(display expr)
+    ;(newline)
     (match expr
 	  (('union . exprs) (list 'union (explode (car exprs)) (explode (cadr exprs))))
 	  
@@ -103,9 +103,9 @@
 	  (else (error "Unrecognized expression type" expr))))
 
   (define (combine-op-not expr)
-    (display "-- ")
-    (display expr)
-    (newline)
+    ;(display "-- ")
+    ;(display expr)
+    ;(newline)
     (match expr
 
 	  (('isect . rest) (let ((a (car rest))
@@ -131,7 +131,14 @@
 	   (('union . exprs) (list 'union
 				   (combine-op-single (car exprs) op)
 				   (combine-op-single (cadr exprs) op)))
-	    (else (cons op expr))))
+	   (('isect . exprs) (list 'isect
+				   (combine-op-single (car exprs) op)
+				   (combine-op-single (cadr exprs) op)))
+
+	   (('not . expr) (cons 'not 
+				   (combine-op-single expr op)))
+
+	   (else (cons op expr))))
 
 
 
@@ -243,7 +250,7 @@
         (('isect . rest) 
 		(print-stmt (car rest) (parentheses 'isect (caar rest))) (display "&") (print-stmt (cadr rest) (parentheses 'isect (caadr rest))))
 
-        (('self . rest) (display "[") (print-stmt (car rest) (parentheses 'self (caar rest))) (display "]"))
+        (('self . rest) (display "[") (print-stmt rest (parentheses 'self (car rest))) (display "]"))
 
         (('rel . rest) (display (match rest 
 				       ("rfx" "rf")
@@ -278,8 +285,8 @@
                )  	  
           (for-each print-empty empties)
 	  (newline)
-	  (for-each print acyclics)
-	  (newline)
+	  ;(for-each print acyclics)
+	  ;(newline)
 	  (newline)
 	  (for-each print-acyclic acyclics)
 	  ))))

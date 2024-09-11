@@ -12,3 +12,9 @@ let fr = rf^-1;co
 let fre = fr & ext
 let coe = co & ext
 let rfe = rf & ext
+let poe = po & ext
+
+let fri = fr & int
+let coi = co & int
+let rfi = rf & int
+let poi = po & int
