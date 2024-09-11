@@ -57,7 +57,8 @@
 
    (file ((x <- tokens) x))
 
-   (tokens ((x <- token blurb xs <- tokens) (cons x xs))
+   (tokens ((blurb x <- token blurb xs <- tokens) (cons x xs))
+           ((x <- token blurb xs <- tokens) (cons x xs))
            ((x <- token xs <- tokens) (cons x xs))
            ((x <- token) (list x)))
 
