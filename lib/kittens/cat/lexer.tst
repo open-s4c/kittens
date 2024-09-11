@@ -37,6 +37,13 @@
   (test-assert (parse-result-successful? r))
   (test '((id . "A") (id . "B") (id . "3.c")) (parse-result-semantic-value r)))
 
+(let ((input "[XCHG]&(((([W];rf;[R]);co)&ext);(co&ext))"))
+  (define r (parse (str-generator input)))
+  (test-assert (parse-result-successful? r))
+  (test '((obrack) (id . "XCHG") (cbrack) (isect) (oparen) (oparen) (oparen) (oparen) (obrack) (id . "W") (cbrack) (seq) (id . "rf") (seq) (obrack) (id . "R") (cbrack) (cparen) (seq) (id . "co") (cparen) (isect) (id . "ext") (cparen) (seq) (oparen) (id . "co") (isect) (id . "ext") (cparen) (cparen))
+ (parse-result-semantic-value r)))
+
+
 (let ((text (code-append
              "SC"
              "include cos.cat"
@@ -51,7 +58,7 @@
              ""
              "include \"string.cat\" //"
              ""
-             "( A )[ A|B ^-1 ] (* hello world *)"
+             "( A )[ ~A|B ^-1 ] (* hello world *)"
              ""
              "let hx = [R] D"
              ""
@@ -64,7 +71,7 @@
           (id . "another") (id . "final")
           (include) (string . "string.cat")
           (oparen) (id . "A") (cparen)
-          (obrack) (id . "A") (union) (id . "B") (inv) (cbrack)
+          (obrack) (not) (id . "A") (union) (id . "B") (inv) (cbrack)
           (let) (id . "hx") (=)
           (obrack) (id . "R") (cbrack) (id ."D")
           (acyclic) (id . "hb"))

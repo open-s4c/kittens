@@ -23,7 +23,7 @@
   (parse-or-die lexer (file-generator fn)))
 
 (define (parse-cat tokens)
-  (parse-or-die model-parser (token-generator tokens)))
+ (parse-or-die model-parser (token-generator tokens)))
 
 (define (include-files model)
   (let ((stmts (caddr model)))
@@ -74,21 +74,38 @@
   (define (explode expr)
     (match expr
 	  (('union . exprs) (list 'union (explode (car exprs)) (explode (cadr exprs))))
+	  
 	  (('seq . exprs) (let* ((left (explode (car exprs)))
 				 (right (explode (cadr exprs))))
 			  (combine-op-unions left right 'seq)))
+	  
 	  (('isect . exprs) (let* ((left (explode (car exprs)))
 				   (right (explode (cadr exprs))))
 			  (combine-op-unions left right 'isect)))
+	  
+	  (('inv . expr) (combine-op-single (explode expr) 'inv))
+	  
+	  (('self . expr) (combine-op-single (explode expr) 'self))
+          
 	  (('rel . label) 
 	   	(if (hash-table-exists? ht label)
 		    (explode (hash-table-ref ht label))
 		    expr))
-	  (('self 'set . label)
+
+	  (('set . label)
 	   	(if (hash-table-exists? ht label)
 		    (explode (hash-table-ref ht label))
 		    expr))
 	  (else (error "Unrecognized expression type" expr))))
+
+  (define (combine-op-single expr op)
+    (match expr
+	   (('union . exprs) (list 'union
+				   (combine-op-single (car exprs) op)
+				   (combine-op-single (cadr exprs) op)))
+	    (else (list op expr))))
+
+
 
   (define (combine-op-unions left right op)
     (match left
@@ -158,29 +175,55 @@
 
 (define (print-empty empty)
   (display "empty ")
-  (print-stmt empty 'first)
+  (print-stmt empty #f)
   (newline))
 
 (define (print-acyclic acyclic)
   (display "acyclic ")
-  (print-stmt acyclic 'first)
+  (print-stmt acyclic #f)
   (newline))
 
-(define (print-stmt stmt last)
-  (let ((br (and (not (or (eq? (car stmt) 'rel) (eq? (car stmt) 'self)))
-  		 (not (or (eq? last 'first) (eq? (car stmt) last))))))
+(define (infix)
+  (list 'union 'sadd 'seq 'isect 'diff 'cart))
+
+(define (parentheses out in)
+ ; (display out)
+ ; (display "-")
+ ; (display in)
+ ; (newline)
+  (match out
+	 ('self #f)
+	 ('set #f)
+	 ('rel #f)
+	 ('inv (member in (infix)))
+	 ('not (member in (infix)))
+	 ('zone (member in (infix)))
+	 ('kstar (member in (infix)))
+	 ('aone (member in (infix)))
+	 ('union #t)
+	 ('sadd (member in (list 'union)))
+	 ('seq (member in (list 'union 'sadd)))
+	 ('isect (member in (list 'union 'sadd 'seq)))
+	 ('diff (member in (list 'union 'sadd 'seq 'isect)))
+	 ('cart (member in (list 'union 'sadd 'seq 'isect 'diff)))))
+
+(define (print-stmt stmt br)
   (if br (display "(")) 
 
   (match stmt
-        (('seq . rest) (print-stmt (car rest) 'seq) (display ";") (print-stmt (cadr rest) 'seq))
+	(('seq . rest) (print-stmt (car rest) (parentheses 'seq (caar rest))) (display ";") (print-stmt (cadr rest) (parentheses 'seq (caadr rest))))
         (('isect . rest) 
-		(print-stmt (car rest) 'isect) (display "&") (print-stmt (cadr rest) 'isect))
+		(print-stmt (car rest) (parentheses 'isect (caar rest))) (display "&") (print-stmt (cadr rest) (parentheses 'isect (caadr rest))))
+
+        (('self . rest) (display "[") (print-stmt (car rest) (parentheses 'self (caar rest))) (display "]"))
+
         (('rel . rest) (display (match rest 
 				       ("rfx" "rf")
 				       (else rest))))
-        (('self 'set . rest) (display "[") (display rest) (display "]"))
-   	(else (display stmt)))
-  (if br (display ")"))))
+	(('set . rest) (display rest))
+	(('inv . rest) (print-stmt (car rest) (parentheses 'inv (caar rest))) (display "^-1"))
+	(else (display stmt)))
+  (if br (display ")")))
    
 (define (main args)
   (die-unless (= (length args) 2) "wrong arguments" usage)
@@ -194,9 +237,9 @@
 
     (let ((tokens (tokenize-cat fn)))
 
-      (let* ((model (parse-cat tokens))
-             (model (include-file model "models/kittens.cat"))
-             (model (include-files model)))
+      (let* ((model1 (parse-cat tokens))
+             (model2 (include-file model1 "models/kittens.cat"))
+             (model (include-files model2)))
 
 	(let* ((ht (get-hash-table model))
                (empty-rules (get-empties (caddr model)))
@@ -204,9 +247,7 @@
 	       (empties (apply append (map (lambda (e) (explode-empty-rule e ht)) empty-rules)))
 	       (acyclics (apply append (map (lambda (a) (explode-acyclic-rule a ht len)) acyclic-rules)))
                )  	  
-          
-	  (newline)
-	  (for-each print-empty empties)
+          (for-each print-empty empties)
 	  (newline)
 	  (for-each print-acyclic acyclics)
 	  ))))

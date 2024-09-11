@@ -48,7 +48,8 @@
    (sets ((x <- set-union) x)
          ((x <- set-isect) x)
          ((x <- set-diff) x)
-         ((x <- set) x))
+         ((x <- set-not) x)
+	 ((x <- set) x))
 
    (set-union
     ((a <- set-isect 'union b <- set-union) (list 'union a b))
@@ -64,8 +65,14 @@
     ;((a <- set 'diff b <- set-diff) (list 'diff a b))
     ; TODO: \ is left associative!
     ((a <- set 'diff b <- set) (list 'diff a b))
+    ((a <- set-not) a))
+   
+   (set-not
+    (('not a <- rel) (cons 'not a))
+    (('not a <- set) (cons 'not a))
+    ((a <- rel) a)
     ((a <- set) a))
-
+   
    (set
     ((s <- preset) (cons 'set s))
     ((s <- 'set) (cons 'set s))
@@ -85,7 +92,8 @@
          ((x <- rel-isect) x)
          ((x <- rel-cart) x)
 	 ((x <- rel-inv) x)
-         ((x <- rel) x))
+         ((x <- rel-not) x)
+	 ((x <- rel) x))
 
    (rel-union
     ((a <- rel-seq 'union b <- rel-union) (list 'union a b))
@@ -110,10 +118,17 @@
    (rel-inv
     ((a <- rel 'inv) (cons 'inv a))
     ((a <- set 'inv) (cons 'inv a))
-    ((a <- rel) a))
+    ((a <- rel-not) a))
+
+   (rel-not
+    (('not a <- rel) (cons 'not a))
+    (('not a <- set) (cons 'not a))
+    ((a <- rel) a)
+    ((a <- set) a))
 
    (rel
     (((! preset) r <- 'id) (cons 'rel r))
     ((r <- 'rel) (cons 'rel r))
     (('obrack s <- sets 'cbrack) (cons 'self s))
-    (('oparen a <- rels 'cparen) a))))
+    (('oparen a <- rels 'cparen) a)
+    )))

@@ -48,6 +48,26 @@
   (test '(seq (rel . "rel1") (inv . (rel . "rel2")))
         (parse-result-semantic-value r)))
 
+(let* ((r (parse '((not) (rel . "rel1") (seq) (rel . "rel2")))))
+  (test-assert (parse-result-successful? r))
+  (test '(seq (not rel . "rel1") (rel . "rel2"))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((not) (oparen) (rel . "rel1") (seq) (rel . "rel2") (cparen)))))
+  (test-assert (parse-result-successful? r))
+  (test '(not seq (rel . "rel1") (rel . "rel2"))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((not) (obrack) (set . "set1") (isect) (set . "set2") (cbrack)))))
+  (test-assert (parse-result-successful? r))
+  (test '(not self isect (set . "set1") (set . "set2"))
+        (parse-result-semantic-value r)))
+
+(let* ((r (parse '((not) (oparen) (rel . "rel1") (seq) (rel . "rel2") (cparen)))))
+  (test-assert (parse-result-successful? r))
+  (test '(not seq (rel . "rel1") (rel . "rel2"))
+        (parse-result-semantic-value r)))
+
 (let* ((r (parse '((id . "W") (isect) (set . "set2")))))
   (test-assert (parse-result-successful? r))
   (test '(isect (set . "W") (set . "set2"))
@@ -78,6 +98,11 @@
   (test '(seq (rel . "rf") (self . (set . "RMW")))
         (parse-result-semantic-value r)))
 
+(let* ((r (parse '((obrack) (id . "W") (isect) (id . "RMW") (cbrack)))))
+  (test-assert (parse-result-successful? r))
+  (test '(self isect (set . "W") (set . "RMW"))
+        (parse-result-semantic-value r)))
+
 (let* ((r (parse '((obrack) (id . "RMW") (cbrack) (seq) (id . "rf")))))
   (test-assert (parse-result-successful? r))
   (test '(seq (self . (set . "RMW")) (rel . "rf"))
@@ -96,6 +121,11 @@
 (let ((r (parse '((obrack) (id . "W") (cbrack) (seq) (id . "xrf") (union) (obrack) (id . "RMW") (cbrack) (seq) (id . "xrf")))))
   (test-assert (parse-result-successful? r))
   (test '(union (seq (self . (set . "W")) (rel . "xrf")) (seq (self . (set . "RMW")) (rel . "xrf")))
+        (parse-result-semantic-value r)))
+
+(let ((r (parse '((obrack) (id . "XCHG") (cbrack) (isect) (oparen) (oparen) (oparen) (oparen) (obrack) (id . "W") (cbrack) (seq) (id . "rf") (seq) (obrack) (id . "R") (cbrack) (cparen) (seq) (id . "co") (cparen) (isect) (id . "ext") (cparen) (seq) (oparen) (id . "co") (isect) (id . "ext") (cparen) (cparen)))))
+  (test-assert (parse-result-successful? r))
+  (test '(seq (self . (set . "FAA")) (rel . "rfx"))
         (parse-result-semantic-value r)))
 
 (let ((r (parse '((obrack) (id . "FAA") (cbrack) (seq) (id . "rfx")))))
