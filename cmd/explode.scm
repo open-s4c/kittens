@@ -236,7 +236,7 @@
     (print "# cycle len: " len)
 
     (let ((tokens (tokenize-cat fn)))
-
+      ;(display tokens)
       (let* ((model1 (parse-cat tokens))
              (model2 (include-file model1 "models/kittens.cat"))
              (model (include-files model2)))

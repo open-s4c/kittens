@@ -8,7 +8,8 @@
          RMW  ; read-modify-write operations
          XCHG ;
          FAA  ; fetch and add
-         ACQ  ; atomic operation with Acq barrier
+         RLX
+	 ACQ  ; atomic operation with Acq barrier
          REL  ; atomic operation with Rel barrier
          SC   ; atomic operation with SC barrier
          Marked ; marked atomic operation

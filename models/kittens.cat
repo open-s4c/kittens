@@ -5,6 +5,8 @@ let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] |
 
 let rmw = [RMW]
 
+let po-loc = po & loc
+
 let fr = rf^-1;co
 
 let fre = fr & ext
