@@ -187,11 +187,6 @@
 
 (define (make-edges el er expr)
   (match expr
-    (('rel . "fr") (let ((counter (get-counter))) (list
-        (edge counter el "rf" (edge->name counter el))
-        (edge counter er  "co" (edge->name counter er)))))
-    (('rel . rel)
-        (list (edge el er rel (edge->name el er))))
     (('seq . rest)
        (let ((counter (get-counter)))   
      (list
@@ -202,9 +197,16 @@
             (list (make-edges el er (car rest))
                   (make-edges el er (cadr rest))))
     (('inv . rest)
-        (make-edges er el rest))  ; just swap er and el
+        (make-edges er el rest))  ; just swap er and el 
     (('self . ('set . rel))
          (list (edge el er rel (edge->name el er))))
+    (('rel . rel)
+        (list (edge el er rel (edge->name el er))))  
+    (('not 'self . ('set . rel))
+         (list (edge el er (string-append "not-" rel) (edge->name el er))))
+    (('not 'rel . rel)
+        (list (edge el er (string-append "not-" rel) (edge->name el er))))
+
     (else "")))
 
 (define (equality-assertion lst field)

@@ -16,7 +16,8 @@
            (W)
            (R)
            (RMW)
-	   (ext)))
+	   (ext)
+	   (int)))
 
 (declare-datatype
  Event ((mk-event (uid Int)
@@ -90,6 +91,11 @@
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as ext Relation)) (inEdgeSet e))
                     (not (= (tid (src e)) (tid (trg e)))))))
+
+; Constraints for int
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as int Relation)) (inEdgeSet e))
+                    (= (tid (src e)) (tid (trg e))))))
 
 ; Constraint positive values and addresses of events
 (assert (forall ((e1 Event))

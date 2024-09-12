@@ -222,10 +222,6 @@
   (list 'union 'sadd 'seq 'isect 'diff 'cart))
 
 (define (parentheses out in)
- ; (display out)
- ; (display "-")
- ; (display in)
- ; (newline)
   (match out
 	 ('self #f)
 	 ('set #f)
