@@ -9,6 +9,8 @@ let po-loc = po & loc
 
 let fr = rf^-1;co
 
+let ctrl = ctrl-a ; ctrl-b
+
 let fre = fr & ext
 let coe = co & ext
 let rfe = rf & ext

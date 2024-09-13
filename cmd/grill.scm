@@ -3,6 +3,7 @@
 (import (scheme base)
         (scheme file)
         (scheme cxr)
+	(scheme small)
 	(kittens cat)
 	(kittens utils)
         (kittens command)
@@ -181,9 +182,28 @@
   ))
 
 (define (get-same-eid-set edges)
-  (let* ((set-edges (filter (lambda (edge) (or (equal? (edge-type edge) "RMW") (equal? (edge-type edge) "R") (equal? (edge-type edge) "W"))) edges))
+  (let* ((set-edges (filter (lambda (edge) (or 
+					     	(equal? (edge-type edge) "rmw") 
+						(equal? (edge-type edge) "r") 
+						(equal? (edge-type edge) "w") 
+						(equal? (edge-type edge) "sc") 
+						(equal? (edge-type edge) "acq") 
+						(equal? (edge-type edge) "release") 
+						(equal? (edge-type edge) "rlx") 
+						(equal? (edge-type edge) "rel-acq") 
+						(equal? (edge-type edge) "plain"))) edges))
 	 (pairs (map (lambda (edge) (list (edge-src edge) (edge-trg edge))) set-edges)))
     pairs))
+
+(define (rename-relation rel)
+  (let ((rel (string-downcase rel)))
+      (match rel
+	("addr" "addr-dep")
+	("data" "data-dep")
+	("ctrl-a" "ctrl-a-dep")
+	("ctrl-b" "ctrl-b-dep")
+	("rel" "release")
+	(else rel))))
 
 (define (make-edges el er expr)
   (match expr
@@ -199,13 +219,13 @@
     (('inv . rest)
         (make-edges er el rest))  ; just swap er and el 
     (('self . ('set . rel))
-         (list (edge el er rel (edge->name el er))))
+         (list (edge el er (rename-relation rel) (edge->name el er))))
     (('rel . rel)
-        (list (edge el er rel (edge->name el er))))  
+        (list (edge el er (rename-relation rel) (edge->name el er))))  
     (('not 'self . ('set . rel))
-         (list (edge el er (string-append "not-" rel) (edge->name el er))))
+         (list (edge el er (string-append "not-" (rename-relation rel)) (edge->name el er))))
     (('not 'rel . rel)
-        (list (edge el er (string-append "not-" rel) (edge->name el er))))
+        (list (edge el er (string-append "not-" (rename-relation rel)) (edge->name el er))))
 
     (else "")))
 
@@ -315,7 +335,7 @@
      
     
      (map (lambda (e) (append 
-     	`(assert (=> (and (= (rel ,e) (as RMW Relation))  
+     	`(assert (=> (and (= (rel ,e) (as rmw Relation))  
 			  (inEdgeSet ,e) 
 		,@(apply append (map (lambda (e1)
 			 `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)  
