@@ -20,12 +20,20 @@
            (r)
            (rmw)
            (f)
+
 	   (plain)
            (acq)
            (rlx)
            (sc)
            (release)
            (rel-acq)
+	   (not-plain)
+           (not-acq)
+           (not-rlx)
+           (not-sc)
+           (not-release)
+           (not-rel-acq)
+
 	   (ext)
 	   (int)
 	   (ctrl-a-dep)
@@ -225,6 +233,37 @@
                     (and (= (marker (src e)) (as REL-ACQ Marker))
                          (= (marker (trg e)) (as REL-ACQ Marker))))))
 
+; Constraints for ~[Plain]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as not-plain Relation)) (inEdgeSet e))
+                    (and (not (= (marker (src e)) (as Plain Marker)))
+                         (not (= (marker (trg e)) (as Plain Marker)))))))
+; Constraints for ~[SC]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as not-sc Relation)) (inEdgeSet e))
+                    (and (not (= (marker (src e)) (as SC Marker)))
+                         (not (= (marker (trg e)) (as SC Marker)))))))
+; Constraints for ~[ACQ]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as not-acq Relation)) (inEdgeSet e))
+                    (and (not (= (marker (src e)) (as ACQ Marker)))
+                         (not (= (marker (trg e)) (as ACQ Marker)))))))
+; Constraints for ~[REL]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as not-release Relation)) (inEdgeSet e))
+                    (and (not (= (marker (src e)) (as REL Marker)))
+                         (not (= (marker (trg e)) (as REL Marker)))))))
+; Constraints for ~[RLX]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as not-rlx Relation)) (inEdgeSet e))
+                    (and (not (= (marker (src e)) (as RLX Marker)))
+                         (not (= (marker (trg e)) (as RLX Marker)))))))
+; Constraints for ~[REL-ACQ]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as not-rel-acq Relation)) (inEdgeSet e))
+                    (and (not (= (marker (src e)) (as REL-ACQ Marker)))
+                         (not (= (marker (trg e)) (as REL-ACQ Marker)))))))
+
 (assert (forall ((e1 Event))
 		(=> (and (= (op e1) (as read Operation)) (inEventSet e1))
 		    (or (= (marker e1) (as SC Marker))
@@ -245,7 +284,6 @@
 			(= (marker e1) (as ACQ Marker))		
 			(= (marker e1) (as REL Marker))		
 			(= (marker e1) (as REL-ACQ Marker))		
-			(= (marker e1) (as Plain Marker))		
 			(= (marker e1) (as RLX Marker))))))
 
 (assert (forall ((e1 Event))
@@ -254,7 +292,6 @@
 			(= (marker e1) (as ACQ Marker))		
 			(= (marker e1) (as REL Marker))		
 			(= (marker e1) (as REL-ACQ Marker))		
-			(= (marker e1) (as Plain Marker))		
 			(= (marker e1) (as RLX Marker))))))
 
 ; -----------------------------------------------------------------------------

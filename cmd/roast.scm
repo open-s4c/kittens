@@ -28,7 +28,8 @@
   (val-r event-val-r)
   (val-w event-val-w)
   (val-e event-val-e)
-  (op event-op))
+  (op event-op)
+  (marker event-marker))
 
 (define (extract-event-records expr)
   (match expr
@@ -36,8 +37,8 @@
           (apply append (map extract-event-records defs)))
          (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co addr val-r val-w val-e op)
-          (list (event uid eid tid po co addr val-r val-w val-e op)))
+         (('mk-event uid eid tid po co addr val-r val-w val-e op marker)
+          (list (event uid eid tid po co addr val-r val-w val-e op marker)))
          (else '())))
 
 (define (get-test-name expr)
@@ -111,8 +112,16 @@
 
 (define (get-event-type)
   (match type
-         ("n" "volatile int" )
+         ("n" "volatile int")
          ("a" "atomic_int")))
+
+(define (get-mem-order event)
+  (match (event-marker event)
+	("rlx" "memory_order_relaxed")
+	("release" "memory_order_release")
+	("sc" "memory_order_seq_cst")
+	("acq-rel" "memory_order_acq_rel")
+	("acq" "memory_order_acquire")))
 
 (define (print-event-read event event-records-per-tid)
   (match type
