@@ -10,6 +10,7 @@ NATIVE_ENABLED=true
 HERD7_ENABLED=true
 DAT3M_ENABLED=false
 MODEL=aarch64
+LITC_DIR=
 INPUT=
 
 CC=gcc
@@ -27,6 +28,7 @@ function fail-usage {
     echo "  -vatomic BOOL      Enable use of vatomic (default: $VATOMIC_ENABLED)"
     echo "  -rmw BOOL          Enable use of RMW (default: $RMW_ENABLED)"
     echo "  -cat STR           Which cat model to use (default: $MODEL)"
+    echo "  -litc-dir PATH     Use a set of litc files to check (default: NONE)"
     echo
     exit 1
 }
@@ -75,6 +77,10 @@ while [ $# -gt 0 ]; do
         -cat)
             shift
             MODEL="$1"
+            ;;
+        -litc-dir)
+            shift
+            LITC_DIR="$1"
             ;;
         -model)
             shift
@@ -256,7 +262,8 @@ function dat3m-check {
     return 0
 }
 
-(
+
+function kitten-list {
     cd $DIR
     vatomic_check
 
@@ -309,5 +316,52 @@ function dat3m-check {
 
     done < "$INPUT"
     echo END
-)
+}
 
+function litc-list {
+    cd $DIR
+    vatomic_check
+
+    while read -r kitten; do
+        if [ -z "$kitten" ]; then
+            continue
+        fi
+
+        # cleanup
+        for suf in o dump litmus litc c; do
+            rm -f $PREFIX.$suf
+            rm -f $PREFIX.$suf.log
+        done
+
+        # valid kitten, start loop
+        echo
+        echo "TEST: $kitten"
+
+        if ! defuse; then
+            exit 1
+        fi
+
+        if ! native; then
+            exit 1
+        fi
+
+        if ! herd7-check; then
+            exit 1
+        fi
+
+        if ! dat3m-check; then
+            exit 1
+        fi
+
+    done < "$INPUT"
+    echo END
+}
+
+(
+    if [ -z "${LITC_DIR}" ]; then
+	kitten-list		
+    else
+    	litc-list
+    fi
+
+)
