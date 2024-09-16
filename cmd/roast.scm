@@ -112,16 +112,16 @@
   (match (event-marker event)
          ('Plain
           (string-append 
-                                 "atomic_int r"
+                                 "int r"
                                  (get-read-t-number event event-records-per-tid)
-                                 " = *"
+                                 " = *(int *)"
                                  (get-var-name (event-addr event))
                                  ";"
                                  ))
 
          (else
           (string-append
-		   "atomic_int r"
+		   "int r"
                    (get-read-t-number event event-records-per-tid)
                    " = atomic_load_explicit("
                    (get-var-name (event-addr event))
