@@ -102,7 +102,7 @@
 (define (get-mem-order event)
   (match (event-marker event)
 	('RLX "memory_order_relaxed")
-	('RELEASE "memory_order_release")
+	('REL "memory_order_release")
 	('SC "memory_order_seq_cst")
 	('ACQ-REL "memory_order_acq_rel")
 	('ACQ "memory_order_acquire")
@@ -306,7 +306,8 @@
                                                            (event-val-w ev)
                                                            (event-val-w ev)
                                                            'read
-							   (event-marker ev)
+							   `Plain
+							   ;(event-marker ev)
 						                            )) events-one-addr)
                                   )   writes-per-addr-sorted
                                 ))
