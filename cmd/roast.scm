@@ -134,7 +134,7 @@
   (match (event-marker event)
          ('Plain
           (string-append 
-                                 "*"
+                                 "*(int *)"
                                  (get-var-name (event-addr event))
                                  " = "
                                  (number->string (event-val-w event))
