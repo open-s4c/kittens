@@ -131,44 +131,38 @@
                   ))))
 
 (define (print-event-write event)
-  (match type
-         ("n"
-          (apply string-append `(
+  (match (event-marker event)
+         ('Plain
+          (string-append 
                                  "*"
-                                 ,(get-var-name (event-addr event))
+                                 (get-var-name (event-addr event))
                                  " = "
-                                 ,(number->string (event-val-w event))
+                                 (number->string (event-val-w event))
                                  ";"
-                                 )))
-         ("a"
-          (apply string-append `(
+                                 ))
+         (else
+          (string-append 
                                  "atomic_store_explicit("
-                                 ,(get-var-name (event-addr event))
+                                 (get-var-name (event-addr event))
                                  ", "
-                                 ,(number->string (event-val-w event))
-                                 ", memory_order_seq_cst);"
-                                 )))))
+                                 (number->string (event-val-w event))
+                                 ", " 
+				 (get-mem-order event)
+				 ");"
+                                 ))))
 
 (define (print-event-RMW event event-records-per-tid)
-  (match type
-         ("n"  (apply string-append `(
+          (string-append 
                                       "int r"
-                                      ,(get-read-t-number event event-records-per-tid)
+                                      (get-read-t-number event event-records-per-tid)
                                       " = atomic_exchange_explicit("
-                                      ,(get-var-name (event-addr event))
+                                      (get-var-name (event-addr event))
                                       ", "
-                                      ,(number->string (event-val-w event))
-                                      ", memory_order_seq_cst);"
-                                      )))
-         ("a"  (apply string-append `(
-                                      "int r"
-                                      ,(get-read-t-number event event-records-per-tid)
-                                      " = atomic_exchange_explicit("
-                                      ,(get-var-name (event-addr event))
-                                      ", "
-                                      ,(number->string (event-val-w event))
-                                      ", memory_order_seq_cst);"
-                                      )))))
+                                      (number->string (event-val-w event))
+                                      "," 
+				      (get-mem-order event)
+				      ");"
+                                      ))
 
 (define (print-event-branch event) "")
 
@@ -306,7 +300,7 @@
                                                            (event-val-w ev)
                                                            (event-val-w ev)
                                                            'read
-							   `Plain
+							   `SC
 							   ;(event-marker ev)
 						                            )) events-one-addr)
                                   )   writes-per-addr-sorted
