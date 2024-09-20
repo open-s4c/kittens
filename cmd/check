@@ -7,8 +7,8 @@ PREFIX="kitten"
 RMW_ENABLED=true
 VATOMIC_ENABLED=true
 NATIVE_ENABLED=true
-HERD7_ENABLED=true
-DAT3M_ENABLED=false
+HERD7_ENABLED=false
+DAT3M_ENABLED=true
 MODEL=aarch64
 LITC_DIR=
 INPUT=
@@ -113,7 +113,7 @@ fi
 
 LITC_FLAGS="-c11 -cat fences.cat"
 HERD7_FLAGS="-cat $MODEL.cat"
-DAT3M_FLAGS="-bound 5 -cat models/$MODEL.cat"
+DAT3M_FLAGS="--bound=5 -cat models/$MODEL.cat"
 
 function echopfx {
     echo -n "      "
