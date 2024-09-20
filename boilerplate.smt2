@@ -306,7 +306,7 @@
 			 (< (val-w e1) 20)
 			 (>= (val-e e1) 0)
 			 (< (val-e e1) 20)
-                         (>= (tid e1) 0)
+                         (>= (tid e1) 20)
 			 (< (tid e1) 50)
 			 (>= (corder e1) 300)
 			 (< (corder e1) 350)

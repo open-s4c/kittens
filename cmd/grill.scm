@@ -276,6 +276,7 @@
      (eid-constraints eid-partition 'val-w #t)
      (eid-constraints eid-partition 'val-e #f)
      (eid-constraints eid-partition 'op #f)
+     (eid-constraints eid-partition 'marker #f)
      
      
      (comment "edge declarations")

@@ -104,7 +104,7 @@
 	('RLX "memory_order_relaxed")
 	('REL "memory_order_release")
 	('SC "memory_order_seq_cst")
-	('ACQ-REL "memory_order_acq_rel")
+	('REL-ACQ "memory_order_acq_rel")
 	('ACQ "memory_order_acquire")
 	(else "LALALALLA")))
 
