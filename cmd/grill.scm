@@ -112,6 +112,34 @@
     lst)))
 
 
+(define valid-edge-types '("data-dep" "addr-dep" "ctrl-a-dep"))
+
+(define (valid-edge? edge)
+    (let ((type (edge-type edge)))
+          (member type valid-edge-types)))
+
+(define (find-group-mates event groups)
+    (define (event-in-group? group)
+          (member event group))
+      (define matching-group
+	    (find event-in-group? groups))
+        (if matching-group matching-group '()))
+
+(define (find-true-events edges groups)
+    (define (process-edge edge)
+          (if (valid-edge? edge)
+	              (let ((target (edge-trg edge)))
+			          (find-group-mates target groups))
+		              '()))
+      (apply append (map process-edge edges)))
+
+(define (mark-events all-events true-events)
+    (map (lambda (event)
+	            (if (member event true-events)
+			             (cons event #t)  ; Mark as true
+				                  (cons event #f))) ; Mark as false
+	        all-events))
+
 (define (find-group groups x)
     (find (lambda (group) (member x group)) groups))
 
@@ -186,6 +214,8 @@
 					     	(equal? (edge-type edge) "rmw") 
 						(equal? (edge-type edge) "r") 
 						(equal? (edge-type edge) "w") 
+						(equal? (edge-type edge) "b") 
+						(equal? (edge-type edge) "f") 
 						(equal? (edge-type edge) "sc") 
 						(equal? (edge-type edge) "acq") 
 						(equal? (edge-type edge) "release") 
@@ -256,17 +286,31 @@
     )
   )
 
+(define (dep-constraints marked-events)
+  (map (lambda (ev) 
+	(if (cdr ev) 
+		`(assert (= true (dep ,(event->symbol (car ev))))) 
+		`(assert (= false (dep ,(event->symbol (car ev))))) )
+		       ) marked-events))
+
 (define (generate-constraints events edges is-acyclic)
   (let* ((event-names (map event->symbol events))
 	 (edge-names (map edge-name edges))
- 	 (eid-partition (get-eid-partition events edges is-acyclic)))
+ 	 (eid-partition (get-eid-partition events edges is-acyclic))
+    	 (true-events (find-true-events edges eid-partition))
+	 (marked-events (mark-events events true-events)))
+		   
+   ; (display events)
+   ; (display edges) 
+   ; (newline)
+   ; (display eid-partition)
+   ; (display marked-events)
      (apply append (list
-     
-     
+         
+    
      (comment "event declarations")
      (map (lambda (e) `(declare-const ,e Event))
           event-names)
-
      (eid-constraints eid-partition 'eid #t)
      (eid-constraints eid-partition 'tid #f)
      (eid-constraints eid-partition 'porder #t)
@@ -277,7 +321,8 @@
      (eid-constraints eid-partition 'val-e #f)
      (eid-constraints eid-partition 'op #f)
      (eid-constraints eid-partition 'marker #f)
-     
+
+     (dep-constraints marked-events)
      
      (comment "edge declarations")
      (map (lambda (e) `(declare-const ,e Edge))

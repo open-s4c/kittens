@@ -17,7 +17,7 @@
 
 (define-record-type
   event-record
-  (event uid eid tid po co addr val-r val-w val-e op marker)
+  (event uid eid tid po co addr val-r val-w val-e op marker dep)
   event?
   (uid event-uid)
   (eid event-eid)
@@ -29,7 +29,8 @@
   (val-w event-val-w)
   (val-e event-val-e)
   (op event-op)
-  (marker event-marker))
+  (marker event-marker)
+  (dep event-dep))
 
 (define (extract-event-records expr)
   (match expr
@@ -37,8 +38,8 @@
           (apply append (map extract-event-records defs)))
          (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co addr val-r val-w val-e op marker)
-          (list (event uid eid tid po co addr val-r val-w val-e op marker)))
+         (('mk-event uid eid tid po co addr val-r val-w val-e op marker dep) 
+          (list (event uid eid tid po co addr val-r val-w val-e op marker dep)))
          (else '())))
 
 (define (get-test-name expr)
@@ -108,6 +109,20 @@
 	('ACQ "memory_order_acquire")
 	(else "LALALALLA")))
 
+(define (get-reg-or-name event event-records-per-tid)
+  (let ((adjust (match (event-op event) 
+		        ('read 1)
+			('write 1)
+			('fence 1)
+			('branch 1)
+			(else 1))))
+  (if (eq? (event-dep event) 'true) 
+				     (string-append 
+				    	"r"
+					(number->string (- (string->number (get-read-t-number event event-records-per-tid)) adjust))
+				     )
+				     (get-var-name (event-addr event)))))
+
 (define (print-event-read event event-records-per-tid)
   (match (event-marker event)
          ('Plain
@@ -115,8 +130,8 @@
                                  "int r"
                                  (get-read-t-number event event-records-per-tid)
                                  " = *(int *)"
-                                 (get-var-name (event-addr event))
-                                 ";"
+				 (get-reg-or-name event event-records-per-tid) 
+				 ";"
                                  ))
 
          (else
@@ -124,18 +139,18 @@
 		   "int r"
                    (get-read-t-number event event-records-per-tid)
                    " = atomic_load_explicit("
-                   (get-var-name (event-addr event))
+		   (get-reg-or-name event event-records-per-tid) 
                    ", "
 		   (get-mem-order event)
 		   ");"
                   ))))
 
-(define (print-event-write event)
+(define (print-event-write event event-records-per-tid)
   (match (event-marker event)
          ('Plain
           (string-append 
                                  "*(int *)"
-                                 (get-var-name (event-addr event))
+				 (get-reg-or-name event event-records-per-tid) 
                                  " = "
                                  (number->string (event-val-w event))
                                  ";"
@@ -143,7 +158,7 @@
          (else
           (string-append 
                                  "atomic_store_explicit("
-                                 (get-var-name (event-addr event))
+				 (get-reg-or-name event event-records-per-tid) 
                                  ", "
                                  (number->string (event-val-w event))
                                  ", " 
@@ -156,7 +171,7 @@
                                       "int r"
                                       (get-read-t-number event event-records-per-tid)
                                       " = atomic_exchange_explicit("
-                                      (get-var-name (event-addr event))
+				      (get-reg-or-name event event-records-per-tid) 
                                       ", "
                                       (number->string (event-val-w event))
                                       "," 
@@ -175,7 +190,7 @@
                                  ('read
                                   (print-event-read event event-records-per-tid))
                                  ('write
-                                  (print-event-write event))
+                                  (print-event-write event event-records-per-tid))
                                  ('fence
 				  (print-event-fence event))
 				 ('branch
@@ -301,6 +316,8 @@
                                                            (event-val-w ev)
                                                            'read
 							   `SC
+							   'false
+							   ;(event-dep ev)
 							   ;(event-marker ev)
 						                            )) events-one-addr)
                                   )   writes-per-addr-sorted

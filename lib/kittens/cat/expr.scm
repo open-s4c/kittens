@@ -5,7 +5,8 @@
          F ; fences
          W ; write operations
          R ; read operations
-         RMW  ; read-modify-write operations
+         B
+	 RMW  ; read-modify-write operations
          XCHG ;
          FAA  ; fetch and add
          RLX

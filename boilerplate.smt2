@@ -20,6 +20,7 @@
            (r)
            (rmw)
            (f)
+           (b)
 
 	   (plain)
            (acq)
@@ -62,7 +63,8 @@
                   (val-w Int)
                   (val-e Int) 
                   (op Operation)
-		  (marker Marker))))
+		  (marker Marker)
+		  (dep Bool))))
 
 (declare-datatype
  Edge ((mk-edge (src Event)
@@ -130,7 +132,7 @@
 (assert (forall ((e Edge))
 		(=> (and (= (rel e) (as addr-dep Relation)) (inEdgeSet e))
 		    (and (= (tid (src e)) (tid (trg e)))
-			 (< (porder (src e)) (porder (trg e)))
+			 (= (porder (src e)) (- (porder (trg e)) 1))
 			 (or (= (op (src e)) (as read Operation))
 			     (= (op (src e)) (as read-modify-write Operation)))
 			 (or (= (op (trg e)) (as read Operation))
@@ -142,7 +144,7 @@
 (assert (forall ((e Edge))
 		(=> (and (= (rel e) (as data-dep Relation)) (inEdgeSet e))
 		    (and (= (tid (src e)) (tid (trg e)))
-			 (< (porder (src e)) (porder (trg e)))
+			 (= (porder (src e)) (- (porder (trg e)) 1))
 			 (or (= (op (src e)) (as read Operation))
 			     (= (op (src e)) (as read-modify-write Operation)))
 			 (or (= (op (trg e)) (as write Operation))
@@ -153,7 +155,7 @@
 (assert (forall ((e Edge))
 		(=> (and (= (rel e) (as ctrl-a-dep Relation)) (inEdgeSet e))
 		    (and (= (tid (src e)) (tid (trg e)))
-			 (< (porder (src e)) (porder (trg e)))
+			 (= (porder (src e)) (- (porder (trg e)) 1))
 			 (or (= (op (src e)) (as read Operation))
 			     (= (op (src e)) (as read-modify-write Operation)))
 			 (= (op (trg e)) (as branch Operation))
@@ -163,7 +165,7 @@
 (assert (forall ((e Edge))
 		(=> (and (= (rel e) (as ctrl-b-dep Relation)) (inEdgeSet e))
 		    (and (= (tid (src e)) (tid (trg e)))
-			 (< (porder (src e)) (porder (trg e)))
+			 (= (porder (src e)) (- (porder (trg e)) 1))
 			 (= (op (src e)) (as branch Operation))
 			 (or (= (op (trg e)) (as read Operation))
 			     (= (op (trg e)) (as write Operation))
@@ -319,4 +321,3 @@
 ; -----------------------------------------------------------------------------
 ; definition of events and edges
 ; -----------------------------------------------------------------------------
-
