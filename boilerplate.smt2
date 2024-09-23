@@ -52,6 +52,12 @@
 	 (REL-ACQ)
 	 (SC)))
 
+(declare-datatype 
+ Argument ((branch)
+           (addr)
+           (data)
+	   (reg)))
+
 (declare-datatype
  Event ((mk-event (uid Int)
                   (eid Int)
@@ -64,7 +70,7 @@
                   (val-e Int) 
                   (op Operation)
 		  (marker Marker)
-		  (dep Bool))))
+		  (arg Argument))))
 
 (declare-datatype
  Edge ((mk-edge (src Event)
@@ -302,11 +308,11 @@
 
 (assert (forall ((e1 Event))
                 (=> (inEventSet e1)
-                    (and (>= (val-r e1) 0)
+                    (and (>= (val-r e1) 1)
 			 (< (val-r e1) 20)
-			 (>= (val-w e1) 1)
+			 (>= (val-w e1) 2)
 			 (< (val-w e1) 20)
-			 (>= (val-e e1) 0)
+			 (>= (val-e e1) 2)
 			 (< (val-e e1) 20)
                          (>= (tid e1) 20)
 			 (< (tid e1) 50)
@@ -314,7 +320,7 @@
 			 (< (corder e1) 350)
 			 (>= (porder e1) 200)
 			 (< (porder e1) 250)
-			 (>= (addr e1) 0)
+			 (>= (addr e1) 1)
 			 (< (addr e1) 20)
 			 ))))
 
