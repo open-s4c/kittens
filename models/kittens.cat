@@ -7,6 +7,8 @@ let rmw = [RMW]
 
 let po-loc = po & loc
 
+let ctrl = ctrl-a;ctrl-b
+
 let fr = rf^-1;co
 
 let fre = fr & ext

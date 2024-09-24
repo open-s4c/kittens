@@ -12,6 +12,15 @@
 
 (define explicit-init-events #t)
 
+(define in-branch #f)
+
+(define (get-in-branch)
+  (if in-branch
+      (begin
+	(set! in-branch #f)
+        #t)
+      #f))
+
 (define (usage)
   (print "roast <z3 model>"))
 
@@ -110,14 +119,16 @@
          (else "LALALALLA")))
 
 (define (get-read-loc event event-records-per-tid)
-  (if (eq? (event-arg event) 'addr) 
-      (string-append 
+  (if (or (eq? (event-arg event) 'addr) 
+          (eq? (event-arg event) 'ctrl))
+       (string-append 
        "r"
        (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
       (get-var-name (event-addr event))))
 
 (define (get-store-val event event-records-per-tid)
-  (if (eq? (event-arg event) 'data)
+  (if (or (eq? (event-arg event) 'data)
+          (eq? (event-arg event) 'ctrl))
       (string-append 
        "r"
        (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
@@ -181,12 +192,26 @@
    ");"
    ))
 
-(define (print-event-branch event) "")
+(define (print-event-branch event event-records-per-tid) 
+  (begin 
+    (set! in-branch #t) 
+    (string-append 
+      "if ("
+      (get-read-loc event event-records-per-tid)
+      ") {"
+    )))
 
-(define (print-event-fence event) "")
+(define (print-event-fence event) 
+  (string-append 
+    "atomic_thread_fence("
+    (get-mem-order event)
+    ");"
+    ))
 
 (define (print-event event event-records-per-tid)
+  (let ((branch (get-in-branch)))
   (apply string-append `(
+			 ,(if branch "    " "")
                          "    "
                          ,(match (event-op event)
                                  ('read
@@ -196,9 +221,11 @@
                                  ('fence
                                   (print-event-fence event))
                                  ('branch
-                                  (print-event-branch event))
+                                  (print-event-branch event event-records-per-tid))
                                  (else
-                                  (print-event-RMW event event-records-per-tid))))))
+                                  (print-event-RMW event event-records-per-tid)))
+			,(if branch "\n    }" "")
+			 ))))
 
 (define (generate-thread-body event-records-per-tid)
   (apply string-append
@@ -227,12 +254,12 @@
                          )))
 
 (define (generate-preamble events)
-  (apply string-append (map (lambda (ev) (string-append 
+  (apply string-append (map (lambda (addr) (string-append 
                                           "*(int *)"
-                                          (get-var-name (event-addr ev))
+                                          (get-var-name addr)
                                           "=1"
                                           ";"
-                                          )) events))) 
+                                          )) (unique (map event-addr events))))) 
 
 (define (get-event-type-a) "atomic_int")
 

@@ -53,7 +53,7 @@
 	 (SC)))
 
 (declare-datatype 
- Argument ((branch)
+ Argument ((ctrl)
            (addr)
            (data)
 	   (reg)))
