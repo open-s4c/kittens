@@ -1,8 +1,10 @@
 #!/usr/bin/env -S chibi-scheme -Ilib -Ivendor
 
 (import (scheme base)
-        (scheme cxr)
-        (kittens match)
+        (srfi 1)
+	(scheme cxr)
+        (chibi string)
+	(kittens match)
         (kittens generator)
         (kittens utils)
         (kittens litc)
@@ -23,7 +25,7 @@
          (('equal ('read-var p v) rhs)
           (display (string-append v "_P" (number->string p) " == " rhs)))
          (('equal ('deref-var v) rhs)
-          (display (string-append "(*(int*)&" v ") == " rhs)))))
+          (display (string-append "(*(long*)&" v ") == " rhs)))))
 
 
 
@@ -157,6 +159,10 @@
     (for-each print (litc-vars litc))
     (print "*/"))
 
+  (newline)
+  (print "/* variable declared to use address as value */")
+  (print "int a;")
+
   (let ((procs (litc-procs litc)))
     ; collect all arguments and create variables for the arguments
     (let* ((args (map litc-proc-args procs))   ; take args of each proc
@@ -198,6 +204,9 @@
     (newline)
     (print "int main(void) {")
     (let ((pids (map litc-proc-id (litc-procs litc))))
+      (for-each (lambda (var) 
+		  (print "  atomic_init(&" var ", (atomic_long) &a);")) (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
+
       (for-each (lambda (pid)
                   (print "  pthread_t t" pid ";")) pids)
       (for-each (lambda (pid)

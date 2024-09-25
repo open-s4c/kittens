@@ -6,7 +6,8 @@ empty rmw & (fre;coe)
 (** SC per location **)
 acyclic co | rf | fr | po-loc
 
-let Marked = RLX | ACQ | REL | SC
+let Marked = RLX | ACQ | REL | SC | REL-ACQ
+
 let Plain = ~Marked
 let Acq = ACQ | (SC & R)
 let Rel = REL | (SC & W)

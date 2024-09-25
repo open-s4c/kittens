@@ -106,8 +106,8 @@
 
 (define (get-event-type event)
   (match (event-marker event)
-         ('Plain "volatile int")
-         (else "atomic_int")))
+         ('Plain "volatile long")
+         (else "atomic_long")))
 
 (define (get-mem-order event)
   (match (event-marker event)
@@ -140,16 +140,16 @@
   (match (event-marker event)
          ('Plain
           (string-append 
-           "int r"
+           "long r"
            (get-read-t-number event event-records-per-tid)
-           " = *(int *)"
+           " = *(long *)"
            (get-read-loc event event-records-per-tid) 
            ";"
            ))
 
          (else
           (string-append
-           "int r"
+           "long r"
            (get-read-t-number event event-records-per-tid)
            " = atomic_load_explicit("
            (get-read-loc event event-records-per-tid) 
@@ -162,7 +162,7 @@
   (match (event-marker event)
          ('Plain
           (string-append 
-           "*(int *)"
+           "*(long *)"
            (get-read-loc event event-records-per-tid) 
            " = "
            (get-store-val event event-records-per-tid)
@@ -181,7 +181,7 @@
 
 (define (print-event-RMW event event-records-per-tid)
   (string-append 
-   "int r"
+   "long r"
    (get-read-t-number event event-records-per-tid)
    " = atomic_exchange_explicit("
    (get-read-loc event event-records-per-tid) 
@@ -255,13 +255,13 @@
 
 (define (generate-preamble events)
   (apply string-append (map (lambda (addr) (string-append 
-                                          "*(int *)"
+                                          ;"*(long *)"
                                           (get-var-name addr)
-                                          "=1"
+                                          ;"=1"
                                           ";"
                                           )) (unique (map event-addr events))))) 
 
-(define (get-event-type-a) "atomic_int")
+(define (get-event-type-a) "atomic_long")
 
 (define (generate-thread-signature event-records-per-tid tid-list)
   (let ((addresses (unique (map (lambda (ev) (event-addr ev)) event-records-per-tid)))
