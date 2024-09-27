@@ -130,6 +130,7 @@
 
 (define (combine-funcs . funcs)
   (let* ((flines (map export-func funcs))
+         (flines (map (lambda (lines) (map string-upcase lines)) flines))
          (longest (apply max (map length flines)))
 
          ; stretch code with empty lines

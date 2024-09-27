@@ -19,7 +19,7 @@
          (args (append args (litc-proc-reads p))))
     (for-each (lambda (arg i)
                 (display "  ")
-                (print (litc-proc-id p) ":x" (number->string i)
+                (print (litc-proc-id p) ":X" (number->string i)
                        " = " (caddr arg) ";"))
               args
               (seq (length args)))))
