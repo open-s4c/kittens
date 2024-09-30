@@ -396,11 +396,11 @@
                                 ))
            )
 
-      (display (event-uid (car event-records-from-file)))
-      (display (event-uid (cadr event-records-from-file)))
-      (display (number? (event-uid (cadr event-records-from-file))))
-      (display event-records-from-file)
-      (display (get-test-name model-from-file))
+     ; (display (event-uid (car event-records-from-file)))
+     ; (display (event-uid (cadr event-records-from-file)))
+     ; (display (number? (event-uid (cadr event-records-from-file))))
+     ; (display event-records-from-file)
+     ; (display (get-test-name model-from-file))
       (display (generate-litmus-PC name
                                    (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r)))))
                                    (append tid-list addr-list)
