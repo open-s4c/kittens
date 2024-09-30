@@ -127,7 +127,9 @@
        (string-append 
        "r"
        (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
-      (get-var-name (event-addr event))))
+      (string-append 
+	"(atomic_long *)"
+       (get-var-name (event-addr event)))))
 
 (define (get-store-val event event-records-per-tid)
   (if (or (eq? (event-arg event) 'data)
@@ -145,7 +147,7 @@
           (string-append 
            "long r"
            (get-read-t-number event event-records-per-tid)
-           " = *(long *)"
+           " = *"
            (get-read-loc event event-records-per-tid) 
            ";"
            ))
@@ -165,7 +167,7 @@
   (match (event-marker1 event)
          ('Plain
           (string-append 
-           "*(long *)"
+           "*"
            (get-read-loc event event-records-per-tid) 
            " = "
            (get-store-val event event-records-per-tid)
@@ -294,7 +296,7 @@
                                           ";"
                                           )) (unique (map event-addr events))))) 
 
-(define (get-event-type-a) "atomic_long")
+(define (get-event-type-a) "long* ")
 
 (define (generate-thread-signature event-records-per-tid tid-list)
   (let ((addresses (unique (map (lambda (ev) (event-addr ev)) event-records-per-tid)))
@@ -304,11 +306,11 @@
                            ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
                            " ("
                            ,@(map (lambda (addr) (string-append (get-event-type-a)
-                                                                "* "
+                                                                ;"* "
                                                                 (get-var-name addr) ", ")) (but-last addresses))
                            ,(string-append
                              (get-event-type-a)
-                             "* "
+                             ;"* "
                              (get-var-name (car (reverse addresses))))
                            ")"
                            ))))
@@ -388,8 +390,8 @@
                                                            (event-val-w ev)
                                                            'read
                                                            (event-rmw-type ev)
-							   `SC
-                                                           'SC
+							   `Plain
+                                                           'Plain
 							   'false
                                                            )) events-one-addr)
                                   )   writes-per-addr-sorted
