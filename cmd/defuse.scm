@@ -3,7 +3,7 @@
 (import (scheme base)
         (srfi 1)
 	(scheme cxr)
-        (chibi string)
+        (only (chibi string) string-split)
 	(kittens match)
         (kittens generator)
         (kittens utils)
