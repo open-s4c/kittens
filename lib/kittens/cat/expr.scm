@@ -9,6 +9,7 @@
 	 RMW  ; read-modify-write operations
          XCHG ;
          FAA  ; fetch and add
+	 CAS
 	 CAS-S
 	 CAS-F
          RLX

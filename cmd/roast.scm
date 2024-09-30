@@ -26,7 +26,7 @@
 
 (define-record-type
   event-record
-  (event uid eid tid po co addr val-r val-w val-e op rmw-type marker1 marker2 arg)
+  (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg)
   event?
   (uid event-uid)
   (eid event-eid)
@@ -37,6 +37,7 @@
   (val-r event-val-r)
   (val-w event-val-w)
   (val-e event-val-e)
+  (val-d event-val-d)
   (op event-op)
   (rmw-type event-rmw-type)
   (marker1 event-marker1)
@@ -49,8 +50,8 @@
           (apply append (map extract-event-records defs)))
          (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co addr val-r val-w val-e op rmw-type marker1 marker2 arg) 
-          (list (event uid eid tid po co addr val-r val-w val-e op rmw-type marker1 marker2 arg)))
+         (('mk-event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg) 
+          (list (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg)))
          (else '())))
 
 (define (get-test-name expr)
@@ -215,19 +216,23 @@
 
 (define (print-event-CAS event event-records-per-tid)
   (string-append 
-   "long r"
-   (get-read-t-number event event-records-per-tid)
-   " = atomic_compare_exchange_strong_explicit("
-   (get-read-loc event event-records-per-tid) 
-   ", "
-   (get-store-val event event-records-per-tid)
-   ", " 
+   "long temp_e = "
    (number->string (event-val-e event))
+   ";\n    "
+   "atomic_compare_exchange_strong_explicit("
+   (get-read-loc event event-records-per-tid) 
+   ", &temp_e"
+   ;(get-store-val event event-records-per-tid)
+   ", " 
+   (number->string (event-val-d event))
    ", "
    (get-mem-order event 1)
    ", "
    (get-mem-order event 2)
-   ");"
+   ");\n    "
+   "long r"
+   (get-read-t-number event event-records-per-tid)
+   " = temp_e;"
    ))
 
 (define (print-event-branch event event-records-per-tid) 
@@ -390,7 +395,8 @@
                                                            (event-addr ev)
                                                            (event-val-w ev) ; make the read value be the written value
                                                            (event-val-w ev)
-                                                           (event-val-w ev)
+                                                           (event-val-e ev)
+                                                           (event-val-d ev)
                                                            'read
                                                            (event-rmw-type ev)
 							   `Plain
