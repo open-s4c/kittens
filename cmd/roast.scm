@@ -127,8 +127,11 @@
        (string-append 
        "r"
        (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
-      (string-append 
-	"(atomic_long *)"
+      (string-append
+	(if (eq? 'Plain (event-marker1 event))
+	 ""
+	 "(atomic_long *)"
+	)
        (get-var-name (event-addr event)))))
 
 (define (get-store-val event event-records-per-tid)
