@@ -217,7 +217,10 @@
 
 (define (get-same-eid-set edges)
   (let* ((set-edges (filter (lambda (edge) (or 
-                                            (equal? (edge-type edge) "rmw") 
+                                            (equal? (edge-type edge) "xchg") 
+                                            (equal? (edge-type edge) "faa") 
+                                            (equal? (edge-type edge) "cas-s") 
+                                            (equal? (edge-type edge) "cas-f") 
                                             (equal? (edge-type edge) "r") 
                                             (equal? (edge-type edge) "w") 
                                             (equal? (edge-type edge) "b") 
@@ -323,7 +326,10 @@
                    (eid-constraints eid-partition 'val-w #f) ;;
                    (eid-constraints eid-partition 'val-e #f)
                    (eid-constraints eid-partition 'op #f)
-                   (eid-constraints eid-partition 'marker #f)
+                   (eid-constraints eid-partition 'marker1 #f)
+                   (eid-constraints eid-partition 'marker2 #f)
+                   (eid-constraints eid-partition 'rmw-type #f)
+                   (eid-constraints eid-partition 'arg #f)
 
                    (dep-constraints marked-events)
 
@@ -384,7 +390,11 @@
 
 
                    (map (lambda (e) (append 
-                                     `(assert (=> (and (= (rel ,e) (as rmw Relation))  
+                                     `(assert (=> (and (or 
+							   (= (rel ,e) (as faa Relation))  
+							   (= (rel ,e) (as xchg Relation))  
+							   (= (rel ,e) (as cas-s Relation))  
+							   (= (rel ,e) (as cas-f Relation)))  
                                                        (inEdgeSet ,e) 
                                                        ,@(apply append (map (lambda (e1)
                                                                               `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)  

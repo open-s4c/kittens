@@ -18,7 +18,10 @@
            (fr)
            (w)
            (r)
-           (rmw)
+           (xchg)
+	   (faa)
+	   (cas-s)
+	   (cas-f)
            (f)
            (b)
 
@@ -59,6 +62,12 @@
 	   (reg)))
 
 (declare-datatype
+ RMW-Type ((None)
+	   (XCHG)
+	   (FAA)
+	   (CAS)))
+
+(declare-datatype
  Event ((mk-event (uid Int)
                   (eid Int)
                   (tid Int)
@@ -69,7 +78,9 @@
                   (val-w Int)
                   (val-e Int) 
                   (op Operation)
-		  (marker Marker)
+		  (rmw-type RMW-Type)
+		  (marker1 Marker)
+		  (marker2 Marker)
 		  (arg Argument))))
 
 (declare-datatype
@@ -194,17 +205,49 @@
                     (and (= (op (src e)) (as read Operation))
                          (= (op (trg e)) (as read Operation))))))
 
-; Constraints for [RMW]
+; Constraints for [XCHG]
 (assert (forall ((e Edge))
-                (=> (and (= (rel e) (as rmw Relation)) (inEdgeSet e))
+                (=> (and (= (rel e) (as xchg Relation)) (inEdgeSet e))
                     (and (= (op (src e)) (as read-modify-write Operation))
-                         (= (op (trg e)) (as read-modify-write Operation))))))
+                         (= (op (trg e)) (as read-modify-write Operation))
+			 (= (rmw-type (src e)) (as XCHG RMW-Type))
+			 (= (rmw-type (trg e)) (as XCHG RMW-Type))))))
+
+; Constraints for [FAA]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as faa Relation)) (inEdgeSet e))
+                    (and (= (op (src e)) (as read-modify-write Operation))
+                         (= (op (trg e)) (as read-modify-write Operation))
+			 (= (rmw-type (src e)) (as FAA RMW-Type))
+			 (= (rmw-type (trg e)) (as FAA RMW-Type))))))
+
+; Constraints for [CAS-S]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as cas-s Relation)) (inEdgeSet e))
+                    (and (= (op (src e)) (as read-modify-write Operation))
+                         (= (op (trg e)) (as read-modify-write Operation))
+			 (= (rmw-type (src e)) (as CAS RMW-Type))
+			 (= (rmw-type (trg e)) (as CAS RMW-Type))))))
+
+; Constraints for [CAS-F]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as cas-f Relation)) (inEdgeSet e))
+                    (and (= (op (src e)) (as read-modify-write Operation))
+                         (= (op (trg e)) (as read-modify-write Operation))
+			 (= (rmw-type (src e)) (as CAS RMW-Type))
+			 (= (rmw-type (trg e)) (as CAS RMW-Type))))))
 
 ; Constraints for [F]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as f Relation)) (inEdgeSet e))
                     (and (= (op (src e)) (as fence Operation))
                          (= (op (trg e)) (as fence Operation))))))
+
+; Constraints for [B]
+(assert (forall ((e Edge))
+                (=> (and (= (rel e) (as b Relation)) (inEdgeSet e))
+                    (and (= (op (src e)) (as branch Operation))
+                         (= (op (trg e)) (as branch Operation))))))
 
 ; -----------------------------------------------------------------------------
 ; Define markers
@@ -213,94 +256,94 @@
 ; Constraints for [Plain]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as plain Relation)) (inEdgeSet e))
-                    (and (= (marker (src e)) (as Plain Marker))
-                         (= (marker (trg e)) (as Plain Marker))))))
+                    (and (= (marker1 (src e)) (as Plain Marker))
+                         (= (marker1 (trg e)) (as Plain Marker))))))
 ; Constraints for [SC]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as sc Relation)) (inEdgeSet e))
-                    (and (= (marker (src e)) (as SC Marker))
-                         (= (marker (trg e)) (as SC Marker))))))
+                    (and (= (marker1 (src e)) (as SC Marker))
+                         (= (marker1 (trg e)) (as SC Marker))))))
 ; Constraints for [ACQ]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as acq Relation)) (inEdgeSet e))
-                    (and (= (marker (src e)) (as ACQ Marker))
-                         (= (marker (trg e)) (as ACQ Marker))))))
+                    (and (= (marker1 (src e)) (as ACQ Marker))
+                         (= (marker1 (trg e)) (as ACQ Marker))))))
 ; Constraints for [REL]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as release Relation)) (inEdgeSet e))
-                    (and (= (marker (src e)) (as REL Marker))
-                         (= (marker (trg e)) (as REL Marker))))))
+                    (and (= (marker1 (src e)) (as REL Marker))
+                         (= (marker1 (trg e)) (as REL Marker))))))
 ; Constraints for [RLX]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rlx Relation)) (inEdgeSet e))
-                    (and (= (marker (src e)) (as RLX Marker))
-                         (= (marker (trg e)) (as RLX Marker))))))
+                    (and (= (marker1 (src e)) (as RLX Marker))
+                         (= (marker1 (trg e)) (as RLX Marker))))))
 ; Constraints for [REL-ACQ]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as rel-acq Relation)) (inEdgeSet e))
-                    (and (= (marker (src e)) (as REL-ACQ Marker))
-                         (= (marker (trg e)) (as REL-ACQ Marker))))))
+                    (and (= (marker1 (src e)) (as REL-ACQ Marker))
+                         (= (marker1 (trg e)) (as REL-ACQ Marker))))))
 
 ; Constraints for ~[Plain]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as not-plain Relation)) (inEdgeSet e))
-                    (and (not (= (marker (src e)) (as Plain Marker)))
-                         (not (= (marker (trg e)) (as Plain Marker)))))))
+                    (and (not (= (marker1 (src e)) (as Plain Marker)))
+                         (not (= (marker1 (trg e)) (as Plain Marker)))))))
 ; Constraints for ~[SC]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as not-sc Relation)) (inEdgeSet e))
-                    (and (not (= (marker (src e)) (as SC Marker)))
-                         (not (= (marker (trg e)) (as SC Marker)))))))
+                    (and (not (= (marker1 (src e)) (as SC Marker)))
+                         (not (= (marker1 (trg e)) (as SC Marker)))))))
 ; Constraints for ~[ACQ]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as not-acq Relation)) (inEdgeSet e))
-                    (and (not (= (marker (src e)) (as ACQ Marker)))
-                         (not (= (marker (trg e)) (as ACQ Marker)))))))
+                    (and (not (= (marker1 (src e)) (as ACQ Marker)))
+                         (not (= (marker1 (trg e)) (as ACQ Marker)))))))
 ; Constraints for ~[REL]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as not-release Relation)) (inEdgeSet e))
-                    (and (not (= (marker (src e)) (as REL Marker)))
-                         (not (= (marker (trg e)) (as REL Marker)))))))
+                    (and (not (= (marker1 (src e)) (as REL Marker)))
+                         (not (= (marker1 (trg e)) (as REL Marker)))))))
 ; Constraints for ~[RLX]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as not-rlx Relation)) (inEdgeSet e))
-                    (and (not (= (marker (src e)) (as RLX Marker)))
-                         (not (= (marker (trg e)) (as RLX Marker)))))))
+                    (and (not (= (marker1 (src e)) (as RLX Marker)))
+                         (not (= (marker1 (trg e)) (as RLX Marker)))))))
 ; Constraints for ~[REL-ACQ]
 (assert (forall ((e Edge))
                 (=> (and (= (rel e) (as not-rel-acq Relation)) (inEdgeSet e))
-                    (and (not (= (marker (src e)) (as REL-ACQ Marker)))
-                         (not (= (marker (trg e)) (as REL-ACQ Marker)))))))
+                    (and (not (= (marker1 (src e)) (as REL-ACQ Marker)))
+                         (not (= (marker1 (trg e)) (as REL-ACQ Marker)))))))
 
 (assert (forall ((e1 Event))
 		(=> (and (= (op e1) (as read Operation)) (inEventSet e1))
-		    (or (= (marker e1) (as SC Marker))
-			(= (marker e1) (as ACQ Marker))		
-			(= (marker e1) (as Plain Marker))		
-			(= (marker e1) (as RLX Marker))))))
+		    (or (= (marker1 e1) (as SC Marker))
+			(= (marker1 e1) (as ACQ Marker))		
+			(= (marker1 e1) (as Plain Marker))		
+			(= (marker1 e1) (as RLX Marker))))))
 
 (assert (forall ((e1 Event))
 		(=> (and (= (op e1) (as write Operation)) (inEventSet e1))
-		    (or (= (marker e1) (as SC Marker))
-			(= (marker e1) (as REL Marker))		
-			(= (marker e1) (as Plain Marker))		
-			(= (marker e1) (as RLX Marker))))))
+		    (or (= (marker1 e1) (as SC Marker))
+			(= (marker1 e1) (as REL Marker))		
+			(= (marker1 e1) (as Plain Marker))		
+			(= (marker1 e1) (as RLX Marker))))))
 
 (assert (forall ((e1 Event))
 		(=> (and (= (op e1) (as read-modify-write Operation)) (inEventSet e1))
-		    (or (= (marker e1) (as SC Marker))
-			(= (marker e1) (as ACQ Marker))		
-			(= (marker e1) (as REL Marker))		
-			(= (marker e1) (as REL-ACQ Marker))		
-			(= (marker e1) (as RLX Marker))))))
+		    (or (= (marker1 e1) (as SC Marker))
+			(= (marker1 e1) (as ACQ Marker))		
+			(= (marker1 e1) (as REL Marker))		
+			(= (marker1 e1) (as REL-ACQ Marker))		
+			(= (marker1 e1) (as RLX Marker))))))
 
 (assert (forall ((e1 Event))
 		(=> (and (= (op e1) (as fence Operation)) (inEventSet e1))
-		    (or (= (marker e1) (as SC Marker))
-			(= (marker e1) (as ACQ Marker))		
-			(= (marker e1) (as REL Marker))		
-			(= (marker e1) (as REL-ACQ Marker))		
-			(= (marker e1) (as RLX Marker))))))
+		    (or (= (marker1 e1) (as SC Marker))
+			(= (marker1 e1) (as ACQ Marker))		
+			(= (marker1 e1) (as REL Marker))		
+			(= (marker1 e1) (as REL-ACQ Marker))		
+			(= (marker1 e1) (as RLX Marker))))))
 
 ; -----------------------------------------------------------------------------
 ; Constraint positive values and addresses of events
@@ -323,6 +366,24 @@
 			 (>= (addr e1) 1)
 			 (< (addr e1) 20)
 			 ))))
+
+(assert (forall ((e1 Event))
+		(=> (inEventSet e1)
+		    (= (not (= (op e1) (as read-modify-write Operation))) 
+ 		       (= (rmw-type e1) (as None RMW-Type))))))
+
+(assert (forall ((e1 Event))
+		(=> (and (inEventSet e1) (= (op e1) (as read-modify-write Operation)))
+		    (or (and (= (marker1 e1) (as RLX Marker)) (= (marker2 e1) (as RLX Marker)))
+			(and (= (marker1 e1) (as REL Marker)) (= (marker2 e1) (as RLX Marker)))
+			(and (= (marker1 e1) (as REL Marker)) (= (marker2 e1) (as ACQ Marker)))
+			(and (= (marker1 e1) (as ACQ Marker)) (= (marker2 e1) (as RLX Marker)))
+			(and (= (marker1 e1) (as ACQ Marker)) (= (marker2 e1) (as ACQ Marker)))
+			(and (= (marker1 e1) (as REL-ACQ Marker)) (= (marker2 e1) (as RLX Marker)))
+			(and (= (marker1 e1) (as REL-ACQ Marker)) (= (marker2 e1) (as ACQ Marker)))
+			(and (= (marker1 e1) (as SC Marker)) (= (marker2 e1) (as RLX Marker)))
+			(and (= (marker1 e1) (as SC Marker)) (= (marker2 e1) (as ACQ Marker)))
+			(and (= (marker1 e1) (as SC Marker)) (= (marker2 e1) (as SC Marker)))))))
 
 ; -----------------------------------------------------------------------------
 ; definition of events and edges

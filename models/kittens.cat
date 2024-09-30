@@ -9,6 +9,8 @@ let po-loc = po & loc
 
 let ctrl = ctrl-a;ctrl-b
 
+let CAS = CAS-S | CAS-F
+
 let fr = rf^-1;co
 
 let fre = fr & ext

@@ -9,6 +9,8 @@
 	 RMW  ; read-modify-write operations
          XCHG ;
          FAA  ; fetch and add
+	 CAS-S
+	 CAS-F
          RLX
 	 ACQ  ; atomic operation with Acq barrier
          REL  ; atomic operation with Rel barrier
