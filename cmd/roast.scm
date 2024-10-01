@@ -135,7 +135,7 @@
 	)
        (get-var-name (event-addr event)))))
 
-(define (get-store-val event event-records-per-tid)
+(define (get-write-val event event-records-per-tid)
   (if (or (eq? (event-arg event) 'data)
           (eq? (event-arg event) 'ctrl))
       (string-append 
@@ -174,7 +174,7 @@
            "*"
            (get-read-loc event event-records-per-tid) 
            " = "
-           (get-store-val event event-records-per-tid)
+           (get-write-val event event-records-per-tid)
            ";"
            ))
          (else
@@ -182,7 +182,7 @@
            "atomic_store_explicit("
            (get-read-loc event event-records-per-tid) 
            ", "
-           (get-store-val event event-records-per-tid)
+           (get-write-val event event-records-per-tid)
            ", " 
            (get-mem-order event 1)
            ");"
@@ -205,7 +205,7 @@
    " = atomic_exchange_explicit("
    (get-read-loc event event-records-per-tid) 
    ", "
-   (get-store-val event event-records-per-tid)
+   (get-write-val event event-records-per-tid)
    "," 
    (get-mem-order event 1)
    ");"
@@ -217,14 +217,20 @@
 (define (print-event-CAS event event-records-per-tid)
   (string-append 
    "long temp_e = "
-   (number->string (event-val-e event))
+   ;(if (eq? 'addr (event-arg event))
+	;(string-append "*" (get-read-loc event event-records-per-tid))
+   	(number->string (event-val-e event))
+       ;)
    ";\n    "
    "atomic_compare_exchange_strong_explicit("
-   (get-read-loc event event-records-per-tid) 
-   ", &temp_e"
-   ;(get-store-val event event-records-per-tid)
+   (get-read-loc event event-records-per-tid)  ; obj 
+   ", &temp_e"				       ; expected
+   ;(get-write-val event event-records-per-tid)
    ", " 
-   (number->string (event-val-d event))
+   (if (eq? 'data (event-arg event))
+       (get-write-val event event-records-per-tid)	
+       (number->string (event-val-d event))        ; desired
+   )
    ", "
    (get-mem-order event 1)
    ", "

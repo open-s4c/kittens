@@ -204,8 +204,10 @@
     (newline)
     (print "int main(void) {")
     (let ((pids (map litc-proc-id (litc-procs litc))))
-      (for-each (lambda (var) 
-		  (print "  atomic_init(&" var ", (atomic_long) &a);")) (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
+      ;(for-each (lambda (var) 
+      ;		  (print "  atomic_init(&" var ", (atomic_long) &a);")) (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
+      (for-each (lambda (var) (print "long " var " = (long)&a;"))  (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
+
 
       (for-each (lambda (pid)
                   (print "  pthread_t t" pid ";")) pids)

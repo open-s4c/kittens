@@ -231,7 +231,12 @@
 			 (= (rmw-type (trg e)) (as CAS RMW-Type))
 			 (= (val-e (src e)) (val-r (src e)))
 			 (= (val-w (src e)) (val-d (src e)))
-			 (exists ((e1 Event)) (= (val-w e1) (val-r (src e))))
+			 (or (exists ((e1 Event)) (and (inEventSet e1) (= (val-w e1) (val-e (src e)))))
+			     (= (val-e (src e)) 1))
+			
+			; (=> (exists ((ed Edge)) 
+			;	(and (inEdgeSet ed) (= (trg ed) (src e)) (= (rel ed) (as addr-dep Relation))))
+			;     (= (val-r (src e)) ()))
 ))))
 
 ; Constraints for [CAS-F]
@@ -243,7 +248,8 @@
 			 (= (rmw-type (trg e)) (as CAS RMW-Type))
 		    (not (= (val-e (src e)) (val-r (src e))))
 			 (= (val-w (src e)) (val-e (src e)))
-			 (exists ((e1 Event)) (= (val-w e1) (val-r (src e))))
+		    ;(not (exists ((e1 Event)) (and (not (= (eid e1) (eid (src e)))) (= (val-w e1) (val-e (src e)))))) 
+		    (not (= (val-e (src e)) 1))
 ))))
 ; Constraints for [F]
 (assert (forall ((e Edge))
@@ -359,13 +365,13 @@
 
 (assert (forall ((e1 Event))
                 (=> (inEventSet e1)
-                    (and (>= (val-r e1) 1)
+                    (and (>= (val-r e1) 0)
 			 (< (val-r e1) 50)
-			 (>= (val-w e1) 2)
+			 (>= (val-w e1) 1)
 			 (< (val-w e1) 50)
-			 (>= (val-e e1) 2)
+			 (>= (val-e e1) 0)
 			 (< (val-e e1) 50)
-			 (>= (val-d e1) 2)
+			 (>= (val-d e1) 1)
 			 (< (val-d e1) 50)
                          (>= (tid e1) 20)
 			 (< (tid e1) 50)
@@ -374,7 +380,7 @@
 			 (>= (porder e1) 200)
 			 (< (porder e1) 250)
 			 (>= (addr e1) 1)
-			 (< (addr e1) 20)
+			 (< (addr e1) 50)
 			 ))))
 
 (assert (forall ((e1 Event))

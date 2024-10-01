@@ -374,38 +374,38 @@
                         edges)
 
 
-                  ; (comment "reads and RNW have to read from an rf edge or from an init event")
+                   (comment "reads and RNW have to read from an rf edge or from an init event")
 
-                  ; (map (lambda (ev) 
-                  ;        `(assert 
-                  ;          (=> (and (or (= (op ,ev) (as read Operation)) 
+                   (map (lambda (ev) 
+                          `(assert 
+                            (=> (and (or (= (op ,ev) (as read Operation)) 
 
-                  ;                       (= (op ,ev) (as read-modify-write Operation))) 
-                  ;                   (not (exists ((e1 Edge)) 
-                  ;                                (and (inEdgeSet e1) 
-                  ;                                     (= (eid (trg e1)) (eid ,ev)) 
-                  ;                                     (= (rel e1) (as rf Relation))
-                  ;                                     )))) 
-                  ;              (= (val-r ,ev) 1))) 
-                  ;        ) event-names)
+                                         (= (op ,ev) (as read-modify-write Operation))) 
+                                     (not (exists ((e1 Edge)) 
+                                                  (and (inEdgeSet e1) 
+                                                       (= (eid (trg e1)) (eid ,ev)) 
+                                                       (= (rel e1) (as rf Relation))
+                                                       )))) 
+                                (= (val-r ,ev) 0))) 
+                          ) event-names)
 
 
-                  ; (map (lambda (e) (append 
-                  ;                   `(assert (=> (and (or 
-		  ;      				   (= (rel ,e) (as faa Relation))  
-		  ;      				   (= (rel ,e) (as xchg Relation))  
-		  ;      				   (= (rel ,e) (as cas-s Relation))  
-		  ;      				   (= (rel ,e) (as cas-f Relation)))  
-                  ;                                     (inEdgeSet ,e) 
-                  ;                                     ,@(apply append (map (lambda (e1)
-                  ;                                                            `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)  
-                  ;                                                                         (or (and (= (eid (src ,e)) (eid (src ,e1)))  
-                  ;                                                                                  (= (eid (trg ,e)) (eid (trg ,e1))))  
-                  ;                                                                             (and (= (eid (src ,e)) (eid (src ,e1))) 
-                  ;                                                                                  (= (eid (trg ,e)) (eid (trg ,e1))))))))  
-                  ;                                                            ) edge-names)))
-                  ;                                (not (= (val-r (src ,e)) (val-w (trg ,e)))))) )
-                  ;        ) edge-names)
+                   (map (lambda (e) (append 
+                                     `(assert (=> (and (or 
+		        				   (= (rel ,e) (as faa Relation))  
+		        				   (= (rel ,e) (as xchg Relation))  
+		        				   (= (rel ,e) (as cas-s Relation))  
+		        				   (= (rel ,e) (as cas-f Relation)))  
+                                                       (inEdgeSet ,e) 
+                                                       ,@(apply append (map (lambda (e1)
+                                                                              `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)  
+                                                                                           (or (and (= (eid (src ,e)) (eid (src ,e1)))  
+                                                                                                    (= (eid (trg ,e)) (eid (trg ,e1))))  
+                                                                                               (and (= (eid (src ,e)) (eid (src ,e1))) 
+                                                                                                    (= (eid (trg ,e)) (eid (trg ,e1))))))))  
+                                                                              ) edge-names)))
+                                                  (not (= (val-r (src ,e)) (val-w (trg ,e)))))) )
+                          ) edge-names)
 
                    ))))
 
