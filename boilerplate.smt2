@@ -232,7 +232,7 @@
 			 (= (val-e (src e)) (val-r (src e)))
 			 (= (val-w (src e)) (val-d (src e)))
 			 (or (exists ((e1 Event)) (and (inEventSet e1) (= (val-w e1) (val-e (src e)))))
-			     (= (val-e (src e)) 1))
+			     (= (val-e (src e)) 0))
 			
 			; (=> (exists ((ed Edge)) 
 			;	(and (inEdgeSet ed) (= (trg ed) (src e)) (= (rel ed) (as addr-dep Relation))))
@@ -249,7 +249,7 @@
 		    (not (= (val-e (src e)) (val-r (src e))))
 			 (= (val-w (src e)) (val-e (src e)))
 		    ;(not (exists ((e1 Event)) (and (not (= (eid e1) (eid (src e)))) (= (val-w e1) (val-e (src e)))))) 
-		    (not (= (val-e (src e)) 1))
+		    (not (= (val-e (src e)) 0))
 ))))
 ; Constraints for [F]
 (assert (forall ((e Edge))
@@ -379,7 +379,7 @@
 			 (< (corder e1) 350)
 			 (>= (porder e1) 200)
 			 (< (porder e1) 250)
-			 (>= (addr e1) 1)
+			 (>= (addr e1) 0)
 			 (< (addr e1) 50)
 			 ))))
 

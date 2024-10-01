@@ -126,7 +126,7 @@
   (if (or (eq? (event-arg event) 'addr) 
           (eq? (event-arg event) 'ctrl))
        (string-append 
-       "r"
+       "(long *)r"
        (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
       (string-append
 	(if (eq? 'Plain (event-marker1 event))
