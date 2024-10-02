@@ -2,13 +2,16 @@
 
 (import (scheme base)
         (srfi 1)
-	(scheme cxr)
-        (only (chibi string) string-split)
-	(kittens match)
+        (scheme cxr)
+        (kittens match)
         (kittens generator)
         (kittens utils)
         (kittens litc)
         (kittens command))
+
+(cond-expand
+  (chicken (only (chicken string) string-split))
+  (else (only (chibi string) string-split)))
 
 (define (usage)
   (print "defuse <c-litmus file>")
@@ -204,7 +207,7 @@
     (newline)
     (print "int main(void) {")
     (let ((pids (map litc-proc-id (litc-procs litc))))
-      ;(for-each (lambda (var) 
+      ;(for-each (lambda (var)
       ;		  (print "  atomic_init(&" var ", (atomic_long) &a);")) (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
       (for-each (lambda (var) (print "long " var " = (long)&a;"))  (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
 

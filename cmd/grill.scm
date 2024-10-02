@@ -3,7 +3,6 @@
 (import (scheme base)
         (scheme file)
         (scheme cxr)
-        (scheme small)
         (kittens cat)
         (kittens utils)
         (kittens command)
@@ -123,27 +122,27 @@
   (if matching-group matching-group '()))
 
 (define (edge-type->label edge-type)
-  (let ((found (assoc edge-type edge-type-map)))  
+  (let ((found (assoc edge-type edge-type-map)))
     (if found
-        (cdr found) 
-        "reg"))) 
+        (cdr found)
+        "reg")))
 
 (define (mark-events-with-labels edges groups)
   (define (process-edge edge)
-    (let ((edge-type (edge-type edge))        
-          (target (edge-trg edge)))              
-      (let ((group-mates (find-group-mates target groups)))  
+    (let ((edge-type (edge-type edge))
+          (target (edge-trg edge)))
+      (let ((group-mates (find-group-mates target groups)))
         (if group-mates
             (map (lambda (event)
-                   (cons event (edge-type->label edge-type))) 
+                   (cons event (edge-type->label edge-type)))
                  group-mates)
-            '()))))                          
+            '()))))
   (apply append (map process-edge edges)))
 
 (define (assign-default-label all-events labeled-events)
   (map (lambda (event)
          (or (assoc event labeled-events)
-             (cons event "reg")))           
+             (cons event "reg")))
        all-events))
 
 (define (find-group groups x)
@@ -202,7 +201,7 @@
   (let* ((same-eid-sets (get-same-eid-set edges))
          (same-eid (if is-acyclic (append same-eid-sets (list (list 1 0))) same-eid-sets))
          (groups (simple-uf (map list events) same-eid)))
-    (let* ((rf-pairs (get-rf-pairs edges)) 
+    (let* ((rf-pairs (get-rf-pairs edges))
            (groups (rf-uf groups rf-pairs)))
       groups
       )))
@@ -212,24 +211,24 @@
          (rf-edges (map (lambda (e) (list (edge-src e) (edge-trg e))) rf-edges))
          (rf-pairs (all-pairs rf-edges))
          (rf-pairs (map (lambda (pair) (list (list (cadar pair) (cadadr pair)) (list (caar pair) (caadr pair)))) rf-pairs)))
-    rf-pairs 
+    rf-pairs
     ))
 
 (define (get-same-eid-set edges)
-  (let* ((set-edges (filter (lambda (edge) (or 
-                                            (equal? (edge-type edge) "xchg") 
-                                            (equal? (edge-type edge) "faa") 
-                                            (equal? (edge-type edge) "cas-s") 
-                                            (equal? (edge-type edge) "cas-f") 
-                                            (equal? (edge-type edge) "r") 
-                                            (equal? (edge-type edge) "w") 
-                                            (equal? (edge-type edge) "b") 
-                                            (equal? (edge-type edge) "f") 
-                                            (equal? (edge-type edge) "sc") 
-                                            (equal? (edge-type edge) "acq") 
-                                            (equal? (edge-type edge) "release") 
-                                            (equal? (edge-type edge) "rlx") 
-                                            (equal? (edge-type edge) "rel-acq") 
+  (let* ((set-edges (filter (lambda (edge) (or
+                                            (equal? (edge-type edge) "xchg")
+                                            (equal? (edge-type edge) "faa")
+                                            (equal? (edge-type edge) "cas-s")
+                                            (equal? (edge-type edge) "cas-f")
+                                            (equal? (edge-type edge) "r")
+                                            (equal? (edge-type edge) "w")
+                                            (equal? (edge-type edge) "b")
+                                            (equal? (edge-type edge) "f")
+                                            (equal? (edge-type edge) "sc")
+                                            (equal? (edge-type edge) "acq")
+                                            (equal? (edge-type edge) "release")
+                                            (equal? (edge-type edge) "rlx")
+                                            (equal? (edge-type edge) "rel-acq")
                                             (equal? (edge-type edge) "plain"))) edges))
          (pairs (map (lambda (edge) (list (edge-src edge) (edge-trg edge))) set-edges)))
     pairs))
@@ -247,7 +246,7 @@
 (define (make-edges el er expr)
   (match expr
          (('seq . rest)
-          (let ((counter (get-counter)))   
+          (let ((counter (get-counter)))
             (list
              (make-edges el counter (car rest))
              (make-edges counter er (cadr rest)))))
@@ -256,11 +255,11 @@
           (list (make-edges el er (car rest))
                 (make-edges el er (cadr rest))))
          (('inv . rest)
-          (make-edges er el rest))  ; just swap er and el 
+          (make-edges er el rest))  ; just swap er and el
          (('self . ('set . rel))
           (list (edge el er (rename-relation rel) (edge->name el er))))
          (('rel . rel)
-          (list (edge el er (rename-relation rel) (edge->name el er))))  
+          (list (edge el er (rename-relation rel) (edge->name el er))))
          (('not 'self . ('set . rel))
           (list (edge el er (string-append "not-" (rename-relation rel)) (edge->name el er))))
          (('not 'rel . rel)
@@ -271,7 +270,7 @@
 (define (equality-assertion lst field)
   (let* ((first (car lst))
          (rest (cdr lst))
-         (constraints (map (lambda (x) 
+         (constraints (map (lambda (x)
                              `(= (,field ,(string->symbol (string-append "ev" (number->string first))))
                                  (,field ,(string->symbol (string-append "ev" (number->string x))))))
                            rest)))
@@ -287,8 +286,8 @@
 (define (eid-constraints eid-partition field distinct)
   (let* ((multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
          (cars (map car eid-partition)))
-    (if distinct 
-        (append 
+    (if distinct
+        (append
          (apply append (map (lambda (el) (equality-assertion el field)) multy))
          (distinct-assertion cars field))
         (apply append (map (lambda (el) (equality-assertion el field)) multy)))
@@ -296,8 +295,8 @@
   )
 
 (define (dep-constraints marked-events)
-  (map (lambda (ev) 
-         `(assert (= (as ,(string->symbol (cdr ev)) Argument) (arg ,(event->symbol (car ev))))) 
+  (map (lambda (ev)
+         `(assert (= (as ,(string->symbol (cdr ev)) Argument) (arg ,(event->symbol (car ev)))))
          ) marked-events))
 
 (define (generate-constraints events edges is-acyclic)
@@ -307,7 +306,7 @@
          (labeled-events (mark-events-with-labels edges eid-partition))
          (marked-events (assign-default-label events labeled-events)))
     ; (display events)
-    ; (display edges) 
+    ; (display edges)
     ; (newline)
     ; (display eid-partition)
     ; (display marked-events)
@@ -376,33 +375,33 @@
 
                    (comment "reads and RNW have to read from an rf edge or from an init event")
 
-                   (map (lambda (ev) 
-                          `(assert 
-                            (=> (and (or (= (op ,ev) (as read Operation)) 
+                   (map (lambda (ev)
+                          `(assert
+                            (=> (and (or (= (op ,ev) (as read Operation))
 
-                                         (= (op ,ev) (as read-modify-write Operation))) 
-                                     (not (exists ((e1 Edge)) 
-                                                  (and (inEdgeSet e1) 
-                                                       (= (eid (trg e1)) (eid ,ev)) 
+                                         (= (op ,ev) (as read-modify-write Operation)))
+                                     (not (exists ((e1 Edge))
+                                                  (and (inEdgeSet e1)
+                                                       (= (eid (trg e1)) (eid ,ev))
                                                        (= (rel e1) (as rf Relation))
-                                                       )))) 
-                                (= (val-r ,ev) 0))) 
+                                                       ))))
+                                (= (val-r ,ev) 0)))
                           ) event-names)
 
 
-                   (map (lambda (e) (append 
-                                     `(assert (=> (and (or 
-		        				   (= (rel ,e) (as faa Relation))  
-		        				   (= (rel ,e) (as xchg Relation))  
-		        				   (= (rel ,e) (as cas-s Relation))  
-		        				   (= (rel ,e) (as cas-f Relation)))  
-                                                       (inEdgeSet ,e) 
+                   (map (lambda (e) (append
+                                     `(assert (=> (and (or
+		        				   (= (rel ,e) (as faa Relation))
+		        				   (= (rel ,e) (as xchg Relation))
+		        				   (= (rel ,e) (as cas-s Relation))
+		        				   (= (rel ,e) (as cas-f Relation)))
+                                                       (inEdgeSet ,e)
                                                        ,@(apply append (map (lambda (e1)
-                                                                              `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)  
-                                                                                           (or (and (= (eid (src ,e)) (eid (src ,e1)))  
-                                                                                                    (= (eid (trg ,e)) (eid (trg ,e1))))  
-                                                                                               (and (= (eid (src ,e)) (eid (src ,e1))) 
-                                                                                                    (= (eid (trg ,e)) (eid (trg ,e1))))))))  
+                                                                              `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)
+                                                                                           (or (and (= (eid (src ,e)) (eid (src ,e1)))
+                                                                                                    (= (eid (trg ,e)) (eid (trg ,e1))))
+                                                                                               (and (= (eid (src ,e)) (eid (src ,e1)))
+                                                                                                    (= (eid (trg ,e)) (eid (trg ,e1))))))))
                                                                               ) edge-names)))
                                                   (not (= (val-r (src ,e)) (val-w (trg ,e)))))) )
                           ) edge-names)
@@ -412,14 +411,14 @@
 (define (tabbb n)
   (if (eq? n 0)
       ""
-      (apply string-append (list "    " (tabbb (- n 1)))) 
+      (apply string-append (list "    " (tabbb (- n 1))))
       ))
 
 (define (print-constraints-h constraints n)
-  (string-append 
+  (string-append
    (apply string-append (map (lambda (e)
                                (string-append
-                                (cond 
+                                (cond
                                   ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
                                   ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
                                   ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
@@ -429,7 +428,7 @@
                                   (else "Not good")
                                   ) " ")) (but-last constraints)))
    (let ((e (car (reverse constraints))))
-     (cond 
+     (cond
        ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
        ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
        ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
@@ -440,7 +439,7 @@
 
 (define (print-constraints constraint)
   (newline)
-  (cond 
+  (cond
     ((eq? constraint 'newline) (display "\n"))
     ((string? constraint) (display constraint))
     (else (display (string-append "(" (print-constraints-h constraint 0) ")"))))
@@ -461,7 +460,7 @@
       ;(display edges)
       ;(newline)
       (print-boilerplate)
-      (for-each pretty-print constraints)  
+      (for-each pretty-print constraints)
       (print-epilogue (string-append (car args) " " (cadr args)))
       ))
 

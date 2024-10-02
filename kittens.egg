@@ -5,11 +5,17 @@
  (author "Huawei Dresden Research Center")
  (license "MIT")
 
- (dependencies srfi-69  ; hash table
-               srfi-95  ; sort
-               srfi-128 ; required by srfi-113
-               srfi-113 ; sets
-               srfi-193 ; command arguments
+ (dependencies srfi-1    ; filter
+               srfi-38
+               srfi-48   ; pretty-print
+               srfi-64   ; test
+               srfi-69   ; hash table
+               srfi-95   ; sort
+               srfi-113  ; sets
+               srfi-128  ; required by srfi-113
+               srfi-130  ; string-contains
+               srfi-193  ; command arguments
+               matchable ; match construct
                packrat)
 
  (component-options
@@ -40,6 +46,9 @@
              (types-file))
   (extension kittens.packrat
              (source "lib/kittens/packrat.sld")
+             (types-file))
+  (extension kittens.debug
+             (source "lib/kittens/debug.sld")
              (types-file))
   (extension kittens.generator
              (source "lib/kittens/generator.sld")

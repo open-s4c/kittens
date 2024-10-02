@@ -4,12 +4,19 @@
 
   (import (scheme base)
           (scheme file)
+          (scheme write)
           (kittens packrat))
   (cond-expand
     (chicken (import (srfi 48)))
     (else (import (chibi show)
                   (chibi show pretty))))
   (begin
+    ;; TODO these two functions are not available in chicken
+    ;; we need to do something about it
+    (cond-expand
+      (chicken
+       (define (show . xs) (apply display xs))
+       (define (pretty x) x)))
 
     (define (pretty-print . xs)
       (for-each (lambda (x)
