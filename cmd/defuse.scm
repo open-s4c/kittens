@@ -9,10 +9,6 @@
         (kittens litc)
         (kittens command))
 
-(cond-expand
-  (chicken (only (chicken string) string-split))
-  (else (only (chibi string) string-split)))
-
 (define (usage)
   (print "defuse <c-litmus file>")
   (newline))

@@ -323,7 +323,7 @@
                    (eid-constraints eid-partition 'addr #f)
                    (eid-constraints eid-partition 'val-r #f)
                    (eid-constraints eid-partition 'val-w #f) ;;
-		   (eid-constraints eid-partition 'val-e #f)
+                   (eid-constraints eid-partition 'val-e #f)
                    (eid-constraints eid-partition 'val-d #f)
                    (eid-constraints eid-partition 'op #f)
                    (eid-constraints eid-partition 'marker1 #f)
@@ -391,10 +391,10 @@
 
                    (map (lambda (e) (append
                                      `(assert (=> (and (or
-		        				   (= (rel ,e) (as faa Relation))
-		        				   (= (rel ,e) (as xchg Relation))
-		        				   (= (rel ,e) (as cas-s Relation))
-		        				   (= (rel ,e) (as cas-f Relation)))
+                                                        (= (rel ,e) (as faa Relation))
+                                                        (= (rel ,e) (as xchg Relation))
+                                                        (= (rel ,e) (as cas-s Relation))
+                                                        (= (rel ,e) (as cas-f Relation)))
                                                        (inEdgeSet ,e)
                                                        ,@(apply append (map (lambda (e1)
                                                                               `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)
