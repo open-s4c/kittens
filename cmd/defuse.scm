@@ -14,6 +14,9 @@
   (newline))
 
 (define (print-expr expr)
+  ;(print expr)
+  ;(print (string? expr))
+  ;(print (if (string? expr) (if (equal? "0" (string-ref expr 9)) ":" ".") ""))
   (match expr
          (('disj a b)
           (display "(")
@@ -22,9 +25,9 @@
           (print-expr b)
           (display ")"))
          (('equal ('read-var p v) rhs)
-          (display (string-append v "_P" (number->string p) " == " rhs)))
+          (display (string-append v "_P" (number->string p) " == " (if (equal? rhs "0") "(long) &a" rhs))))
          (('equal ('deref-var v) rhs)
-          (display (string-append "(*(long*)&" v ") == " rhs)))))
+          (display (string-append "(*(long*)&" v ") == " (if (equal? rhs "0") "(long) &a" rhs))))))
 
 
 
@@ -144,6 +147,7 @@
   ; add includes
   (newline)
   (print "#include <stdatomic.h>")
+  (print "#include <stdio.h>")
   (print "#ifndef RMEM")
   (print "#include <assert.h>")
   (print "#include <pthread.h>")
@@ -205,7 +209,7 @@
     (let ((pids (map litc-proc-id (litc-procs litc))))
       ;(for-each (lambda (var)
       ;		  (print "  atomic_init(&" var ", (atomic_long) &a);")) (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) #\;)))
-      (for-each (lambda (var) (print "long " var " = (long)&a;"))  (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) ";")))
+      (for-each (lambda (var) (print "  " var " = (volatile long)&a;"))  (filter (lambda (str) (not (equal? str ""))) (string-split (car (litc-vars litc)) ";")))
 
 
       (for-each (lambda (pid)
