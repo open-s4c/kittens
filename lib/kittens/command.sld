@@ -9,30 +9,23 @@
           display
           newline
           string-join
-          string-split)
+          string-split
+          string-downcase
+          string-upcase)
 
   (import (scheme base)
           (scheme write)
+          (scheme char)
           (scheme process-context)
-          (only (srfi 130) string-contains)
+          (only (srfi 130) string-contains string-split)
           (only (srfi 193) command-args command-line)
           (only (srfi 130) string-join)
           (kittens packrat))
-
-  (cond-expand
-    (chicken (import (rename (only (chicken string) string-split)
-                             (string-split chicken-string-split))))
-    (else (import (only (chibi string) string-split))))
 
   (begin
     (define (print . xs)
       (for-each display xs)
       (newline))
-
-    (cond-expand
-      (chicken
-       (define (string-split str spl)
-         (chicken-string-split str (car spl)))))
 
     (define-syntax die-unless
       (syntax-rules ()

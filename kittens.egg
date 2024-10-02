@@ -13,7 +13,7 @@
                srfi-95   ; sort
                srfi-113  ; sets
                srfi-128  ; required by srfi-113
-               srfi-130  ; string-contains
+               srfi-130  ; string-contains/split
                srfi-193  ; command arguments
                matchable ; match construct
                packrat)
