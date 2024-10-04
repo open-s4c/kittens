@@ -131,7 +131,7 @@ function grill {
         echop grill failed
         exit 1
     fi
-    
+
     if ! z3 $PREFIX.smt > $PREFIX.model; then
         echop unsat
         return 1
@@ -358,8 +358,11 @@ function litc-list {
 }
 
 (
+
+    rm -f $INC/stdatomic.h
+
     if [ -z "${LITC_DIR}" ]; then
-	kitten-list		
+	kitten-list
     else
     	litc-list
     fi
