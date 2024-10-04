@@ -5,6 +5,8 @@ let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] |
 
 let rmw = [RMW]
 
+let RMW = CAS | XCHG
+
 let po-loc = po & loc
 
 let ctrl = ctrl-a;ctrl-b

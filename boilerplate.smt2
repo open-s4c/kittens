@@ -15,7 +15,7 @@
  Relation ((po)
            (co)
            (rf)
-           (fr)
+           ; (fr)
            (w)
            (r)
            (xchg)

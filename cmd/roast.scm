@@ -101,6 +101,10 @@
                    count (lambda (ev) (and (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
                                                                                             ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
 
+(define (get-temp-t-number event event-records-per-tid)
+  (number->string (
+                   count (lambda (ev) (and (eq? (event-rmw-type ev) 'CAS) (< (event-po ev) (event-po event)))) event-records-per-tid)))
+
 (define (get-var-name addr)
   (string-append "v" (number->string addr)))
 
@@ -219,7 +223,9 @@
 
 (define (print-event-CAS event event-records-per-tid)
   (string-append 
-   "long temp_e = "
+   "long temp_e"
+   (get-temp-t-number event event-records-per-tid)
+   " = "
    ;(if (eq? 'addr (event-arg event))
 	;(string-append "*" (get-read-loc event event-records-per-tid))
    	(number->string (event-val-e event))
@@ -228,6 +234,7 @@
    "atomic_compare_exchange_strong_explicit("
    (get-read-loc event event-records-per-tid)  ; obj 
    ", &temp_e"				       ; expected
+   (get-temp-t-number event event-records-per-tid)
    ;(get-write-val event event-records-per-tid)
    ", " 
    (if (eq? 'data (event-arg event))
@@ -241,7 +248,9 @@
    ");\n    "
    "long r"
    (get-read-t-number event event-records-per-tid)
-   " = temp_e;"
+   " = temp_e"
+   (get-temp-t-number event event-records-per-tid)
+   ";"
    ))
 
 (define (print-event-branch event event-records-per-tid) 
