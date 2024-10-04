@@ -249,7 +249,7 @@ function dat3m-check {
         return 0
     fi
 
-    dat3m $DAT3M_FLAGS $PREFIX.litmus > $PREFIX.litmus.log
+    cmd/dat3m $DAT3M_FLAGS $PREFIX.litmus > $PREFIX.litmus.log
     if grep UNKNOWN $PREFIX.litmus.log > /dev/null; then
         echop "dat3m:  UNKNOWN"
     elif grep FAIL $PREFIX.litmus.log > /dev/null; then
