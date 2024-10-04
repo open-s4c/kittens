@@ -11,23 +11,20 @@ while (($#)); do
         -cat)
             shift
             cat="$1"
-            shift
         ;;
         *-target)
             shift
             target="$1"
-            shift
         ;;
         *-property)
             shift
             property="$1"
-            shift
         ;;
         *)
             args="${args} $1"
-            shift
         ;;
     esac
+    shift
 done
 
 if [ -z "${cat}" ]; then
