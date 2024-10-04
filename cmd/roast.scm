@@ -407,7 +407,7 @@
            (reads-per-addr (map (lambda (events-one-addr)
                                   (map (lambda (ev) (event (event-uid ev)
                                                            (event-eid ev)
-                                                           (event-addr ev) ; tid
+                                                           (event-addr ev); tid
                                                            (event-co ev) ; in observer thread programme order is same as coherence order
                                                            (event-co ev)
                                                            (event-addr ev)
