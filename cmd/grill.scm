@@ -516,15 +516,17 @@
 
                    (comment "reads and RNW have to read from an rf edge or from an init event")
                    (map (lambda (ev)
-                          `(assert
+                          ;; IF the type of an edge is read or read-modify write 
+			  `(assert
                             (=> (and (or (= (op ,ev) (as read Operation))
-
                                          (= (op ,ev) (as read-modify-write Operation)))
-                                     (not (exists ((e1 Edge))
+                                     ;; and there doesn't exist an rf edge pointing to this event
+				     (not (exists ((e1 Edge))
                                                   (and (inEdgeSet e1)
                                                        (= (eid (trg e1)) (eid ,ev))
                                                        (= (rel e1) (as rf Relation))
                                                        ))))
+				;; THEN the value that the event reads is 0 (INIT)
                                 (= (val-r ,ev) 0)))
                           ) event-names)
 
