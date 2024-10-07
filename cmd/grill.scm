@@ -167,8 +167,8 @@
   (let ((all-data (apply append (map (lambda (data-ev) (car (find-group data-ev group-mates))) data-events)))
         (all-addr (apply append (map (lambda (addr-ev) (car (find-group addr-ev group-mates))) addr-events)))
         (all-ctrl (apply append (map (lambda (ctrl-ev) (car (find-group ctrl-ev group-mates))) ctrl-events))))
-
-    (map (lambda (ev) (cons ev (property-map data-events addr-events ctrl-events ev))) events)))
+	(print all-data)
+    (map (lambda (ev) (cons ev (property-map all-data all-addr all-ctrl ev))) events)))
 
 (define (find-group groups x)
   (find (lambda (group) (member x group)) groups))
@@ -309,7 +309,8 @@
     `((assert (distinct ,@constraints)))))
 
 (define (eid-constraints eid-partition field distinct)
-  (let* ((multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
+  (let* ((eid-partition (filter (lambda (lst) (> (length lst) 0)) eid-partition))
+	 (multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
          (cars (map car eid-partition)))
     (if distinct
         (append
@@ -334,19 +335,36 @@
          `(assert (= (as ,(string->symbol (cdr ev)) Argument) (arg ,(event->symbol (car ev)))))
          ) marked-events))
 
+(define (remove-addr-dep-writes eid-partition addr-trg)
+    (map (lambda (group)
+	            (filter (lambda (el)
+			                         (not (member el addr-trg)))
+			                     group))
+	        eid-partition))
+
+
 (define (generate-constraints events edges is-acyclic)
   (let* ((event-names (map event->symbol events))
          (edge-names (map edge-name edges))
          (eid-partition (get-eid-partition events edges is-acyclic))
          (co-events (update-co-properties events eid-partition edges))
          (marked-events (update-dep-properties events eid-partition edges))
-         )
-    (display events)
-    (display edges)
-    (newline)
-    (display co-events)
-    (newline)
-    (display marked-events)
+	 (no-addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
+	 (addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events))))
+	 )
+   ; (display events)
+   ; (newline)
+   ; (display edges)
+   ; (newline)
+   ; (display eid-partition)
+   ; (newline)
+   ; (display co-events)
+   ; (newline)
+   ; (display marked-events)
+   ; (newline)
+   ; (display no-addr-partition)
+   ; (newline)
+   ; (display addr-partition)
     (apply append (list
 
 
@@ -359,7 +377,8 @@
                    (eid-constraints eid-partition 'corder #t)
                    (eid-constraints eid-partition 'addr #f)
                    (eid-constraints eid-partition 'val-r #f)
-                   (eid-constraints eid-partition 'val-w #f) ;;
+                   (eid-constraints no-addr-partition 'val-w #t) ;;
+                   (eid-constraints addr-partition 'val-w #f) ;;
                    (eid-constraints eid-partition 'val-e #f)
                    (eid-constraints eid-partition 'val-d #f)
                    (eid-constraints eid-partition 'op #f)
@@ -369,13 +388,12 @@
                    (eid-constraints eid-partition 'arg #f)
 
                    (dep-constraints marked-events)
-                   (obs-thread-constraints co-events)
+                   
+		   (obs-thread-constraints co-events)
+
                    (comment "edge declarations")
                    (map (lambda (e) `(declare-const ,e Edge))
                         edge-names)
-
-
-
 
                    (comment "uid is distinct for all events")
                    `((assert (distinct ,@(map (lambda (e)
@@ -389,7 +407,6 @@
                      `((assert (forall ((e Edge))
                                        (= (inEdgeSet e)
                                           (or ,@equalis))))))
-
 
                    (comment "assertions to stop smt from creating events")
                    (let* ((equalis (map (lambda (event) `(= e ,event))
