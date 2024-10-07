@@ -113,6 +113,10 @@
 (define (update-co-properties events group-mates edges)
   ;; Initialize list for "co" events
   (define co-events '())
+ 
+  ;; Property map for "co" edges
+  (define (property-map co-events ev)
+    (if (member ev co-events) #t #f))
 
   ;; Helper function to find which group an event belongs to
   (define (find-group event groups)
@@ -126,10 +130,6 @@
                 (when (equal? type "co")
                   (set! co-events (cons src (cons trg co-events))))))
             edges)
-
-  ;; Property map for "co" edges
-  (define (property-map co-events ev)
-    (if (member ev co-events) #t #f))
 
   ;; Collect all affected "co" group-mates
   (let ((all-co (apply append (map (lambda (co-ev) (car (find-group co-ev group-mates))) co-events))))
@@ -167,7 +167,6 @@
   (let ((all-data (apply append (map (lambda (data-ev) (car (find-group data-ev group-mates))) data-events)))
         (all-addr (apply append (map (lambda (addr-ev) (car (find-group addr-ev group-mates))) addr-events)))
         (all-ctrl (apply append (map (lambda (ctrl-ev) (car (find-group ctrl-ev group-mates))) ctrl-events))))
-	(print all-data)
     (map (lambda (ev) (cons ev (property-map all-data all-addr all-ctrl ev))) events)))
 
 (define (find-group groups x)
