@@ -14,30 +14,43 @@
         (srfi 1) ; filter
         (srfi 130))
 
+(define (usage)
+  (print "grill <edge> ..."))
+
+;; Flag to maximise threads
 (define maxi-threads-flag #t)
 
+;; Flag to maximise addresses 
 (define maxi-addr-flag #t)
 
+;; Counter for naming events
 (define counter 1)
 
+;; Every time a new event is created we increment the counter
 (define (get-counter)
   (let ((current counter))
     (set! counter (+ counter 1))
     current))
 
+;; There might be multiple edges between the same pair of events
+;; Thus we name edges ed-a-b-n
+;; a is src ev
+;; b is trg ev
+;; n is number of occurances before this edge is created
 (define edges-count (make-hash-table))
 
-(define (usage)
-  (print "grill <edge> ..."))
-
+;; Helper to display comments in constraints file kittens.smt
 (define (comment str)
   (string->symbol (string-append "; " str)))
 
+;; Helper to display comments conditionally 
 (define (if-comment cd str)
   (if cd (comment str) '()))
 
+;; Helper to get all elements of a list besides the last element
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
+;; Printing boilerplate constraints
 (define (print-boilerplate)
   (with-input-from-file
    "boilerplate.smt2"
@@ -48,8 +61,11 @@
          (newline)
          (loop (read-line)))))))
 
+;; Printing epilogue of constraints
 (define (print-epilogue name)
   (newline)
+
+  ;; Keep the name of the kitten as a constraint to pass on to roast.scm
   (pretty-print `(assert (= rels ,name )))
   (apply print "; " (map (lambda (_) "-") (seq 78)))
   (print "; ask SMT solver for an answer")
@@ -57,13 +73,17 @@
   (print "(check-sat)")
   (print "(get-model)"))
 
+;; Conversion from event to symbolic representation
 (define (event->symbol event)
   (string->symbol
    (string-append "ev" (number->string event))))
 
+;; Conversion from edge to symbolic representation
 (define (edge->name el er)
   (string->symbol
    (let ((name-base (string-append "ed" (number->string el) "-" (number->string er))))
+
+     ;; Base edge names are stored in a hash table and the number of their occurances is counted
      (if (hash-table-exists? edges-count name-base)
          (hash-table-set! edges-count name-base (+ (hash-table-ref edges-count name-base) 1))
          (hash-table-set! edges-count name-base 1)
@@ -110,15 +130,19 @@
                      lst))
               lst)))
 
+;; Observer threads can only observe writes that are adjacent to co edges
+;; First we collect all events that are either the src or trg of a co edge
+;; Then we propagate to all events with the same eid based on the eid-partition
 (define (update-co-properties events group-mates edges)
+
   ;; Initialize list for "co" events
   (define co-events '())
- 
+
   ;; Property map for "co" edges
   (define (property-map co-events ev)
     (if (member ev co-events) #t #f))
 
-  ;; Helper function to find which group an event belongs to
+  ;; Helper function to find to which eid group an event belongs to
   (define (find-group event groups)
     (filter (lambda (group) (member event group)) groups))
 
@@ -135,7 +159,22 @@
   (let ((all-co (apply append (map (lambda (co-ev) (car (find-group co-ev group-mates))) co-events))))
     (map (lambda (ev) (cons ev (property-map all-co ev))) events)))
 
+;; Different events write/read from different locations based on their types and edges they are connected to
+;; This information is stored in the arg field
+;; If an event comes after a data edge it has the data arg
+;; If an event comes after an addr edge it has the addr arg
+;; If an event comes after the first part of a ctrl (ctrl-a) it has the ctrl arg
+
+;; First we collect all events that are trg of data/addr/ctrl edges
+;; Then we propagate to all events with the same eid b ased on the eid-partition
 (define (update-dep-properties events group-mates edges)
+
+  ;; Initialize lists for different properties
+  (define data-events '())
+  (define addr-events '())
+  (define ctrl-events '())
+
+  ;; Propert map that tells us to what arg each event is mapped
   (define (property-map data-events addr-events ctrl-events ev)
     (cond
       ((member ev data-events) "data")
@@ -143,11 +182,7 @@
       ((member ev ctrl-events) "ctrl")
       (else "reg")))
 
-  ;; Initialize lists for different properties
-  (define data-events '())
-  (define addr-events '())
-  (define ctrl-events '())
-
+  ;; Helper function to find to which eid group an event belongs to
   (define (find-group event groups)
     (filter (lambda (group) (member event group)) groups))
 
@@ -164,18 +199,31 @@
                    (set! ctrl-events (cons trg ctrl-events))))))
             edges)
 
+  ;; We propagate affected events' arguments to all events with the same eid
   (let ((all-data (apply append (map (lambda (data-ev) (car (find-group data-ev group-mates))) data-events)))
         (all-addr (apply append (map (lambda (addr-ev) (car (find-group addr-ev group-mates))) addr-events)))
         (all-ctrl (apply append (map (lambda (ctrl-ev) (car (find-group ctrl-ev group-mates))) ctrl-events))))
     (map (lambda (ev) (cons ev (property-map all-data all-addr all-ctrl ev))) events)))
 
-(define (find-group groups x)
-  (find (lambda (group) (member x group)) groups))
-
-(define (remove-group groups g)
-  (filter (lambda (group) (not (equal? group g))) groups))
-
+;; Given all events and pairs describing their connections, we want to find the sets of events that have common connections
+;; In other words we want the Union Find
+;; Here a simple recursive version is implemented
+;; 1. Take the next pair (connects two events)
+;; 2. Find the groups the two events of the pair belong to
+;; 3. Remove both groups
+;; 4. Add the union of the two groups
+;; Repeat untill no more pairs
 (define (simple-uf groups pairs)
+
+  ;; Helper method to find the group an event belnogs to
+  (define (find-group groups x)
+    (find (lambda (group) (member x group)) groups))
+
+  ;; Helper method to remove a given group
+  (define (remove-group groups g)
+    (filter (lambda (group) (not (equal? group g))) groups))
+
+  ;; Main body of the procedure
   (if (null? pairs)
       groups
       (let* ((pair (car pairs))
@@ -185,51 +233,86 @@
              (new-groups-2 (remove-group new-groups-1 b))
              (new-groups-3 (append new-groups-2 (list (unique (append a b))))))
 
+        ;; Call again without the pair that was just processed
         (simple-uf new-groups-3 (cdr pairs)))))
 
-(define (helper groups-h rf-pairs-h)
-  (if (null? rf-pairs-h)
-      groups-h
-      (let* ((pair (car rf-pairs-h))
-             (trg1 (caar pair))
-             (trg2 (cadar pair))
-             (src1 (caadr pair))
-             (src2 (cadadr pair))
-             (c (find-group groups-h trg1))
-             (d (find-group groups-h trg2))
-             (flag (eq? c d))
-             (a (find-group groups-h src1))
-             (b (find-group groups-h src2))
-
-             (new-groups-1 (if flag
-                               (remove-group groups-h a)
-                               groups-h))
-
-             (new-groups-2 (if flag
-                               (remove-group new-groups-1 b)
-                               groups-h))
-
-             (new-groups-3 (if flag
-                               (append new-groups-2 (list (unique (append a b))))
-                               groups-h)))
-
-        (helper new-groups-3 (cdr rf-pairs-h)))))
-
+;; If two rf edges point to the same event, then their sources must have the same eid
+;; a -rf-> b <-rf- c   =>   a is the same as c
+;; Given a set of pairs of rf edges, we want to find all events with the same eid
+;; We check if the targets of a pair of rf edges belong to the same eid group
+;; If they do, we add the sources to the same group in a similiar manner to simple-uf
+;; In case they don't, we don't discard the pair, since the targets might be added later
+;; The helper method executes a procedure similiar to simple-uf
+;; Helper is called again and again, untill the resulting eid-set remains the same between two calls
+;; Once the set is unchanged, we know that no other pair of rf edges can affect the eid set
 (define (rf-uf groups rf-pairs)
+
+  ;; Helper method to find the group an event belnogs to
+  (define (find-group groups x)
+    (find (lambda (group) (member x group)) groups))
+
+  ;; Helper method to remove a given group
+  (define (remove-group groups g)
+    (filter (lambda (group) (not (equal? group g))) groups))
+
+  ;; Similiar to simple-uf
+  ;; Only difference is we check if the two trg belong to the same eid-group
+  ;; If they do, we do the same as simple-uf
+  ;; If they don't, we discard this pair and continue
+  (define (helper groups-h rf-pairs-h)
+    (if (null? rf-pairs-h)
+        groups-h
+        (let* ((pair (car rf-pairs-h))
+               (trg1 (caar pair))
+               (trg2 (cadar pair))
+               (src1 (caadr pair))
+               (src2 (cadadr pair))
+               (c (find-group groups-h trg1))
+               (d (find-group groups-h trg2))
+               (flag (eq? c d))
+               (a (find-group groups-h src1))
+               (b (find-group groups-h src2))
+
+               (new-groups-1 (if flag
+                                 (remove-group groups-h a)
+                                 groups-h))
+
+               (new-groups-2 (if flag
+                                 (remove-group new-groups-1 b)
+                                 groups-h))
+
+               (new-groups-3 (if flag
+                                 (append new-groups-2 (list (unique (append a b))))
+                                 groups-h)))
+
+          ;; Call again without the pair that was just processed
+          (helper new-groups-3 (cdr rf-pairs-h)))))
+
+  ;; Main body of the procedure
+  ;; Call helper with the same set of rf-pairs untill no change has occurred between consecutive calls
+  ;; At this point we know that nothing more will change
   (let* ((new-groups (helper groups rf-pairs)))
     (if (eq? (length new-groups) (length groups))
         groups
         (rf-uf new-groups rf-pairs))))
 
+;; Edges of the form [X] connect an event with its self therefore they have the same eid
+;; If the acyclic keyword is used, the first and last event have the same eid
+;; We get the eid groups after performing simple uf
+;; The we collect all pairs of rf edges
+;; Finally, we use the rf-uf procedure to get the eid-partition of all events
 (define (get-eid-partition events edges is-acyclic)
   (let* ((same-eid-sets (get-same-eid-set edges))
          (same-eid (if is-acyclic (append same-eid-sets (list (list 1 0))) same-eid-sets))
-         (groups (simple-uf (map list events) same-eid)))
-    (let* ((rf-pairs (get-rf-pairs edges))
-           (groups (rf-uf groups rf-pairs)))
-      groups
-      )))
+         (groups (simple-uf (map list events) same-eid))
+         (rf-pairs (get-rf-pairs edges))
+         (groups (rf-uf groups rf-pairs)))
+    groups))
 
+;; Helper method to get all pairs of rf edges
+;; First we collect all edges with type rf
+;; We transform them in a simplified form (we only care about src and trg)
+;; We get all pairs
 (define (get-rf-pairs edges)
   (let* ((rf-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
          (rf-edges (map (lambda (e) (list (edge-src e) (edge-trg e))) rf-edges))
@@ -238,6 +321,8 @@
     rf-pairs
     ))
 
+;; All of the listed edges are of the type [X]
+;; For each one of them, we create a pair of the src and trg
 (define (get-same-eid-set edges)
   (let* ((set-edges (filter (lambda (edge) (or
                                             (equal? (edge-type edge) "xchg")
@@ -257,6 +342,7 @@
          (pairs (map (lambda (edge) (list (edge-src edge) (edge-trg edge))) set-edges)))
     pairs))
 
+;; All of the listed edge names are renamed
 (define (rename-relation rel)
   (let ((rel (string-downcase rel)))
     (match rel
@@ -309,7 +395,7 @@
 
 (define (eid-constraints eid-partition field distinct)
   (let* ((eid-partition (filter (lambda (lst) (> (length lst) 0)) eid-partition))
-	 (multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
+         (multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
          (cars (map car eid-partition)))
     (if distinct
         (append
@@ -335,11 +421,11 @@
          ) marked-events))
 
 (define (remove-addr-dep-writes eid-partition addr-trg)
-    (map (lambda (group)
-	            (filter (lambda (el)
-			                         (not (member el addr-trg)))
-			                     group))
-	        eid-partition))
+  (map (lambda (group)
+         (filter (lambda (el)
+                   (not (member el addr-trg)))
+                 group))
+       eid-partition))
 
 
 (define (generate-constraints events edges is-acyclic)
@@ -348,22 +434,22 @@
          (eid-partition (get-eid-partition events edges is-acyclic))
          (co-events (update-co-properties events eid-partition edges))
          (marked-events (update-dep-properties events eid-partition edges))
-	 (no-addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
-	 (addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events))))
-	 )
-   ; (display events)
-   ; (newline)
-   ; (display edges)
-   ; (newline)
-   ; (display eid-partition)
-   ; (newline)
-   ; (display co-events)
-   ; (newline)
-   ; (display marked-events)
-   ; (newline)
-   ; (display no-addr-partition)
-   ; (newline)
-   ; (display addr-partition)
+         (no-addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
+         (addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events))))
+         )
+    ; (display events)
+    ; (newline)
+    ; (display edges)
+    ; (newline)
+    ; (display eid-partition)
+    ; (newline)
+    ; (display co-events)
+    ; (newline)
+    ; (display marked-events)
+    ; (newline)
+    ; (display no-addr-partition)
+    ; (newline)
+    ; (display addr-partition)
     (apply append (list
 
 
@@ -387,8 +473,8 @@
                    (eid-constraints eid-partition 'arg #f)
 
                    (dep-constraints marked-events)
-                   
-		   (obs-thread-constraints co-events)
+
+                   (obs-thread-constraints co-events)
 
                    (comment "edge declarations")
                    (map (lambda (e) `(declare-const ,e Edge))
@@ -509,9 +595,7 @@
            (edges (flatten (make-edges 0 (get-counter) expr)))
            (events (sort (unique (flatten (map (lambda (edge) (list (edge-trg edge) (edge-src edge))) edges)))))
            (constraints (generate-constraints events edges is-acyclic)))
-      ;(newline)
-      ;(display edges)
-      ;(newline)
+
       (print-boilerplate)
       (for-each pretty-print constraints)
       (print-epilogue (string-append (car args) " " (cadr args)))
