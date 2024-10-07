@@ -110,40 +110,65 @@
                      lst))
               lst)))
 
-(define edge-type-map '(("data-dep" . "data")
-                        ("addr-dep" . "addr")
-                        ("ctrl-a-dep" . "ctrl")))
+(define (update-co-properties events group-mates edges)
+  ;; Initialize list for "co" events
+  (define co-events '())
 
-(define (find-group-mates event groups)
-  (define (event-in-group? group)
-    (member event group))
-  (define matching-group
-    (find event-in-group? groups))
-  (if matching-group matching-group '()))
+  ;; Helper function to find which group an event belongs to
+  (define (find-group event groups)
+    (filter (lambda (group) (member event group)) groups))
 
-(define (edge-type->label edge-type)
-  (let ((found (assoc edge-type edge-type-map)))
-    (if found
-        (cdr found)
-        "reg")))
+  ;; Collecting affected events based on "co" edges
+  (for-each (lambda (edge)
+              (let ((src (edge-src edge))
+                    (trg (edge-trg edge))
+                    (type (edge-type edge)))
+                (when (equal? type "co")
+                  (set! co-events (cons src (cons trg co-events))))))
+            edges)
 
-(define (mark-events-with-labels edges groups)
-  (define (process-edge edge)
-    (let ((edge-type (edge-type edge))
-          (target (edge-trg edge)))
-      (let ((group-mates (find-group-mates target groups)))
-        (if group-mates
-            (map (lambda (event)
-                   (cons event (edge-type->label edge-type)))
-                 group-mates)
-            '()))))
-  (apply append (map process-edge edges)))
+  ;; Property map for "co" edges
+  (define (property-map co-events ev)
+    (if (member ev co-events) #t #f))
 
-(define (assign-default-label all-events labeled-events)
-  (map (lambda (event)
-         (or (assoc event labeled-events)
-             (cons event "reg")))
-       all-events))
+  ;; Collect all affected "co" group-mates
+  (let ((all-co (apply append (map (lambda (co-ev) (car (find-group co-ev group-mates))) co-events))))
+    (map (lambda (ev) (cons ev (property-map all-co ev))) events)))
+
+(define (update-dep-properties events group-mates edges)
+  (define (property-map data-events addr-events ctrl-events ev)
+    (cond
+      ((member ev data-events) "data")
+      ((member ev addr-events) "addr")
+      ((member ev ctrl-events) "ctrl")
+      (else "reg")))
+
+  ;; Initialize lists for different properties
+  (define data-events '())
+  (define addr-events '())
+  (define ctrl-events '())
+
+  (define (find-group event groups)
+    (filter (lambda (group) (member event group)) groups))
+
+  ;; Collecting affected events based on edge types
+  (for-each (lambda (edge)
+              (let ((trg (edge-trg edge))
+                    (type (edge-type edge)))
+                (cond
+                  ((equal? type "data-dep")
+                   (set! data-events (cons trg data-events)))
+                  ((equal? type "addr-dep")
+                   (set! addr-events (cons trg addr-events)))
+                  ((equal? type "ctrl-a-dep")
+                   (set! ctrl-events (cons trg ctrl-events))))))
+            edges)
+
+  (let ((all-data (apply append (map (lambda (data-ev) (car (find-group data-ev group-mates))) data-events)))
+        (all-addr (apply append (map (lambda (addr-ev) (car (find-group addr-ev group-mates))) addr-events)))
+        (all-ctrl (apply append (map (lambda (ctrl-ev) (car (find-group ctrl-ev group-mates))) ctrl-events))))
+
+    (map (lambda (ev) (cons ev (property-map data-events addr-events ctrl-events ev))) events)))
 
 (define (find-group groups x)
   (find (lambda (group) (member x group)) groups))
@@ -294,6 +319,16 @@
     )
   )
 
+(define (obs-thread-constraints co-prop)
+  (map (lambda (ev-pair)
+         (let ((event (car ev-pair))
+               (value (cdr ev-pair)))
+           (if value
+               `(assert (obs ,(string->symbol (string-append "ev" (number->string event)))))
+               `(assert (not (obs ,(string->symbol (string-append "ev" (number->string event))))))))
+         ) co-prop
+       ))
+
 (define (dep-constraints marked-events)
   (map (lambda (ev)
          `(assert (= (as ,(string->symbol (cdr ev)) Argument) (arg ,(event->symbol (car ev)))))
@@ -303,13 +338,15 @@
   (let* ((event-names (map event->symbol events))
          (edge-names (map edge-name edges))
          (eid-partition (get-eid-partition events edges is-acyclic))
-         (labeled-events (mark-events-with-labels edges eid-partition))
-         (marked-events (assign-default-label events labeled-events)))
-    ; (display events)
-    ; (display edges)
-    ; (newline)
-    ; (display eid-partition)
-    ; (display marked-events)
+         (co-events (update-co-properties events eid-partition edges))
+         (marked-events (update-dep-properties events eid-partition edges))
+         )
+    (display events)
+    (display edges)
+    (newline)
+    (display co-events)
+    (newline)
+    (display marked-events)
     (apply append (list
 
 
@@ -332,7 +369,7 @@
                    (eid-constraints eid-partition 'arg #f)
 
                    (dep-constraints marked-events)
-
+                   (obs-thread-constraints co-events)
                    (comment "edge declarations")
                    (map (lambda (e) `(declare-const ,e Edge))
                         edge-names)

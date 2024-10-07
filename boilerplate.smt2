@@ -82,7 +82,8 @@
 		  (rmw-type RMW-Type)
 		  (marker1 Marker)
 		  (marker2 Marker)
-		  (arg Argument))))
+		  (arg Argument)
+		  (obs Bool))))
 
 (declare-datatype
  Edge ((mk-edge (src Event)
