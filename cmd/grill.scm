@@ -17,11 +17,27 @@
 (define (usage)
   (print "grill <edge> ..."))
 
+;; Expression parse
+(define (parse-expr str)
+  (let ((str-gen (str-generator str)))
+    (let ((token-gen (token-generator (parse-or-die lexer str-gen))))
+      (parse-or-die expr-parser token-gen))))
+
 ;; Flag to maximise threads
 (define maxi-threads-flag #t)
 
 ;; Flag to maximise addresses 
 (define maxi-addr-flag #t)
+
+;; Definition of edge record
+(define-record-type
+  edge-record
+  (edge src trg type name)
+  edge?
+  (src edge-src)
+  (trg edge-trg)
+  (type edge-type)
+  (name edge-name))
 
 ;; Counter for naming events
 (define counter 1)
@@ -91,14 +107,8 @@
      (string-append name-base "-" (number->string (hash-table-ref edges-count name-base)))
      )))
 
-(define (find-indices lst target)
-  (let loop ((lst lst) (index 0) (indices '()))
-    (cond
-      ((null? lst) (reverse indices))
-      ((equal? (car lst) target)
-       (loop (cdr lst) (+ index 1) (cons index indices)))
-      (else (loop (cdr lst) (+ index 1) indices)))))
-
+;; Helper method to recursively flatten a list
+;; ((a b (c (d))) e (f ((g))) h ((i) j (k))) => (a b c d e f g h i j k)
 (define (flatten lst)
   (cond
     ((null? lst) '())
@@ -108,20 +118,7 @@
     (else
      (append (flatten (car lst)) (flatten (cdr lst))))))
 
-(define-record-type
-  edge-record
-  (edge src trg type name)
-  edge?
-  (src edge-src)
-  (trg edge-trg)
-  (type edge-type)
-  (name edge-name))
-
-(define (parse-expr str)
-  (let ((str-gen (str-generator str)))
-    (let ((token-gen (token-generator (parse-or-die lexer str-gen))))
-      (parse-or-die expr-parser token-gen))))
-
+;; Helper method to generate all n^2 pairs between a collection of n items
 (define (all-pairs lst)
   (apply append
          (map (lambda (x)
@@ -353,19 +350,27 @@
            ("rel" "release")
            (else rel))))
 
+;; Recursively construct all edges
 (define (make-edges el er expr)
   (match expr
+	 
+	 ;; Create a new event adn recursively create edges on the left and right
          (('seq . rest)
           (let ((counter (get-counter)))
             (list
              (make-edges el counter (car rest))
              (make-edges counter er (cadr rest)))))
-         (('isect . rest)
 
+	 ;; Make two edges recursively with the same endpoints
+         (('isect . rest)
           (list (make-edges el er (car rest))
                 (make-edges el er (cadr rest))))
-         (('inv . rest)
-          (make-edges er el rest))  ; just swap er and el
+         
+	 ;; Create edges recursively with the endpoints swapped
+	 (('inv . rest)
+          (make-edges er el rest))
+	
+	 ;; Base cases
          (('self . ('set . rel))
           (list (edge el er (rename-relation rel) (edge->name el er))))
          (('rel . rel)
@@ -375,8 +380,10 @@
          (('not 'rel . rel)
           (list (edge el er (string-append "not-" (rename-relation rel)) (edge->name el er))))
 
+	 ;; Should not happen
          (else "")))
 
+;; Assert that all the passed event have the specified field same
 (define (equality-assertion lst field)
   (let* ((first (car lst))
          (rest (cdr lst))
@@ -386,13 +393,16 @@
                            rest)))
     `((assert (and ,@constraints)))))
 
-
+;; Assert that all the passed event have the specified field different
 (define (distinct-assertion lst field)
   (let* ((constraints (map (lambda (x)
                              `(,field ,(string->symbol (string-append "ev" (number->string x)))))
                            lst)))
     `((assert (distinct ,@constraints)))))
 
+;; For the passed field and distinct flag assert that all events are the same/different based on the eid-partition
+;; All events within an eid group have the specified field the same
+;; If distinct is true, all events from separate groups have the specified field different
 (define (eid-constraints eid-partition field distinct)
   (let* ((eid-partition (filter (lambda (lst) (> (length lst) 0)) eid-partition))
          (multy (filter (lambda (lst) (> (length lst) 1)) eid-partition))
@@ -401,10 +411,9 @@
         (append
          (apply append (map (lambda (el) (equality-assertion el field)) multy))
          (distinct-assertion cars field))
-        (apply append (map (lambda (el) (equality-assertion el field)) multy)))
-    )
-  )
+        (apply append (map (lambda (el) (equality-assertion el field)) multy)))))
 
+;; Generate assertions that events have the obs attribute true or false
 (define (obs-thread-constraints co-prop)
   (map (lambda (ev-pair)
          (let ((event (car ev-pair))
@@ -412,44 +421,34 @@
            (if value
                `(assert (obs ,(string->symbol (string-append "ev" (number->string event)))))
                `(assert (not (obs ,(string->symbol (string-append "ev" (number->string event))))))))
-         ) co-prop
-       ))
+         ) co-prop))
 
+;; Generate assertions for the argument type of constraints (data/addr/ctrl/reg)
 (define (dep-constraints marked-events)
   (map (lambda (ev)
          `(assert (= (as ,(string->symbol (cdr ev)) Argument) (arg ,(event->symbol (car ev)))))
          ) marked-events))
 
-(define (remove-addr-dep-writes eid-partition addr-trg)
+;; Writes should have all distinct write values
+;; Unless an event is the target of a data dependency, then the two write can potentially have the same write value
+;; For instance w1 rf;data w2  w1 and w2 must write the same value
+;; Therefore we remove those events when generating the write value constraints
+(define (remove-data-dep-writes eid-partition data-trg)
   (map (lambda (group)
          (filter (lambda (el)
-                   (not (member el addr-trg)))
+                   (not (member el data-trg)))
                  group))
        eid-partition))
 
-
+;; Main procedure that generates all non-boilerplate constraints
 (define (generate-constraints events edges is-acyclic)
   (let* ((event-names (map event->symbol events))
          (edge-names (map edge-name edges))
          (eid-partition (get-eid-partition events edges is-acyclic))
          (co-events (update-co-properties events eid-partition edges))
          (marked-events (update-dep-properties events eid-partition edges))
-         (no-addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
-         (addr-partition (remove-addr-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events))))
-         )
-    ; (display events)
-    ; (newline)
-    ; (display edges)
-    ; (newline)
-    ; (display eid-partition)
-    ; (newline)
-    ; (display co-events)
-    ; (newline)
-    ; (display marked-events)
-    ; (newline)
-    ; (display no-addr-partition)
-    ; (newline)
-    ; (display addr-partition)
+         (no-addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
+         (addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events)))))
     (apply append (list
 
 
@@ -462,8 +461,8 @@
                    (eid-constraints eid-partition 'corder #t)
                    (eid-constraints eid-partition 'addr #f)
                    (eid-constraints eid-partition 'val-r #f)
-                   (eid-constraints no-addr-partition 'val-w #t) ;;
-                   (eid-constraints addr-partition 'val-w #f) ;;
+                   (eid-constraints no-addr-partition 'val-w #t) 
+                   (eid-constraints addr-partition 'val-w #f) 
                    (eid-constraints eid-partition 'val-e #f)
                    (eid-constraints eid-partition 'val-d #f)
                    (eid-constraints eid-partition 'op #f)
@@ -471,9 +470,12 @@
                    (eid-constraints eid-partition 'marker2 #f)
                    (eid-constraints eid-partition 'rmw-type #f)
                    (eid-constraints eid-partition 'arg #f)
+                   (eid-constraints eid-partition 'obs #f)
 
-                   (dep-constraints marked-events)
-
+                   (comment "events have different arg based on preceding edge")
+		   (dep-constraints marked-events)
+		   
+		   (comment "only events connected to co should be on observer thread")
                    (obs-thread-constraints co-events)
 
                    (comment "edge declarations")
@@ -513,7 +515,6 @@
 
 
                    (comment "reads and RNW have to read from an rf edge or from an init event")
-
                    (map (lambda (ev)
                           `(assert
                             (=> (and (or (= (op ,ev) (as read Operation))
@@ -527,62 +528,31 @@
                                 (= (val-r ,ev) 0)))
                           ) event-names)
 
-
+		   (comment "RMW events must write a different value than the one they read")
                    (map (lambda (e) (append
+				      ;; IF the edge is faa/xchg/cas-s/cas-f
                                      `(assert (=> (and (or
                                                         (= (rel ,e) (as faa Relation))
                                                         (= (rel ,e) (as xchg Relation))
                                                         (= (rel ,e) (as cas-s Relation))
                                                         (= (rel ,e) (as cas-f Relation)))
-                                                       (inEdgeSet ,e)
+                                                       ;; and it it in the edge set
+						       (inEdgeSet ,e)
+						       ;; and there does not exist an edge such that
                                                        ,@(apply append (map (lambda (e1)
+									      ;; it is an rf edge
                                                                               `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)
-                                                                                           (or (and (= (eid (src ,e)) (eid (src ,e1)))
+                                                                                           ;; pointing from the src to the trg of the RMW
+											   ;; or the other way around
+											   (or (and (= (eid (src ,e)) (eid (src ,e1)))
                                                                                                     (= (eid (trg ,e)) (eid (trg ,e1))))
                                                                                                (and (= (eid (src ,e)) (eid (src ,e1)))
                                                                                                     (= (eid (trg ,e)) (eid (trg ,e1))))))))
                                                                               ) edge-names)))
+						  ;; THEN the value it reads must be different than the value it writes
                                                   (not (= (val-r (src ,e)) (val-w (trg ,e)))))) )
                           ) edge-names)
-
                    ))))
-
-(define (tabbb n)
-  (if (eq? n 0)
-      ""
-      (apply string-append (list "    " (tabbb (- n 1))))
-      ))
-
-(define (print-constraints-h constraints n)
-  (string-append
-   (apply string-append (map (lambda (e)
-                               (string-append
-                                (cond
-                                  ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
-                                  ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
-                                  ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
-                                  ((symbol? e) (symbol->string e))
-                                  ((number? e) (number->string e))
-                                  ((string? e) e)
-                                  (else "Not good")
-                                  ) " ")) (but-last constraints)))
-   (let ((e (car (reverse constraints))))
-     (cond
-       ((and (list? e) (eq? (car e) 'newline)) (string-append "\n" (tabbb n)))
-       ((list? e) (string-append "(" (print-constraints-h e (+ n 1)) ")"))
-       ((and (symbol? e) (eq? e 'newline)) (string-append "\n" (tabbb n)))
-       ((symbol? e) (symbol->string e))
-       ((number? e) (number->string e))
-       ((string? e) e)
-       (else "Not good")))))
-
-(define (print-constraints constraint)
-  (newline)
-  (cond
-    ((eq? constraint 'newline) (display "\n"))
-    ((string? constraint) (display constraint))
-    (else (display (string-append "(" (print-constraints-h constraint 0) ")"))))
-  )
 
 (define (main args)
   (die-unless (not (zero? (length args))) "edge list")
