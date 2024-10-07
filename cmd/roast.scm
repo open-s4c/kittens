@@ -26,7 +26,7 @@
 
 (define-record-type
   event-record
-  (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg)
+  (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg obs)
   event?
   (uid event-uid)
   (eid event-eid)
@@ -42,7 +42,8 @@
   (rmw-type event-rmw-type)
   (marker1 event-marker1)
   (marker2 event-marker2)
-  (arg event-arg))
+  (arg event-arg)
+  (obs event-obs))
 
 (define (extract-event-records expr)
   (match expr
@@ -50,8 +51,8 @@
           (apply append (map extract-event-records defs)))
          (('define-fun _ _ 'Event ev)
           (extract-event-records ev))
-         (('mk-event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg) 
-          (list (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg)))
+         (('mk-event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg obs) 
+          (list (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg obs)))
          (else '())))
 
 (define (get-test-name expr)
@@ -399,8 +400,8 @@
            (events-per-tid (records-per-tid event-records tid-list))
            (events-per-tid-sorted (sort-records events-per-tid event-po))
 
-           (event-writes (filter (lambda (ev) (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
-                                                                                               ev) 'write))) event-records))
+           (event-writes (filter (lambda (ev) (and (eq? 'true (event-obs ev)) (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
+                                                                                               ev) 'write)))) event-records))
            (addr-list (get-write-addresses event-writes))
            (writes-per-addr (get-writes-per-addr event-writes addr-list))
            (writes-per-addr-sorted (sort-records writes-per-addr event-co))
@@ -420,9 +421,10 @@
 							   `Plain
                                                            'Plain
 							   'false
-                                                           )) events-one-addr)
+                                                           (event-obs ev))) events-one-addr)
                                   )   writes-per-addr-sorted
                                 ))
+	   ;(reads-per-addr (filter (lambda (ev) (eq? 'true (event-obs ev))) reads-per-addr))
            )
 
      ; (display (event-uid (car event-records-from-file)))
