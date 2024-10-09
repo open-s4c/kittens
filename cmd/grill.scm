@@ -156,6 +156,36 @@
   (let ((all-co (apply append (map (lambda (co-ev) (car (find-group co-ev group-mates))) co-events))))
     (map (lambda (ev) (cons ev (property-map all-co ev))) events)))
 
+;; In exists condition we should only assert reads that are trg of rf edges
+;; First we collect all events that are trg of a rf edge
+;; Then we propagate to all events with the same eid based on the eid-partition
+(define (update-rf-properties events group-mates edges)
+
+  ;; Initialize list for "rf" events
+  (define rf-events '())
+
+  ;; Property map for "rf" edges
+  (define (property-map rf-events ev)
+    (if (member ev rf-events) #t #f))
+
+  ;; Helper function to find to which eid group an event belongs to
+  (define (find-group event groups)
+    (filter (lambda (group) (member event group)) groups))
+
+  ;; Collecting affected events based on "rf" edges
+  (for-each (lambda (edge)
+              (let ((trg (edge-trg edge))
+                    (type (edge-type edge)))
+                (when (equal? type "rf")
+                  (set! rf-events (cons trg rf-events)))))
+            edges)
+  ;(print rf-events)
+  ;; Collect all affected "rf" group-mates
+  (let ((all-rf (apply append (map (lambda (rf-ev) (car (find-group rf-ev
+                                                                    group-mates))) rf-events))))
+    (map (lambda (ev) (cons ev (property-map all-rf ev))) events)))
+
+
 ;; Different events write/read from different locations based on their types and edges they are connected to
 ;; This information is stored in the arg field
 ;; If an event comes after a data edge it has the data arg
@@ -414,13 +444,13 @@
         (apply append (map (lambda (el) (equality-assertion el field)) multy)))))
 
 ;; Generate assertions that events have the obs attribute true or false
-(define (obs-thread-constraints co-prop)
+(define (exists-condition-constraints co-prop field)
   (map (lambda (ev-pair)
          (let ((event (car ev-pair))
                (value (cdr ev-pair)))
            (if value
-               `(assert (obs ,(string->symbol (string-append "ev" (number->string event)))))
-               `(assert (not (obs ,(string->symbol (string-append "ev" (number->string event))))))))
+               `(assert (,field ,(string->symbol (string-append "ev" (number->string event)))))
+               `(assert (not (,field ,(string->symbol (string-append "ev" (number->string event))))))))
          ) co-prop))
 
 ;; Generate assertions for the argument type of constraints (data/addr/ctrl/reg)
@@ -446,9 +476,11 @@
          (edge-names (map edge-name edges))
          (eid-partition (get-eid-partition events edges is-acyclic))
          (co-events (update-co-properties events eid-partition edges))
+         (rf-trg-events (update-rf-properties events eid-partition edges))
          (marked-events (update-dep-properties events eid-partition edges))
          (no-addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
          (addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events)))))
+    ;(print rf-trg-events)
     (apply append (list
 
 
@@ -473,10 +505,13 @@
                    (eid-constraints eid-partition 'obs #f)
 
                    (comment "events have different arg based on preceding edge")
-		   (dep-constraints marked-events)
+		               (dep-constraints marked-events)
 		   
-		   (comment "only events connected to co should be on observer thread")
-                   (obs-thread-constraints co-events)
+		               (comment "only events connected to co should be on observer thread")
+                   (exists-condition-constraints co-events 'obs)
+              
+                   (comment "only reads that are target of rf should be in exists condition")
+                   (exists-condition-constraints rf-trg-events 'ass)
 
                    (comment "edge declarations")
                    (map (lambda (e) `(declare-const ,e Edge))

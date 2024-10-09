@@ -83,7 +83,8 @@
 		  (marker1 Marker)
 		  (marker2 Marker)
 		  (arg Argument)
-		  (obs Bool))))
+		  (obs Bool)
+		  (ass Bool))))
 
 (declare-datatype
  Edge ((mk-edge (src Event)
@@ -151,7 +152,7 @@
 (assert (forall ((e Edge))
 		(=> (and (= (rel e) (as addr-dep Relation)) (inEdgeSet e))
 		    (and (= (tid (src e)) (tid (trg e)))
-			 (= (porder (src e)) (- (porder (trg e)) 1))
+			 ;(= (porder (src e)) (- (porder (trg e)) 1))
 			 (or (= (op (src e)) (as read Operation))
 			     (= (op (src e)) (as read-modify-write Operation)))
 			 (or (= (op (trg e)) (as read Operation))
