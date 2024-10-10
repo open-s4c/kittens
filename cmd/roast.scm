@@ -117,8 +117,28 @@
 (define (get-init-var-name addr)
   (string-append "addr" (number->string addr)))
 
-(define (sort-records event-records criteria)
-  (map (lambda (event-record) (sort event-record (lambda (l r) (< (criteria l) (criteria r))))) event-records))
+(define (sort-records event-records-all-groups criteria)
+  (map (lambda (event-records-one-group) (sort event-records-one-group (lambda (l r) (< (criteria l) (criteria r))))) event-records-all-groups))
+
+(define (prepare-observed-events to-observe)
+ (map (lambda (ev) (event (event-uid ev)
+                                                (event-eid ev)
+                                                (event-addr ev); tid
+                                                (event-co ev) ; in observer thread programme order is same as coherence order
+                                                (event-co ev)
+                                                (event-addr ev)
+                                                (event-val-w ev) ; make the read value be the written value
+                                                (event-val-w ev)
+                                                (event-val-e ev)
+                                                (event-val-d ev)
+                                                'read
+                                                (event-rmw-type ev)
+                                                'SC
+                                                'Plain
+                                                'false
+                                                (event-obs ev)
+                                                (event-ass ev)
+                                                )) to-observe))
 
 (define (get-event-type event)
   (match (event-marker1 event)
@@ -352,23 +372,36 @@
                            ")"
                            ))))
 
-(define (generate-assert-one-tid event-records-per-tid tid-list)
-  (let ((events (filter (lambda (event) (or (eq? (event-ass event) 'true) 
-                                            (eq? (event-obs event) 'true))) 
-                        event-records-per-tid)))
-    `(
-      ,@(map (lambda (event) (
+(define (generate-assert-one-tid all-events-to-display-one-tid asserted-events-one-tid all-events-to-display-tid-list)
+   `(
+      ,@(map (lambda (asserted-event) (
                               apply string-append `(
-                                                    ,(get-t-number (event-tid event) tid-list)
+                                                    ,(get-t-number (event-tid asserted-event) all-events-to-display-tid-list)
                                                     ":r"
-                                                    ,(get-read-t-number event event-records-per-tid)
+                                                    ,(get-read-t-number
+                                                       asserted-event
+                                                       all-events-to-display-one-tid)
                                                     "="
-                                                    ,(number->string (event-val-r event)))
-                              )) events))
-    ))
+                                                    ,(number->string
+                                                       (event-val-r asserted-event)))
+                              )) asserted-events-one-tid))
+    )
 
-(define (generate-assert event-records tid-list to-assert)
-  (let ((all-reads (generate-assert-one-tid to-assert tid-list)))
+(define (generate-assert all-events-to-display-per-tid all-events-to-display-tid-list asserted-events-per-tid asserted-events-tid-list)
+  (let* ((all-reads-per-tid (map (lambda (asserted-events-one-tid)
+                                  (generate-assert-one-tid
+                                    asserted-events-one-tid
+                                    (car (filter (lambda
+                                              (all-events-to-display-one-tid)
+                                              (eq? (event-tid (car
+                                                                all-events-to-display-one-tid))
+                                                   (event-tid (car
+                                                                asserted-events-one-tid))))
+                                                 all-events-to-display-per-tid)) all-events-to-display-tid-list)) asserted-events-per-tid)
+                                )
+    (all-reads (apply append all-reads-per-tid)))
+    ;(for-each print all-reads-per-tid)
+    ;(print "lala")
     (apply string-append `(
                            "exists ("
                                                    ,(if (> (length all-reads) 1) (apply string-append (map (lambda (read) (string-append read "/\\")) (but-last all-reads))) "")
@@ -376,14 +409,20 @@
                            ")\n"
                            ))))
 
-(define (generate-litmus-PC name events-per-tid-sorted tid-list
-                            writes-per-addr-sorted addr-list to-assert)
+(define (generate-litmus-PC name all-events-to-display-per-tid all-events-to-display-tid-list asserted-events-per-tid asserted-events-tid-list)
   (apply string-append `(
-                         ,(generate-header name (unique (apply append events-per-tid-sorted)))
-                         ,@(apply append (map (lambda (events-one-tid)  (list (generate-thread-code   events-one-tid tid-list)  "\n")) events-per-tid-sorted))
-                         ,(generate-assert events-per-tid-sorted tid-list
-                                           to-assert)
+                         ,(generate-header name (unique (apply append all-events-to-display-per-tid)))
+                         ,@(apply append (map (lambda (events-one-tid)  (list (generate-thread-code events-one-tid all-events-to-display-tid-list) "\n")) all-events-to-display-per-tid))
+                         ,(generate-assert all-events-to-display-per-tid 
+                                           all-events-to-display-tid-list
+                                           asserted-events-per-tid
+                                           asserted-events-tid-list)
                          )))
+
+(define (unique-events event-records-all)
+    (let* ((eids (unique (map event-eid event-records-all)))
+           (unique-events (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids)))
+      unique-events))
 
 (define (main args)
   (die-unless (= (length args) 1) "model file missing")
@@ -399,86 +438,46 @@
                               (read)))))
          (model-from-file (cons 'model file-content)))
 
-
+  ;; What we need
+  ;; 1.  All events separated on threads
+  ;; 1.5 List of threads
+  ;; 2.  All observed events separated on address (thread)
+  ;; 2.5 List of addresses of observedd
+  ;; 3.  List of assertions per tid
+  ;; 3.5 List of tid for assertions
+  
     (let* ((name (get-test-name model-from-file))
            (event-records-from-file (extract-event-records model-from-file))
            (event-records-all (if explicit-init-events
                                   event-records-from-file
                                   (filter (lambda (ev) (number? (event-uid ev)))
                                           event-records-from-file)))
-           (eids (unique (map event-eid event-records-all)))
-           (event-records (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids))
+           (cycle-events (unique-events event-records-all))
+           ; No duplicate events in event-records
 
-           (tid-list (get-tids event-records))
-           (events-per-tid (records-per-tid event-records tid-list))
-           (events-per-tid-sorted (sort-records events-per-tid event-po))
+           (cycle-events-tid-list (get-tids cycle-events))
+           (cycle-events-per-tid (records-per-tid cycle-events cycle-events-tid-list))
+           ; (cycle-events-per-tid-sorted (sort-records events-per-tid event-po))
+ 
+           (observed-events (filter (lambda (ev) (eq? 'true (event-obs ev))) cycle-events))
+           (observed-events (prepare-observed-events observed-events))           
+           
+           (observed-events-tid-list (get-tids observed-events))
+           (observed-events-per-tid (records-per-tid observed-events observed-events-tid-list))
+           
+           (all-events-to-display-per-tid (append cycle-events-per-tid observed-events-per-tid))
+           (all-events-to-display-per-tid (sort-records all-events-to-display-per-tid event-po))
+           (all-events-to-display-per-tid (sort all-events-to-display-per-tid (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))))
+           (all-events-tid-list (append cycle-events-tid-list observed-events-tid-list))
 
-           (to-assert (filter (lambda (ev) (eq?
-                                            'true
-                                            (event-ass
-                                             ev)))
-                              event-records-all))
-           (to-observe (filter (lambda (ev) (eq? 'true (event-obs ev)))
-                               event-records-all))
-           (to-observe (map (lambda (ev) (event (event-uid ev)
-                                                (event-eid ev)
-                                                (event-addr ev); tid
-                                                (event-co ev) ; in observer thread programme order is same as coherence order
-                                                (event-co ev)
-                                                (event-addr ev)
-                                                (event-val-w ev) ; make the read value be the written value
-                                                (event-val-w ev)
-                                                (event-val-e ev)
-                                                (event-val-d ev)
-                                                'read
-                                                (event-rmw-type ev)
-                                                'SC
-                                                'Plain
-                                                'false
-                                                (event-obs ev)
-                                                (event-ass ev)
-                                                )) to-observe))
-           (to-assert (append to-assert to-observe))
-
-           (event-writes (filter (lambda (ev) (and (eq? 'true (event-obs ev)) (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
-                                                                                                                               ev) 'write)))) event-records))
-           (addr-list (get-write-addresses event-writes))
-           (writes-per-addr (get-writes-per-addr event-writes addr-list))
-           (writes-per-addr-sorted (sort-records writes-per-addr event-co))
-           (reads-per-addr (map (lambda (events-one-addr)
-                                  (map (lambda (ev) (event (event-uid ev)
-                                                           (event-eid ev)
-                                                           (event-addr ev); tid
-                                                           (event-co ev) ; in observer thread programme order is same as coherence order
-                                                           (event-co ev)
-                                                           (event-addr ev)
-                                                           (event-val-w ev) ; make the read value be the written value
-                                                           (event-val-w ev)
-                                                           (event-val-e ev)
-                                                           (event-val-d ev)
-                                                           'read
-                                                           (event-rmw-type ev)
-                                                           'SC
-                                                           'Plain
-                                                           'false
-                                                           (event-obs ev)
-                                                           (event-ass ev)
-                                                           )) events-one-addr)
-                                  )   writes-per-addr-sorted
-                                ))
-           ;(reads-per-addr (filter (lambda (ev) (eq? 'true (event-obs ev))) reads-per-addr))
-           )
-
-      ; (display (event-uid (car event-records-from-file)))
-      ; (display (event-uid (cadr event-records-from-file)))
-      ; (display (number? (event-uid (cadr event-records-from-file))))
-      ; (display event-records-from-file)
-      ; (display (get-test-name model-from-file))
-      (display (generate-litmus-PC name
-                                   (sort (append events-per-tid-sorted reads-per-addr) (lambda (l r) (< (event-tid (car l)) (event-tid (car r)))))
-                                   (append tid-list addr-list)
-                                   writes-per-addr-sorted addr-list
-                                   to-assert))
-
-      )))
+           (asserted-events-from-rf (filter (lambda (ev) (eq? 'true (event-ass ev))) cycle-events))
+           (asserted-events (append asserted-events-from-rf observed-events))
+           (asserted-events-tid-list (get-tids asserted-events))
+           (asserted-events-per-tid (records-per-tid asserted-events asserted-events-tid-list)))
+           (display (generate-litmus-PC 
+                                   name
+                                   all-events-to-display-per-tid
+                                   all-events-tid-list
+                                   asserted-events-per-tid
+                                   asserted-events-tid-list)))))
 (start-command main)
