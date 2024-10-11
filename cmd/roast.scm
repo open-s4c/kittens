@@ -373,7 +373,7 @@
                            ))))
 
 (define (generate-assert-one-tid all-events-to-display-one-tid asserted-events-one-tid all-events-to-display-tid-list)
-   `(
+  `(
       ,@(map (lambda (asserted-event) (
                               apply string-append `(
                                                     ,(get-t-number (event-tid asserted-event) all-events-to-display-tid-list)
@@ -390,18 +390,18 @@
 (define (generate-assert all-events-to-display-per-tid all-events-to-display-tid-list asserted-events-per-tid asserted-events-tid-list)
   (let* ((all-reads-per-tid (map (lambda (asserted-events-one-tid)
                                   (generate-assert-one-tid
-                                    asserted-events-one-tid
                                     (car (filter (lambda
                                               (all-events-to-display-one-tid)
                                               (eq? (event-tid (car
                                                                 all-events-to-display-one-tid))
                                                    (event-tid (car
                                                                 asserted-events-one-tid))))
-                                                 all-events-to-display-per-tid)) all-events-to-display-tid-list)) asserted-events-per-tid)
+                                                 all-events-to-display-per-tid))
+                                    asserted-events-one-tid
+                                    all-events-to-display-tid-list)) asserted-events-per-tid)
                                 )
+    
     (all-reads (apply append all-reads-per-tid)))
-    ;(for-each print all-reads-per-tid)
-    ;(print "lala")
     (apply string-append `(
                            "exists ("
                                                    ,(if (> (length all-reads) 1) (apply string-append (map (lambda (read) (string-append read "/\\")) (but-last all-reads))) "")
