@@ -1,0 +1,31 @@
+C empty rf;data;rf;addr;co
+Some Very Useful Information
+{
+  v32=addr32;
+  v2=addr2;
+  v31=addr31;
+}
+
+P0 (int* v32) {
+    int r0 = atomic_load_explicit((atomic_int *)v32, memory_order_seq_cst);
+    int r1 = atomic_load_explicit((atomic_int *)v32, memory_order_seq_cst);
+}
+
+P1 (int* v32) {
+    *v32 = 30;       // f
+}
+
+P2 (int* v2, int* v32) {
+    int r0 = *v2;    // d
+    *r0 = 37;        // e
+}
+
+P3 (int* v31, int* v2) {
+    int r0 = *v31;    // b
+    *v2 = r0;         // c
+}
+
+P4 (int* v31, int *v32) {
+    *v31 = v32;       // a
+}
+exists (3:r0=v32/\2:r0=v32/\0:r0=37/\0:r1=30)

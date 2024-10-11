@@ -1,0 +1,17 @@
+C empty addr;rf
+Some Very Useful Information
+{
+  v0=addr0;
+  v42=v0;
+}
+
+P0 (int* v0) {
+    int r0 = *v0;
+}
+
+P1 (int* v42, int* v0) {
+    int r0 = *v42;
+    *r0 = 49;
+}
+
+exists (0:r0=49)

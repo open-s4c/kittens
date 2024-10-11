@@ -1,0 +1,28 @@
+C empty data;rf;addr;co
+Some Very Useful Information
+{
+  v0=addr0;
+  v42=v0;
+  v7=addr7;
+}
+
+P0 (int* v0) {
+    int r0 = atomic_load_explicit((atomic_int *)v0, memory_order_seq_cst);
+    int r1 = atomic_load_explicit((atomic_int *)v0, memory_order_seq_cst);
+}
+
+P1 (int* v42, int* v7) {
+    int r0 = *v42; // a
+    *v7 = r0;      // b
+}
+
+P2 (int* v7, int* v0) {
+    int r0 = *v7;  // c
+    *r0 = 18;      // d
+}
+
+P3 (int* v0) {
+    *v0 = 15;      // e
+}
+
+exists (2:r0=v0/\0:r1=15/\0:r0=18)
