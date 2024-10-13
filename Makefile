@@ -23,4 +23,7 @@ perms:
 build:
 	chicken-install -n
 
-.PHONY: format test build perms
+clean:
+	rm -rf kittens.*.* *.link $(notdir $(basename $(CMD)))
+
+.PHONY: format test build perms clean
