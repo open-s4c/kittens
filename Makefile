@@ -24,6 +24,6 @@ build:
 	chicken-install -n
 
 clean:
-	rm -rf kittens.*.* *.link $(notdir $(basename $(CMD)))
+	rm -rf kitten.* kittens.*.* *.link $(notdir $(basename $(CMD)))
 
 .PHONY: format test build perms clean

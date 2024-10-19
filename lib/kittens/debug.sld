@@ -1,6 +1,7 @@
 (define-library (kittens debug)
   (export pretty-print
-          print-results)
+          print-results
+          debug)
 
   (import (scheme base)
           (scheme file)
@@ -22,6 +23,9 @@
       (for-each (lambda (x)
                   (show (current-output-port) (pretty x)))
                 xs))
+
+    (define (debug . xs)
+      (apply pretty-print xs))
 
     (define (print-results r)
       (define (results-iter x)

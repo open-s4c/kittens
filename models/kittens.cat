@@ -1,7 +1,7 @@
 KITTENS
 
-let rf = [W] ; rfx ; [R]   | [RMW] ; rfx ; [R] | 
-	 [W] ; rfx ; [RMW] | [RMW] ; rfx ; [RMW]
+let rf = [W] ; rf ; [R]   | [RMW] ; rf ; [R] |
+	 [W] ; rf ; [RMW] | [RMW] ; rf ; [RMW]
 
 let rmw = [RMW]
 
@@ -24,3 +24,4 @@ let fri = fr & int
 let coi = co & int
 let rfi = rf & int
 let poi = po & int
+
