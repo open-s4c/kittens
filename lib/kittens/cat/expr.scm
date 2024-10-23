@@ -6,17 +6,17 @@
          W ; write operations
          R ; read operations
          B
-	 RMW  ; read-modify-write operations
+         RMW  ; read-modify-write operations
          XCHG ;
          FAA  ; fetch and add
-	 CAS
-	 CAS-S
-	 CAS-F
+         CAS
+         CAS-S
+         CAS-F
          RLX
-	 ACQ  ; atomic operation with Acq barrier
+         ACQ  ; atomic operation with Acq barrier
          REL  ; atomic operation with Rel barrier
          SC   ; atomic operation with SC barrier
-	 REL-ACQ
+         REL-ACQ
          Marked ; marked atomic operation
          Plain ; Unmarked operation
          )))
@@ -55,16 +55,14 @@
          ((x <- set-isect) x)
          ((x <- set-diff) x)
          ((x <- set-not) x)
-	 ((x <- set) x))
+         ((x <- set) x))
 
    (set-union
     ((a <- set-isect 'union b <- set-union) (list 'union a b))
-    ((a <- set-isect 'union b <- set-isect) (list 'union a b))
     ((a <- set-isect) a))
 
    (set-isect
     ((a <- set-diff 'isect b <- set-isect) (list 'isect a b))
-    ((a <- set-diff 'isect b <- set-diff) (list 'isect a b))
     ((a <- set-diff) a))
 
    (set-diff
@@ -72,13 +70,13 @@
     ; TODO: \ is left associative!
     ((a <- set 'diff b <- set) (list 'diff a b))
     ((a <- set-not) a))
-   
+
    (set-not
     (('not a <- rel) (cons 'not a))
     (('not a <- set) (cons 'not a))
     ((a <- rel) a)
     ((a <- set) a))
-   
+
    (set
     ((s <- preset) (cons 'set s))
     ((s <- 'set) (cons 'set s))
@@ -97,33 +95,28 @@
          ((x <- rel-seq) x)
          ((x <- rel-isect) x)
          ((x <- rel-cart) x)
-	 ((x <- rel-inv) x)
+         ((x <- rel-inv) x)
          ((x <- rel-not) x)
-	 ((x <- rel) x))
+         ((x <- rel) x))
 
    (rel-union
     ((a <- rel-seq 'union b <- rel-union) (list 'union a b))
-    ((a <- rel-seq 'union b <- rel-seq) (list 'union a b))
     ((a <- rel-seq) a))
 
    (rel-seq
     ((a <- rel-isect 'seq b <- rel-seq) (list 'seq a b))
-    ((a <- rel-isect 'seq b <- rel-isect) (list 'seq a b))
     ((a <- rel-isect) a))
 
    (rel-isect
     ((a <- rel-cart 'isect b <- rel-isect) (list 'isect a b))
-    ((a <- rel-cart 'isect b <- rel-cart) (list 'isect a b))
     ((a <- rel-cart) a))
 
    (rel-cart
     ((a <- set 'cart b <- rel-cart) (list 'cart a b))
-    ((a <- set 'cart b <- set) (list 'cart a b))
     ((a <- rel-inv) a))
-   
+
    (rel-inv
     ((a <- rel 'inv) (cons 'inv a))
-    ((a <- set 'inv) (cons 'inv a))
     ((a <- rel-not) a))
 
    (rel-not

@@ -31,6 +31,13 @@
   (test '(model (name "TEST") ((empty (isect (rel . "rmw") (seq (rel . "fre") (rel . "coe")))) (acyclic (union (rel . "co") (union (rel . "rf") (union (rel . "fr") (rel . "po-loc"))))) (let "Marked" (union (set . "RLX") (union (set . "ACQ") (union (set . "REL") (set . "SC"))))) (let "Plain" (set . "Marked")) (let "Acq" (union (set . "ACQ") (isect (set . "SC") (set . "R")))) (let "Rel" (union (set . "REL") (isect (set . "SC") (set . "W")))) (let "dep" (union (rel . "ctrl") (union (rel . "addr") (rel . "data")))) (let "bob" (union (seq (self set . "ACQ") (rel . "po")) (union (seq (rel . "po") (self set . "REL")) (union (seq (self set . "SC") (seq (rel . "po") (self set . "SC"))) (union (seq (rel . "po") (seq (self isect (set . "SC") (set . "F")) (rel . "po"))) (union (seq (self set . "R") (seq (rel . "po") (seq (self isect (set . "ACQ") (set . "F")) (rel . "po")))) (seq (rel . "po") (seq (self isect (set . "REL") (set . "F")) (seq (rel . "po") (self isect (set . "W") (set . "Marked"))))))))))) (let "ppo" (union (rel . "bob") (seq (self set . "Marked") (seq (union (rel . "dep") (union (rel . "coi") (rel . "fri"))) (self isect (set . "W") (set . "Marked")))))) (let "WRF-ppo" (union (seq (rel . "po") (seq (self isect (set . "REL") (set . "F")) (seq (rel . "po") (self isect (set . "W") (set . "Plain"))))) (seq (self set . "Marked") (seq (union (rel . "ctrl") (rel . "addr")) (self isect (set . "W") (set . "Plain")))))) (let "hb" (union (rel . "ppo") (union (rel . "WRF-ppo") (union (rel . "rfe") (union (rel . "fre") (rel . "coe")))))) (acyclic (rel . "hb"))))
         (parse-result-semantic-value r)))
 
+(let* ((g (token-generator
+           '((id . "TEST") (empty) (id . "rmw") (isect) (id . "W") (cart) (id . "R"))))
+       (r (model-parser (base-generator->results g))))
+  (test-assert (parse-result-successful? r))
+
+  (test '(model (name "TEST") ((empty (isect (rel . "rmw") (cart (set . "W") (set . "R"))))))
+        (parse-result-semantic-value r)))
 
 (test-end)
 
