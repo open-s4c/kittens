@@ -96,4 +96,11 @@
   (test '(let "hb" (union (rel . "ppo") (union (rel . "WRF-ppo") (union (rel . "rfe") (union (rel . "fre") (rel . "coe"))))))
         (parse-result-semantic-value r)))
 
+(let* ((g (token-generator
+           '((let) (id . "implied") (=) (id . "ppo") (isect) (id . "W") (cart) (id . "R"))))
+       (r (stmt-parser (base-generator->results g))))
+  (test-assert (parse-result-successful? r))
+  (test '(let "implied" (isect (rel . "ppo") (cart (set . "W") (set . "R"))))
+        (parse-result-semantic-value r)))
+
 (test-end)

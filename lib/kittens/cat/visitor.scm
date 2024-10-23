@@ -59,6 +59,9 @@
          (('isect left right)
           (visit-expr left (push-back action `isect right)))
 
+         (('cart left right)
+          (visit-expr left (push-back action `cart right)))
+
          (('inv . expr)
           (visit-expr expr (push-back action `inv)))
 

@@ -15,6 +15,11 @@
          (('not . expr)
           `(not . ,(normalize-expr expr)))
 
+         (('cart ('set . left) ('set . right))
+          `(seq (self set . ,left)
+                (seq (rel . "all")
+                     (self set . ,right))))
+
          (('self . expr)
           (match expr
                  (('not . expr)
@@ -67,6 +72,11 @@
           (let* ((left (expand-expr left defm))
                  (right (expand-expr right defm)))
             (list 'seq left right)))
+
+         (('cart left right)
+          (let* ((left (expand-expr left defm))
+                 (right (expand-expr right defm)))
+            (list 'cart left right)))
 
          (('isect left right)
           (let* ((left (expand-expr left defm))
