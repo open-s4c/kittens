@@ -6,7 +6,7 @@ empty rmw & (fre;coe)
 (** SC per location **)
 acyclic co | rf | fr | po-loc
 
-let Marked = RLX | ACQ | REL | SC | REL-ACQ
+let Marked = RLX | ACQ | REL | SC
 
 let Plain = ~Marked
 let Acq = ACQ | (SC & R)
@@ -18,7 +18,7 @@ let dep = ctrl | addr | data
 (* Barrier Ordered-Before: barrier ordering rules *)
 let bob = [Acq];po | po;[Rel] | [SC];po;[SC] | po;[SC & F];po | [R];po;[Acq & F];po | po;[Rel & F];po;[W & Marked]
 
-(* Preserved Program-Order: these are never visibly reordered by compiler and hardware. 
+(* Preserved Program-Order: these are never visibly reordered by compiler and hardware.
    Includes both barrier ordering, and dependency ordering + same-address ordering *)
 let ppo = bob | [Marked];(dep | coi | fri);[W & Marked]
 

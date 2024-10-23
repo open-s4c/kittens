@@ -16,7 +16,6 @@
          ACQ  ; atomic operation with Acq barrier
          REL  ; atomic operation with Rel barrier
          SC   ; atomic operation with SC barrier
-         REL-ACQ
          Marked ; marked atomic operation
          Plain ; Unmarked operation
          )))
