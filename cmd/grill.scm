@@ -127,6 +127,69 @@
                      lst))
               lst)))
 
+(define (get-before-addr-chain addr-src edges)
+  (letrec 
+    ((helper 
+      (lambda (current-chain expected-type)
+        (let* ((current-node (car current-chain))
+               (valid-edges
+                (filter (lambda
+                          (edge)
+                          (and
+                           (equal?
+                            (edge-type
+                             edge)
+                            expected-type)
+                           (equal?
+                            (edge-trg
+                             edge)
+                            current-node)))
+                        edges)))
+          (if (null? valid-edges)
+              (list
+               current-chain)
+             (apply
+               append 
+               (map
+                (lambda
+                  (edge)
+                  (helper
+                   (cons
+                    (edge-src
+                     edge)
+                    current-chain)
+                   (if
+                    (equal?
+                     expected-type
+                     "rf")
+                    "data-dep"
+                    "rf")))
+                               valid-edges)))))))
+    (helper
+     (list
+      addr-src)
+     "rf")))
+
+(define (get-before-addr-chains edges eid-partition)
+  (let* ((addr-src-list (get-addr-src-list edges eid-partition))
+         (chains (map (lambda (addr-src) (get-before-addr-chain addr-src edges))
+                      addr-src-list)))
+    (apply append chains)
+    )  
+  )
+
+(define (get-addr-src-list edges eid-partition)
+  (let* ((addr-src-direct (map edge-src (filter (lambda (edge) (equal? (edge-type edge) "addr-dep")) edges)))
+         (events-from-partition (filter (lambda (eid-set) (contains-any eid-set addr-src-direct)) eid-partition)))
+    ;(print addr-src-direct)  
+    (apply append events-from-partition)))
+
+(define (contains-any lst1 lst2)
+  (> (length (intersect lst1 lst2)) 0))
+
+(define (intersect lst1 lst2)
+  (filter (lambda (x) (member x lst2)) lst1))
+
 ;; Observer threads can only observe writes that are adjacent to co edges
 ;; First we collect all events that are either the src or trg of a co edge
 ;; Then we propagate to all events with the same eid based on the eid-partition
@@ -383,24 +446,24 @@
 ;; Recursively construct all edges
 (define (make-edges el er expr)
   (match expr
-	 
-	 ;; Create a new event adn recursively create edges on the left and right
+
+         ;; Create a new event adn recursively create edges on the left and right
          (('seq . rest)
           (let ((counter (get-counter)))
             (list
              (make-edges el counter (car rest))
              (make-edges counter er (cadr rest)))))
 
-	 ;; Make two edges recursively with the same endpoints
+         ;; Make two edges recursively with the same endpoints
          (('isect . rest)
           (list (make-edges el er (car rest))
                 (make-edges el er (cadr rest))))
-         
-	 ;; Create edges recursively with the endpoints swapped
-	 (('inv . rest)
+
+         ;; Create edges recursively with the endpoints swapped
+         (('inv . rest)
           (make-edges er el rest))
-	
-	 ;; Base cases
+
+         ;; Base cases
          (('self . ('set . rel))
           (list (edge el er (rename-relation rel) (edge->name el er))))
          (('rel . rel)
@@ -410,7 +473,7 @@
          (('not 'rel . rel)
           (list (edge el er (string-append "not-" (rename-relation rel)) (edge->name el er))))
 
-	 ;; Should not happen
+         ;; Should not happen
          (else "")))
 
 ;; Assert that all the passed event have the specified field same
@@ -479,8 +542,18 @@
          (rf-trg-events (update-rf-properties events eid-partition edges))
          (marked-events (update-dep-properties events eid-partition edges))
          (no-addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (equal? (cdr ev) "data")) marked-events))))
+         (addr-src-list (get-addr-src-list edges eid-partition))
+         (before-addr-chains (get-before-addr-chains edges eid-partition))
+         (beginings-of-chains (unique (map car before-addr-chains)))
+         (continuations-of-chains (unique (apply append (map cdr before-addr-chains))))
+         (not-on-chain (filter (lambda (ev) (not (or (member ev beginings-of-chains) (member ev continuations-of-chains)))) events))
          (addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events)))))
-    ;(print rf-trg-events)
+   ;(print rf-trg-events)
+ ;  (print addr-src-list)
+ ;   (print before-addr-chains)
+ ;   (print beginings-of-chains)
+ ;   (print continuations-of-chains)
+ ;   (print not-on-chain)
     (apply append (list
 
 
@@ -505,14 +578,23 @@
                    (eid-constraints eid-partition 'obs #f)
 
                    (comment "events have different arg based on preceding edge")
-		               (dep-constraints marked-events)
-		   
-		               (comment "only events connected to co should be on observer thread")
+                   (dep-constraints marked-events)
+
+                   (comment "only events connected to co should be on observer thread")
                    (exists-condition-constraints co-events 'obs)
-              
+
                    (comment "only reads that are target of rf should be in exists condition")
                    (exists-condition-constraints rf-trg-events 'ass)
+                   
+                   (map (lambda (e) `(assert (= (chain-type ,(event->symbol e)) (as start-chain Addr-Chain))))
+                        beginings-of-chains)
 
+                   (map (lambda (e) `(assert (= (chain-type ,(event->symbol e)) (as middle-chain Addr-Chain))))
+                        continuations-of-chains)
+                   
+                   (map (lambda (e) `(assert (= (chain-type ,(event->symbol e)) (as no-chain Addr-Chain))))
+                        not-on-chain)
+                   
                    (comment "edge declarations")
                    (map (lambda (e) `(declare-const ,e Edge))
                         edge-names)
@@ -552,41 +634,41 @@
                    (comment "reads and RNW have to read from an rf edge or from an init event")
                    (map (lambda (ev)
                           ;; IF the type of an edge is read or read-modify write 
-			  `(assert
+                          `(assert
                             (=> (and (or (= (op ,ev) (as read Operation))
                                          (= (op ,ev) (as read-modify-write Operation)))
                                      ;; and there doesn't exist an rf edge pointing to this event
-				     (not (exists ((e1 Edge))
+                                     (not (exists ((e1 Edge))
                                                   (and (inEdgeSet e1)
                                                        (= (eid (trg e1)) (eid ,ev))
                                                        (= (rel e1) (as rf Relation))
                                                        ))))
-				;; THEN the value that the event reads is 0 (INIT)
+                                ;; THEN the value that the event reads is 0 (INIT)
                                 (= (val-r ,ev) 0)))
                           ) event-names)
 
-		   (comment "RMW events must write a different value than the one they read")
+                   (comment "RMW events must write a different value than the one they read")
                    (map (lambda (e) (append
-				      ;; IF the edge is faa/xchg/cas-s/cas-f
+                                     ;; IF the edge is faa/xchg/cas-s/cas-f
                                      `(assert (=> (and (or
                                                         (= (rel ,e) (as faa Relation))
                                                         (= (rel ,e) (as xchg Relation))
                                                         (= (rel ,e) (as cas-s Relation))
                                                         (= (rel ,e) (as cas-f Relation)))
                                                        ;; and it it in the edge set
-						       (inEdgeSet ,e)
-						       ;; and there does not exist an edge such that
+                                                       (inEdgeSet ,e)
+                                                       ;; and there does not exist an edge such that
                                                        ,@(apply append (map (lambda (e1)
-									      ;; it is an rf edge
+                                                                              ;; it is an rf edge
                                                                               `( (not (and (= (rel ,e1) (as rf Relation)) (inEdgeSet ,e1)
                                                                                            ;; pointing from the src to the trg of the RMW
-											   ;; or the other way around
-											   (or (and (= (eid (src ,e)) (eid (src ,e1)))
+                                                                                           ;; or the other way around
+                                                                                           (or (and (= (eid (src ,e)) (eid (src ,e1)))
                                                                                                     (= (eid (trg ,e)) (eid (trg ,e1))))
                                                                                                (and (= (eid (src ,e)) (eid (src ,e1)))
                                                                                                     (= (eid (trg ,e)) (eid (trg ,e1))))))))
                                                                               ) edge-names)))
-						  ;; THEN the value it reads must be different than the value it writes
+                                                  ;; THEN the value it reads must be different than the value it writes
                                                   (not (= (val-r (src ,e)) (val-w (trg ,e)))))) )
                           ) edge-names)
                    ))))

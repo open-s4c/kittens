@@ -68,6 +68,11 @@
 	   (CAS)))
 
 (declare-datatype
+ Addr-Chain ((no-chain)
+             (start-chain)
+             (middle-chain)))
+
+(declare-datatype
  Event ((mk-event (uid Int)
                   (eid Int)
                   (tid Int)
@@ -84,7 +89,9 @@
 		  (marker2 Marker)
 		  (arg Argument)
 		  (obs Bool)
-		  (ass Bool))))
+		  (ass Bool)
+      (chain-type Addr-Chain)
+)))
 
 (declare-datatype
  Edge ((mk-edge (src Event)
