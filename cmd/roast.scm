@@ -178,16 +178,16 @@
   (if (and (eq? (event-op event) 'write)
            (eq? (event-chain event) 'start-chain))
       (string-append 
-        "v"
-        (number->string (event-val-w event)))
-    (if (or (eq? (event-arg event) 'data)
-            (eq? (event-arg event) 'ctrl))
-        (string-append 
-          "r"
-          (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
-        (number->string (event-val-w event))
+       "v"
+       (number->string (event-val-w event)))
+      (if (or (eq? (event-arg event) 'data)
+              (eq? (event-arg event) 'ctrl))
+          (string-append 
+           "r"
+           (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
+          (number->string (event-val-w event))
+          )
       )
-    )
   )
 
 (define (print-event-read event event-records-per-tid)
@@ -369,22 +369,22 @@
 (define (generate-preamble events)
   ;(let ((addr-normal (unique (filter (lambda (ev) (or (eq? (event-op ev) 'write) (not (eq? (event-chain ev) 'start-chain)))) events)))
   ;      (addr-fancy (unique (filter (lambda (ev) (and (eq? (event-op ev) 'read) (eq? (event-chain ev) 'start-chain))) events))))
-  
+
   (let ((events (process-events events)))
-  ;; here check if read/write as well as start-chain. 
-     (apply string-append (map (lambda (ev) (string-append 
-                                             "  "
-                                             (get-var-name (event-addr ev))
-                                             "="
-                                             (if (and (eq? (event-op ev) 'read)
-                                                              (eq? (event-chain ev) 'start-chain))
-                                               (string-append 
-                                                      "v"
-                                                      (number->string (event-val-r ev)))
-                                               (get-init-var-name (event-addr ev)))
-                                             ";\n"
-                                             )) events))
-       ))
+    ;; here check if read/write as well as start-chain. 
+    (apply string-append (map (lambda (ev) (string-append 
+                                            "  "
+                                            (get-var-name (event-addr ev))
+                                            "="
+                                            (if (and (eq? (event-op ev) 'read)
+                                                     (eq? (event-chain ev) 'start-chain))
+                                                (string-append 
+                                                 "v"
+                                                 (number->string (event-val-r ev)))
+                                                (get-init-var-name (event-addr ev)))
+                                            ";\n"
+                                            )) events))
+    ))
 (define (get-event-type-a) (string-append size "* "))
 
 (define (generate-thread-signature event-records-per-tid tid-list)

@@ -148,7 +148,7 @@
           (if (null? valid-edges)
               (list
                current-chain)
-             (apply
+              (apply
                append 
                (map
                 (lambda
@@ -164,7 +164,7 @@
                      "rf")
                     "data-dep"
                     "rf")))
-                               valid-edges)))))))
+                valid-edges)))))))
     (helper
      (list
       addr-src)
@@ -548,12 +548,12 @@
          (continuations-of-chains (unique (apply append (map cdr before-addr-chains))))
          (not-on-chain (filter (lambda (ev) (not (or (member ev beginings-of-chains) (member ev continuations-of-chains)))) events))
          (addr-partition (remove-data-dep-writes eid-partition (map car (filter (lambda (ev) (not (equal? (cdr ev) "data"))) marked-events)))))
-   ;(print rf-trg-events)
- ;  (print addr-src-list)
- ;   (print before-addr-chains)
- ;   (print beginings-of-chains)
- ;   (print continuations-of-chains)
- ;   (print not-on-chain)
+    ;(print rf-trg-events)
+    ;  (print addr-src-list)
+    ;   (print before-addr-chains)
+    ;   (print beginings-of-chains)
+    ;   (print continuations-of-chains)
+    ;   (print not-on-chain)
     (apply append (list
 
 
@@ -585,16 +585,16 @@
 
                    (comment "only reads that are target of rf should be in exists condition")
                    (exists-condition-constraints rf-trg-events 'ass)
-                   
+
                    (map (lambda (e) `(assert (= (chain-type ,(event->symbol e)) (as start-chain Addr-Chain))))
                         beginings-of-chains)
 
                    (map (lambda (e) `(assert (= (chain-type ,(event->symbol e)) (as middle-chain Addr-Chain))))
                         continuations-of-chains)
-                   
+
                    (map (lambda (e) `(assert (= (chain-type ,(event->symbol e)) (as no-chain Addr-Chain))))
                         not-on-chain)
-                   
+
                    (comment "edge declarations")
                    (map (lambda (e) `(declare-const ,e Edge))
                         edge-names)
