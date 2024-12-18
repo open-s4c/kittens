@@ -42,29 +42,20 @@
     (set! counter (+ counter 1))
     current))
 
-;; There might be multiple edges between the same pair of events
-;; Thus we name edges ed-a-b-n
-;; a is src ev
-;; b is dst ev
-;; n is number of occurances before this edge is created
-(define edges-count (make-hash-table))
+;; Print separator comment
+(define (print-separator cmt)
+  (newline)
+  (apply print "; " (map (lambda (_) "-") (seq 78)))
+  (print "; " cmt)
+  (apply print "; " (map (lambda (_) "-") (seq 78))))
 
-;; Helper to display comments in constraints file kittens.smt
-(define (comment str)
-  (string->symbol (string-append "; " str)))
+(define (print-smt-config)
+  (print '(set-option :opt.priority box)))
 
-;; Helper to display comments conditionally
-(define (if-comment cd str)
-  (if cd (comment str) '()))
-
-;; Helper to get all elements of a list besides the last element
-(define (but-last xs) (reverse (cdr (reverse xs))))
-
-;; Printing boilerplate constraints
+;; Printing boilerplate
 (define (print-boilerplate)
-  (print "; PROLOG")
   (for-each pretty-print
-            '((set-option :opt.priority box)
+            '((declare-const kitten String)
 
               (declare-datatype
                Mark ((SC)
@@ -130,22 +121,12 @@
                Edge ((mk-edge
                       (rel Relation)
                       (src Int)
-                      (dst Int))))
-
-              (declare-const rels String)))
-  (newline)
-  (print "; BODY"))
+                      (dst Int)))))))
 
 ;; Printing epilogue of constraints
 (define (print-epilogue name)
-  (newline)
-  (print "; EPILOG")
-
   ;; Keep the name of the kitten as a constraint to pass on to roast.scm
-  (pretty-print `(assert (= rels ,name )))
-  (apply print "; " (map (lambda (_) "-") (seq 78)))
-  (print "; ask SMT solver for an answer")
-  (apply print "; " (map (lambda (_) "-") (seq 78)))
+  (pretty-print `(assert (= kitten ,name )))
   (print "(check-sat)")
   (print "(get-model)"))
 
@@ -167,6 +148,9 @@
      (cons (car lst) (flatten (cdr lst))))
     (else
      (append (flatten (car lst)) (flatten (cdr lst))))))
+
+;; Helper to get all elements of a list besides the last element
+(define (but-last xs) (reverse (cdr (reverse xs))))
 
 ;; Helper method to generate all n^2 pairs between a collection of n items
 (define (all-pairs lst)
@@ -324,8 +308,11 @@
       (let* ((edges (append-observers edges))
              (events (extract-events edges)))
 
+        (print-smt-config)
+        (print-separator "Type definitions")
         (print-boilerplate)
 
+        (print-separator "Constraints")
         (for-each (lambda (ev)
                     (pretty-print `(declare-const ,(event->symbol ev) Event)))
                   events)
@@ -350,11 +337,9 @@
                 (last (event->symbol 1)))
             (print `(assert (= ,first ,last)))))
 
+        (print-separator "Request model from SMT")
         (print-epilogue (string-append (car args) " " (cadr args)))
         )))
-
-
-
   0)
 
 (start-command main)
