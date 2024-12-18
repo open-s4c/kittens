@@ -26,12 +26,12 @@
 ;; Definition of edge record
 (define-record-type
   edge-record
-  (edge src dst type name)
+  (edge src dst type attr)
   edge?
   (src edge-src)
   (dst edge-dst)
   (type edge-type)
-  (name edge-name))
+  (attr edge-attr))
 
 ;; Counter for naming events
 (define counter 1)
@@ -95,8 +95,8 @@
               (declare-fun reading (Operation) Bool)
               (assert (forall ((op Operation))
                               (=> (reading op)
-                                  (and (not (= op F))
-                                       (not (writing-only op))))))
+                                  (and (not (writing-only op))
+                                       (not (= op F))))))
 
               (declare-datatype
                Event ((mk-event
@@ -203,143 +203,166 @@
          (else (error "unexpected relation" expr))))
 
 
+
+(define (extract-events edges)
+  (let ((pairs (map (lambda (edge)
+                      (list (edge-dst edge) (edge-src edge)))
+                    edges)))
+    (sort (unique (flatten pairs)))))
+
+(define (append-observers edges)
+  (apply append edges
+         (map (lambda (e)
+                (if (equal? "co" (edge-type e))
+                    (let ((o2 (get-counter))
+                          (o1 (get-counter)))
+                      (list
+                       (edge (edge-src e) o1 "rf" "observe-co-src")
+                       (edge (edge-dst e) o2 "rf" "observe-co-dst")
+                       (edge o1 o2 "po" "observe-po")))
+                    '())) edges)))
+
+(define (assert-cmp cmp field eid-src eid-dst)
+  (let ((f1 (if (pair? field) (car field) field))
+        (f2 (if (pair? field) (cdr field) field))
+        (src (event->symbol eid-src))
+        (dst (event->symbol eid-dst)))
+    `(assert (,cmp (,f1 ,src) (,f2 ,dst)))))
+
+(define (assert-diff field eid-src eid-dst)
+  (assert-cmp 'distinct field  eid-src eid-dst))
+
+(define (assert-same field eid-src eid-dst)
+  (assert-cmp '= field eid-src eid-dst))
+
+(define (assert-reading eid)
+  (let ((ev (event->symbol eid)))
+    `(assert (reading (op ,ev)))))
+
+(define (assert-read eid)
+  (let ((ev (event->symbol eid)))
+    `(assert (= (op ,ev) R))))
+
+(define (assert-writing eid)
+  (let ((ev (event->symbol eid)))
+    `(assert (writing (op ,ev)))))
+
+(define (memory-order? x)
+  (member x '("SC" "REL" "ACQ" "RLX")))
+
+(define (plain? x)
+  (member x '("PLAIN" "Plain")))
+
+(define (operation? x)
+  (and (not (memory-order? x))
+       (not (plain? x))))
+
+(define (observer? x)
+  (member x '("observe-co-src" "observe-co-dst")))
+
+(define (assert-same-events eid1 eid2)
+  (let ((ev1 (event->symbol eid1))
+        (ev2 (event->symbol eid2)))
+    `(assert (= ,ev1 ,ev2))))
+
+(define (assert-value k eid v)
+  (let ((ev (event->symbol eid)))
+    `(assert (= (,k ,ev) ,(string->symbol v)))))
+
+(define (assert-plain eid)
+  (let ((ev (event->symbol eid)))
+    `(assert (or (= (op ,ev) R)
+                 (= (op ,ev) W)))))
+
+(define (edge-constraints ed)
+  (let ((src (edge-src ed))
+        (dst (edge-dst ed))
+        (type (edge-type ed))
+        (attr (edge-attr ed)))
+    (match type
+           ("rf" (list (assert-diff 'eid src dst)
+                       (assert-diff 'tid src dst)
+                       (assert-same 'addr src dst)
+                       (assert-same '(wval . rval) src dst)
+                       (assert-writing src)
+                       (if (observer? attr)
+                           (assert-read dst)
+                           (assert-reading dst))))
+           ("co" (list (assert-diff 'eid src dst)
+                       (assert-diff 'tid src dst)
+                       (assert-same 'addr src dst)
+                       (assert-writing src)
+                       (assert-writing dst)))
+           ("po" (list (assert-diff 'eid src dst)
+                       (assert-same 'tid src dst)))
+           ("po-data" (list (assert-diff 'eid src dst)
+                            (assert-same 'tid src dst)
+                            (assert-same '(rval . wval) src dst)
+                            (assert-reading src)
+                            (assert-writing dst)))
+           ("po-addr" (list (assert-diff 'eid src dst)
+                            (assert-same 'tid src dst)
+                            (assert-same '(rval . addr) src dst)
+                            (assert-reading src)))
+           ("po-ctrl" (list (assert-diff 'eid src dst)
+                            (assert-same 'tid src dst)
+                            (assert-diff 'addr src dst)
+                            (assert-reading src)
+                            (assert-writing dst)))
+           ("self" (list (assert-same-events src dst)
+                         (cond ((memory-order? attr)
+                                (assert-value 'mark src attr))
+                               ((plain? attr)
+                                (assert-plain src))
+                               ((operation? attr)
+                                (assert-value 'op src attr))
+                               (else (error "unexpected attr" attr)))))
+           (_ (error "unknown edge type" type)))))
+
+
+;; core logic of resolve
+(define (run type texpr)
+  (let* ((is-acyclic (equal? "acyclic" type))
+         (expr (parse-expr texpr))
+         (edges (flatten (make-edges 0 (get-counter) expr)))
+         (edges (append-observers edges))
+         (events (extract-events edges)))
+
+    (print-smt-config)
+    (print-separator "Type definitions")
+    (print-boilerplate)
+
+    (print-separator "Constraints")
+    (for-each (lambda (ev)
+                (pretty-print `(declare-const ,(event->symbol ev) Event)))
+              events)
+    (for-each (lambda (ed cnt)
+                (let ((edn (edge->symbol cnt))
+                      (src (event->symbol (edge-src ed)))
+                      (dst (event->symbol (edge-dst ed)))
+                      (rel (string->symbol (edge-type ed))))
+                  (newline)
+                  (display "; ")
+                  (pretty-print ed)
+                  (pretty-print `(declare-const ,edn Edge))
+                  (pretty-print `(assert (and (= (src ,edn) (eid ,src))
+                                              (= (dst ,edn) (eid ,dst))
+                                              (= (rel ,edn) ,rel))))
+                  (apply pretty-print (edge-constraints ed))))
+              edges
+              (seq (length edges)))
+
+    (when is-acyclic
+      (let ((first (event->symbol 0))
+            (last (event->symbol 1)))
+        (print `(assert (= ,first ,last)))))
+
+    (print-separator "Request model from SMT")
+    (print-epilogue (string-append type " " texpr))))
+
 (define (main args)
   (die-unless (not (zero? (length args))) "edge list")
-
-  (let* ((expr (cadr args))
-         (type (car args))
-         (is-acyclic (equal? "acyclic" type)))
-
-    (let* ((expr (parse-expr expr))
-           (edges (flatten (make-edges 0 (get-counter) expr))))
-
-      (define (extract-events edges)
-        (let ((pairs (map (lambda (edge)
-                            (list (edge-dst edge) (edge-src edge)))
-                          edges)))
-          (sort (unique (flatten pairs)))))
-
-      (define (append-observers edges)
-        (apply append edges
-               (map (lambda (e)
-                      (if (equal? "co" (edge-type e))
-                          (let ((o2 (get-counter))
-                                (o1 (get-counter)))
-                            (list
-                             (edge (edge-src e) o1 "rf" "observe-co-src")
-                             (edge (edge-dst e) o2 "rf" "observe-co-dst")
-                             (edge o1 o2 "po" "observe-po")))
-                          '())) edges)))
-
-      (define (assert-cmp cmp field ed)
-        (let ((f1 (if (pair? field) (car field) field))
-              (f2 (if (pair? field) (cdr field) field))
-              (src (event->symbol (edge-src ed)))
-              (dst (event->symbol (edge-dst ed))))
-          `(assert (,cmp (,f1 ,src) (,f2 ,dst)))))
-
-      (define (assert-diff field ed)
-        (assert-cmp 'distinct field ed))
-
-      (define (assert-same field ed)
-        (assert-cmp '= field ed))
-
-      (define (assert-reading eid)
-        (let ((ev (event->symbol eid)))
-          `(assert (reading (op ,ev)))))
-
-      (define (assert-read eid)
-        (let ((ev (event->symbol eid)))
-          `(assert (= (op ,ev) read))))
-
-      (define (assert-writing eid)
-        (let ((ev (event->symbol eid)))
-          `(assert (writing (op ,ev)))))
-
-      (define (edge-constraints ed edn)
-        (match (edge-type ed)
-               ("rf" (list
-                      (assert-diff 'eid ed)
-                      (assert-diff 'tid ed)
-                      (assert-same 'addr ed)
-                      (assert-same '(wval . rval) ed)
-                      (assert-writing (edge-src ed))
-                      (if (memv (edge-name ed) '("observe-co-src" "observe-co-dst"))
-                          (assert-read (edge-dst ed))
-                          (assert-reading (edge-dst ed)))))
-               ("co" (list
-                      (assert-diff 'eid ed)
-                      (assert-diff 'tid ed)
-                      (assert-same 'addr ed)
-                      (assert-writing (edge-src ed))
-                      (assert-writing (edge-dst ed))))
-               ("po" (list
-                      (assert-diff 'eid ed)
-                      (assert-same 'tid ed)))
-               ("po-data" (list
-                           (assert-diff 'eid ed)
-                           (assert-same 'tid ed)
-                           (assert-same '(rval . wval) ed)
-                           (assert-reading (edge-src ed))
-                           (assert-writing (edge-dst ed))))
-               ("po-addr" (list
-                           (assert-diff 'eid ed)
-                           (assert-same 'tid ed)
-                           (assert-same '(rval . addr) ed)
-                           (assert-reading (edge-src ed))))
-               ("po-ctrl" (list
-                           (assert-diff 'eid ed)
-                           (assert-same 'tid ed)
-                           (assert-diff 'addr ed)
-                           (assert-reading (edge-src ed))
-                           (assert-writing (edge-dst ed))))
-               ("self" (list
-                        `(assert (= ,(car edn) ,(cdr edn)))
-                        (cond ((memv (edge-name ed) '("SC" "REL" "ACQ" "RLX"))
-                               `(assert (= (mark ,(car edn)) ,(edge-name ed))))
-                              ((equal? (edge-name ed) "PLAIN")
-                               `(assert (or (= (op ,(car edn)) R)
-                                            (= (op ,(car edn)) W))))
-                              (else
-                               `(assert (= (op ,(car edn)) ,(edge-name ed)))))))
-
-               (_ (error "unknown edge type" (edge-type ed)))))
-
-      (let* ((edges (append-observers edges))
-             (events (extract-events edges)))
-
-        (print-smt-config)
-        (print-separator "Type definitions")
-        (print-boilerplate)
-
-        (print-separator "Constraints")
-        (for-each (lambda (ev)
-                    (pretty-print `(declare-const ,(event->symbol ev) Event)))
-                  events)
-        (for-each (lambda (ed cnt)
-                    (let ((edn (edge->symbol cnt))
-                          (src (event->symbol (edge-src ed)))
-                          (dst (event->symbol (edge-dst ed)))
-                          (rel (string->symbol (edge-type ed))))
-                      (newline)
-                      (display "; ")
-                      (pretty-print ed)
-                      (pretty-print `(declare-const ,edn Edge))
-                      (pretty-print `(assert (and (= (src ,edn) (eid ,src))
-                                                  (= (dst ,edn) (eid ,dst))
-                                                  (= (rel ,edn) ,rel))))
-                      (apply pretty-print (edge-constraints ed `(,src . ,dst)))))
-                  edges
-                  (seq (length edges)))
-
-        (when is-acyclic
-          (let ((first (event->symbol 0))
-                (last (event->symbol 1)))
-            (print `(assert (= ,first ,last)))))
-
-        (print-separator "Request model from SMT")
-        (print-epilogue (string-append (car args) " " (cadr args)))
-        )))
+  (run (car args) (cadr args))
   0)
 
 (start-command main)
