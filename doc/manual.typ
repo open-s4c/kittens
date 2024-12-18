@@ -184,3 +184,157 @@ witness for any of the kittens, then one or more atomic operations are broken.
 //...
 //
 //= Automating the checks
+
+== Important examples
+
+```
+C empty addr;rf
+Some Very Useful Information
+{
+  v0=addr0;
+  v42=v0;
+}
+
+P0 (int* v0) {
+    int r0 = *v0;
+}
+
+P1 (int* v42, int* v0) {
+    int r0 = *v42;
+    *r0 = 49;
+}
+
+exists (0:r0=49)
+```
+
+```
+
+
+
+C empty rf;data;rf;addr;co
+Some Very Useful Information
+{
+  v32=addr32;
+  v2=addr2;
+  v31=addr31;
+}
+
+P0 (int* v32) {
+    int r0 = atomic_load_explicit((atomic_int *)v32, memory_order_seq_cst);
+    int r1 = atomic_load_explicit((atomic_int *)v32, memory_order_seq_cst);
+}
+
+P1 (int* v32) {
+    *v32 = 30;       // f
+}
+
+P2 (int* v2, int* v32) {
+    int r0 = *v2;    // d
+    *r0 = 37;        // e
+}
+
+P3 (int* v31, int* v2) {
+    int r0 = *v31;    // b
+    *v2 = r0;         // c
+}
+
+P4 (int* v31, int *v32) {
+    *v31 = v32;       // a
+}
+exists (3:r0=v32/\2:r0=v32/\0:r0=37/\0:r1=30)
+```
+
+
+and
+
+```
+C empty data;rf;addr;co
+Some Very Useful Information
+{
+  v0=addr0;
+  v42=v0;
+  v7=addr7;
+}
+
+P0 (int* v0) {
+    int r0 = atomic_load_explicit((atomic_int *)v0, memory_order_seq_cst);
+    int r1 = atomic_load_explicit((atomic_int *)v0, memory_order_seq_cst);
+}
+
+P1 (int* v42, int* v7) {
+    int r0 = *v42; // a
+    *v7 = r0;      // b
+}
+
+P2 (int* v7, int* v0) {
+    int r0 = *v7;  // c
+    *r0 = 18;      // d
+}
+
+P3 (int* v0) {
+    *v0 = 15;      // e
+}
+
+exists (2:r0=v0/\0:r1=15/\0:r0=18)
+```
+
+
+
+== Creating a program out of the kitten
+
+1. recursively create edges based on the kitten
+2. group endpoints of edges as real events (partitions)
+3. each event (partition) has a set of constraints given by the relations to
+   which it participates
+
+4. Now we can create for each event an assert or for each relation an assert.
+
+
+=== what kind of constraints come into play
+
+==== from self-relation over src/dst events
+- src and dst are the same event
+-
+
+
+==== from rf, co, po over src/dst events
+In all these cases, src.eid != dst.eid and
+
+- rf:
+	/\ src.type = writing
+	/\ dst.type = reading
+	/\ src.addr = dst.addr
+
+- co:
+	/\ src.type = writing
+	/\ dst.type = writing
+	/\ src.addr = dst.addr
+
+- po:
+	/\ src.tid = dst.tid
+
+- data:
+	/\ src.tid = dst.tid
+	/\ src.type = reading
+	/\ dst.type = writing
+	/\ src.rval = dst.wval
+	/\ src.addr != dst.addr
+
+- addr:
+	/\ src.tid = dst.tid
+	/\ src.type = reading
+	/\ src.rval = dst.addr
+	/\ src.addr != dst.addr
+
+- ctrl:
+
+
+
+==== events
+
+- reading from rf or from init
+- if RMW write-v != read-v
+
+
+==== for all rf
+
