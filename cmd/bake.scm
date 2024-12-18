@@ -113,26 +113,6 @@
 (define (sort-records event-records-all-groups criteria)
   (map (lambda (event-records-one-group) (sort event-records-one-group (lambda (l r) (< (criteria l) (criteria r))))) event-records-all-groups))
 
-#;(define (prepare-observed-events to-observe)
-    (map (lambda (ev) (event (event-uid ev)
-                             (event-eid ev)
-                             (event-addr ev); tid
-                             (event-co ev) ; in observer thread programme order is same as coherence order
-                             (event-co ev)
-                             (event-addr ev)
-                             (event-val-w ev) ; make the read value be the written value
-                             (event-val-w ev)
-                             (event-val-e ev)
-                             (event-val-d ev)
-                             'read
-                             (event-rmw-type ev)
-                             'SC
-                             'Plain
-                             'false
-                             (event-obs ev)
-                             (event-ass ev)
-                             (event-chain ev)
-                             )) to-observe))
 
 (define (get-event-type event)
   (match (event-marker1 event)
@@ -318,140 +298,6 @@
                            ,(if branch "\n    }" "")
                            ))))
 
-(define (generate-thread-body event-records-per-tid)
-  (apply string-append
-         `(,@(apply append (map (lambda (event)
-                                  (list (print-event event event-records-per-tid) "\n"))
-                                event-records-per-tid)))))
-
-(define (generate-thread-code events-one-tid tid-list)
-  (apply string-append `(
-                         ,(generate-thread-signature events-one-tid tid-list)
-                         " {\n"
-                         ,(generate-thread-body events-one-tid)
-                         "}\n")))
-
-(define (generate-header name events)
-  (apply string-append `(
-                         "C "
-                         ;"\""
-                         ,name
-                         ;"\""
-                         "\n"
-                         "Some Very Useful Information\n"
-                         "{\n"
-                         ,(generate-preamble events)
-                         "}\n\n"
-                         )))
-
-(define (process-events events)
-  (let* ((unique-addrs (unique (map event-addr events)))
-         (events-by-addr (map (lambda (addr)
-                                (filter (lambda (ev) (eq? (event-addr ev) addr)) events))
-                              unique-addrs))
-         (filtered-events (map (lambda (event-list)
-                                 (let ((filtered (filter (lambda (ev)
-                                                           (and (eq? (event-op ev) 'read)
-                                                                (eq? (event-chain ev) 'start-chain)))
-                                                         event-list)))
-                                   (if (null? filtered) event-list filtered)))
-                               events-by-addr)))
-    (map car filtered-events)))
-
-(define (generate-preamble events)
-  ;(let ((addr-normal (unique (filter (lambda (ev) (or (eq? (event-op ev) 'write) (not (eq? (event-chain ev) 'start-chain)))) events)))
-  ;      (addr-fancy (unique (filter (lambda (ev) (and (eq? (event-op ev) 'read) (eq? (event-chain ev) 'start-chain))) events))))
-
-  (let ((events (process-events events)))
-    ;; here check if read/write as well as start-chain.
-    (apply string-append (map (lambda (ev) (string-append
-                                            "  "
-                                            (get-var-name (event-addr ev))
-                                            "="
-                                            (if (and (eq? (event-op ev) 'read)
-                                                     (eq? (event-chain ev) 'start-chain))
-                                                (string-append
-                                                 "v"
-                                                 (number->string (event-val-r ev)))
-                                                (get-init-var-name (event-addr ev)))
-                                            ";\n"
-                                            )) events))
-    ))
-(define (get-event-type-a) (string-append size "* "))
-
-(define (generate-thread-signature event-records-per-tid tid-list)
-  (let ((addresses (unique (map (lambda (ev) (event-addr ev)) event-records-per-tid)))
-        )
-    (apply string-append `(
-                           "P"
-                           ,(get-t-number (event-tid (car event-records-per-tid)) tid-list)
-                           " ("
-                           ,@(map (lambda (addr) (string-append (get-event-type-a)
-                                                                ;"* "
-                                                                (get-var-name addr) ", ")) (but-last addresses))
-                           ,(string-append
-                             (get-event-type-a)
-                             ;"* "
-                             (get-var-name (car (reverse addresses))))
-                           ")"
-                           ))))
-
-(define (generate-assert-one-tid all-events-to-display-one-tid asserted-events-one-tid all-events-to-display-tid-list)
-  `(
-    ,@(map (lambda (asserted-event) (
-                                     apply string-append `(
-                                                           ,(get-t-number (event-tid asserted-event) all-events-to-display-tid-list)
-                                                           ":r"
-                                                           ,(get-read-t-number
-                                                             asserted-event
-                                                             all-events-to-display-one-tid)
-                                                           "="
-                                                           ,(if (eq? (event-chain asserted-event) 'middle-chain) "v" "")
-                                                           ,(number->string
-                                                             (event-val-r asserted-event))
-                                                           )
-                                     )) asserted-events-one-tid))
-  )
-
-(define (generate-assert all-events-to-display-per-tid all-events-to-display-tid-list asserted-events-per-tid asserted-events-tid-list)
-  (let* ((all-reads-per-tid (map (lambda (asserted-events-one-tid)
-                                   (generate-assert-one-tid
-                                    (car (filter (lambda
-                                                   (all-events-to-display-one-tid)
-                                                   (eq? (event-tid (car
-                                                                    all-events-to-display-one-tid))
-                                                        (event-tid (car
-                                                                    asserted-events-one-tid))))
-                                                 all-events-to-display-per-tid))
-                                    asserted-events-one-tid
-                                    all-events-to-display-tid-list)) asserted-events-per-tid)
-                            )
-
-         (all-reads (apply append all-reads-per-tid)))
-    (apply string-append `(
-                           "exists ("
-                           ,(if (> (length all-reads) 1) (apply string-append (map (lambda (read) (string-append read "/\\")) (but-last all-reads))) "")
-                           ,(if (> (length all-reads) 0) (car (reverse all-reads)) "")
-                           ")\n"
-                           ))))
-
-(define (generate-litmus-PC name all-events-to-display-per-tid all-events-to-display-tid-list asserted-events-per-tid asserted-events-tid-list)
-  (apply string-append `(
-                         ,(generate-header name (unique (apply append all-events-to-display-per-tid)))
-                         ,@(apply append (map (lambda (events-one-tid)  (list (generate-thread-code events-one-tid all-events-to-display-tid-list) "\n")) all-events-to-display-per-tid))
-                         ,(generate-assert all-events-to-display-per-tid
-                                           all-events-to-display-tid-list
-                                           asserted-events-per-tid
-                                           asserted-events-tid-list)
-                         )))
-
-(define (unique-events event-records-all)
-  (let* ((eids (unique (map event-eid event-records-all)))
-         (unique-events (map (lambda (eid) (car (filter (lambda (ev) (eq? (event-eid ev) eid)) event-records-all))) eids)))
-    unique-events))
-
-
-
 (define (extract-instances type model)
   (filter values (map (lambda (x)
                         (match x
@@ -476,188 +322,119 @@
   (string-append "if (*" (local-ptr addr) ") "))
 
 
-(define (run file-content)
-  (let ((model-from-file (cons 'model file-content)))
+(define (split-per-process evs)
+  (let iter ((evs evs) (groups '()))
+    (if (null? evs)
+        groups
+        (iter (cdr evs)
+              (let ((ev (car evs)))
+                (if (null? groups)
+                    (list (list ev))
+                    (let* ((group (car groups))
+                           (lastev (car group)))
+                      (if (= (event-tid ev) (event-tid lastev))
+                          (cons (cons ev group) (cdr groups))
+                          (cons (list ev) groups)))))))))
 
-    ;; What we need
-    ;; 1.  All events separated on threads
-    ;; 1.5 List of threads
-    ;; 2.  All observed events separated on address (thread)
-    ;; 2.5 List of addresses of observedd
-    ;; 3.  List of assertions per tid
-    ;; 3.5 List of tid for assertions
+(define (create-litmus model)
+  (let* ((model (cons 'model model))
+         (name (get-test-name model))
+         (po-map (make-hash-table))
+         (addr-dep (make-hash-table))
+         (data-dep (make-hash-table))
+         (ctrl-dep (make-hash-table))
+         (rf-dst '())
+         (edges (extract-instances 'Edge model))
+         (events (extract-instances 'Event model)))
+    (define (resolve-deps ev)
+      (let* ((eid (event-eid ev))
+             (addr (if (hash-table-exists? addr-dep eid)
+                       `(deref 'priv ,(hash-table-ref addr-dep eid))
+                       `(deref 'shrd ,(event-addr ev))))
+             (wval (if (hash-table-exists? data-dep eid)
+                       `(deref 'priv ,(hash-table-ref data-dep eid))
+                       (event-wval ev)))
+             (cnd (if (hash-table-exists? ctrl-dep eid)
+                      `(ifthen (deref 'shrd ,(hash-table-ref ctrl-dep eid)))
+                      #f)))
+        `(code ,cnd ,(event (event-eid ev)
+                            (event-tid ev)
+                            (event-op ev)
+                            addr
+                            (event-rval ev)
+                            wval
+                            (event-mark ev)))))
 
-    (let* ((name (get-test-name model-from-file))
-           ;(event-records-from-file (extract-event-records model-from-file))
-           ;(event-records-all event-records-from-file)
-           ;(cycle-events (unique-events event-records-all))
-
-           ; No duplicate events in event-records
-
-           ;(cycle-events-tid-list (get-tids cycle-events))
-           ;(cycle-events-per-tid (records-per-tid cycle-events cycle-events-tid-list))
-           ; (cycle-events-per-tid-sorted (sort-records events-per-tid event-po))
-
-           ;(observed-events (filter (lambda (ev) (eq? 'true (event-obs ev))) cycle-events))
-           ;(observed-events (prepare-observed-events observed-events))
-
-           ;(observed-events-tid-list (get-tids observed-events))
-           ;(observed-events-per-tid (records-per-tid observed-events observed-events-tid-list))
-
-           ;(all-events-to-display-per-tid (append cycle-events-per-tid observed-events-per-tid))
-           ;(all-events-to-display-per-tid (sort-records all-events-to-display-per-tid event-po))
-           ;(all-events-to-display-per-tid (sort all-events-to-display-per-tid (lambda (l r) (< (event-tid (car l)) (event-tid (car r))))))
-           ;(all-events-tid-list (append cycle-events-tid-list observed-events-tid-list))
-
-           ;(asserted-events-from-rf (filter (lambda (ev) (eq? 'true (event-ass ev))) cycle-events))
-           ;(asserted-events (append asserted-events-from-rf observed-events))
-           ;(asserted-events-tid-list (get-tids asserted-events))
-           #;(asserted-events-per-tid (records-per-tid asserted-events asserted-events-tid-list)))
-
-
-      ;;(pretty-print (extract-instances 'Edge model-from-file))
-      ;;(print "-----#----")
-      ;;(pretty-print (extract-instances 'Event model-from-file))
-
-
-
-      ;;(print "-----###--")
-      (let* ((po-map (make-hash-table))
-             (addr-dep (make-hash-table))
-             (data-dep (make-hash-table))
-             (ctrl-dep (make-hash-table))
-             (rf-dst '())
-             (edges (extract-instances 'Edge model-from-file))
-             (events (extract-instances 'Event model-from-file)))
-
-        ; populate maps and lists
-        (for-each (lambda (e)
-                    (match e
-                           ((_ 'mk-edge 'rf _ dst)
-                            (set! rf-dst (cons dst rf-dst)))
-                           ((_ 'mk-edge type src dst)
-                            (when (memv type '(po po-addr po-data po-ctrl))
-                              (hash-table-set! po-map src dst)
-                              (match type
-                                     ('po-addr (hash-table-set! addr-dep dst src))
-                                     ('po-data (hash-table-set! data-dep dst src))
-                                     ('po-ctrl (hash-table-set! ctrl-dep dst src))
-                                     (_ #f))))
-                           (_ #f)))
-                  edges)
-
-        (let* ((evs (sort events
-                          (lambda (l r)
-                            (let ((src (list-ref l 2))
-                                  (dst (list-ref r 2))
-                                  (stid (list-ref l 3))
-                                  (dtid (list-ref r 3)))
-                              (or (and  (= stid dtid)
-                                        (hash-table-exists? po-map src)
-                                        (= dst (hash-table-ref po-map src)))
-                                  (< stid dtid))))))
-               (uevs (map (lambda (ev) (apply event (cdr ev)))
-                          (unique (map cdr evs)))))
-
-          #;(for-each (lambda (e)
-                        (match (cdr e)
-                               (('mk-event eid tid op addr rval wval)
-                                (pretty-print (cdr e)))
-                               (_ (error "invalid event"))))
-                      evs)
-
-          ;; -------------------------------------------------------------------
-          (define thr 0)
-          (define cur -1)
-
-          (print "C")
-
-          (print "/*")
-          (print evs)
-          (print (map event-tid uevs) (map event-addr uevs))
-
-          (print "*/")
-          (newline)
-
-          (print "{")
-          (let* ((ma (apply max (append (map event-tid uevs) (map event-addr uevs))))
-                 (addrs (map (lambda (i) (string-append "addr" (number->string i))) (seq ma))))
-            (display "\tint priv[")
-            (display ma)
-            (display "] = {")
-            (display (string-join addrs ", "))
-            (print "};")
-
-            (display "\tint shrd[")
-            (display ma)
-            (display "] = {")
-            (display (string-join addrs ", "))
-            (print "};"))
-          (print "}")
-          (newline)
-
-          (for-each (lambda (e)
-                      (match e
-                             (('mk-event eid tid op addr rval wval mark)
-                              (cond
-                                ((= cur -1)
-                                 (set! cur tid)
-                                 (print "P" thr " (int *priv, int *shrd) {"))
-                                ((not (= cur tid))
-                                 (set! cur tid)
-                                 (set! thr (+ 1 thr))
-                                 (print "}")
-                                 (print "P" thr " (int *priv, int *shrd) {")))
-
-                              (let ((addr (if (hash-table-exists? addr-dep eid)
-                                              (local-ptr (hash-table-ref addr-dep eid))
-                                              (shared-ptr addr)))
-                                    (wval (if (hash-table-exists? data-dep eid)
-                                              (local-ptr (hash-table-ref data-dep eid))
-                                              wval))
-                                    (cnd (if (hash-table-exists? ctrl-dep eid)
-                                             (cond-on (hash-table-ref ctrl-dep eid))
-                                             "")))
-                                ;(display (string-append "T" (number->string tid) ":\t"))
-                                (display "\t")
-                                (match op
-                                       ;;('write (print cnd "WRITE(" addr ", " wval ");"))
-                                       ('write (print cnd "*" addr " = " wval ";"))
-                                       ;;('read (print cnd "local[" eid "] = READ(" addr ");"))
-                                       ('read (print cnd "*(priv + " eid ") = *" addr ";"))
-                                       ;;('rmw (print cnd "local[" eid "] = RMW(" addr ", " wval ");"))
-                                       ('xchg (print cnd "*(priv + " eid ") = atomic_exchange(" addr ", " wval ");"))
-                                       (_ (error "invalid event")))))))
-                    (unique (map cdr evs)))
-          (when (not (null? evs))
-            (print "}"))
-
-          ; created the events of each thread, now let's create the exists
-          (display "exists (")
-          ;
-          (let* ((rf-evs (filter (lambda (ev)
-                                   (match (cdr ev)
-                                          (('mk-event eid tid _ addr rval wval mark)
-                                           (member eid rf-dst))
-                                          (_ #f))) evs))
-                 (asserts (map (lambda (ev)
-                                 (match (cdr ev)
-                                        (('mk-event eid tid _ addr rval wval mark)
-                                         (string-append "priv[" (number->string eid) "] == " (number->string rval)))))
-                               rf-evs)))
-            (display (string-join asserts "\n\t/\\ ")))
-          (display ")")
-          (newline)
-
-          ))
+    ; populate maps and lists
+    (for-each (lambda (e)
+                (match e
+                       ((_ 'mk-edge 'rf _ dst)
+                        (set! rf-dst (cons dst rf-dst)))
+                       ((_ 'mk-edge type src dst)
+                        (when (memv type '(po po-addr po-data po-ctrl))
+                          (hash-table-set! po-map src dst)
+                          (match type
+                                 ('po-addr (hash-table-set! addr-dep dst src))
+                                 ('po-data (hash-table-set! data-dep dst src))
+                                 ('po-ctrl (hash-table-set! ctrl-dep dst src))
+                                 (_ #f))))
+                       (_ #f)))
+              edges)
 
 
-      #;(display (generate-litmus-PC
-                  name
-                  '() ;all-events-to-display-per-tid
-                  '() ;all-events-tid-list
-                  '() ;asserted-events-per-tid
-                  '() #;asserted-events-tid-list)))))
+    ;; extract events
+    (let* ((evs (sort events
+                      (lambda (l r)
+                        (let ((src (list-ref l 2))
+                              (dst (list-ref r 2))
+                              (stid (list-ref l 3))
+                              (dtid (list-ref r 3)))
+                          (or (and  (= stid dtid)
+                                    (hash-table-exists? po-map src)
+                                    (= dst (hash-table-ref po-map src)))
+                              (< stid dtid))))))
+           (uevs (map (lambda (ev) (apply event (cdr ev)))
+                      (unique (map cdr evs))))
+           (thr 0)
+           (process-id (let ((pid-count 0))
+                         (lambda ()
+                           (let ((cur pid-count))
+                             (set! pid-count (+ 1 cur))
+                             cur)))))
+
+      ; litmus structure
+      `(litmus
+        (header "C")
+
+        (comments
+         (print evs)
+         (print (map event-tid uevs) (map event-addr uevs)))
+
+        (initialization
+         ,@(let* ((ma (apply max (append (map event-tid uevs) (map event-addr uevs))))
+                  (addrs (map (lambda (i) (string-append "addr" (number->string i))) (seq ma))))
+             (list `(declare-array "priv" ,ma)
+                   `(declare-array "shrd" ,ma))))
+
+        ,@(let* ((processes (split-per-process uevs)))
+            (map (lambda (p)
+                   `(process (id ,(process-id))
+                             (signature (priv shrd))
+                             ,@(map resolve-deps p)))
+                 processes))
+
+        ; created the events of each thread, now let's create the exists
+        (exists
+         ,(let* ((rf-evs ; select only events that are dst of rf edges
+                  (filter (lambda (ev) (member (event-eid ev) rf-dst)) uevs)))
+
+            ; create assertions for each of them based on priv memory
+            (map (lambda (ev) `(= (priv ,(event-eid ev)) ,(event-rval ev)))
+                 rf-evs)))))))
+
+(define (run3 x)
+  (pretty-print (create-litmus x)))
+
 
 (define (main args)
   (die-unless (= (length args) 1) "model file missing")
@@ -667,7 +444,7 @@
                            (begin (read) (read))
                            (with-input-from-file fn
                             (lambda () (read) (read))))))
-    (run file-content))
+    (run3 file-content))
   0)
 
 (start-command main)

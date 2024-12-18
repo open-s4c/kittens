@@ -338,3 +338,137 @@ In all these cases, src.eid != dst.eid and
 
 ==== for all rf
 
+
+
+
+;; Observer threads can only observe writes that are adjacent to co edges
+;; First we collect all events that are either the src or dst of a co edge
+;; Then we propagate to all events with the same eid based on the eid-partition
+#;(define (update-co-properties events group-mates edges)
+
+    ;; Initialize list for "co" events
+    (define co-events '())
+
+    ;; Property map for "co" edges
+    (define (property-map co-events ev)
+      (if (member ev co-events) #t #f))
+
+    ;; Helper function to find to which eid group an event belongs to
+    (define (find-group event groups)
+      (filter (lambda (group) (member event group)) groups))
+
+    ;; Collecting affected events based on "co" edges
+    (for-each (lambda (edge)
+                (let ((src (edge-src edge))
+                      (dst (edge-dst edge))
+                      (type (edge-type edge)))
+                  (when (equal? type "co")
+                    (set! co-events (cons src (cons dst co-events))))))
+              edges)
+
+    ;; Collect all affected "co" group-mates
+    (let ((all-co (apply append (map (lambda (co-ev) (car (find-group co-ev group-mates))) co-events))))
+      (map (lambda (ev) (cons ev (property-map all-co ev))) events)))
+
+;; In exists condition we should only assert reads that are dst of rf edges
+;; First we collect all events that are dst of a rf edge
+;; Then we propagate to all events with the same eid based on the eid-partition
+#;(define (update-rf-properties events group-mates edges)
+
+    ;; Initialize list for "rf" events
+    (define rf-events '())
+
+    ;; Property map for "rf" edges
+    (define (property-map rf-events ev)
+      (if (member ev rf-events) #t #f))
+
+    ;; Helper function to find to which eid group an event belongs to
+    (define (find-group event groups)
+      (filter (lambda (group) (member event group)) groups))
+
+    ;; Collecting affected events based on "rf" edges
+    (for-each (lambda (edge)
+                (let ((dst (edge-dst edge))
+                      (type (edge-type edge)))
+                  (when (equal? type "rf")
+                    (set! rf-events (cons dst rf-events)))))
+              edges)
+    ;(print rf-events)
+    ;; Collect all affected "rf" group-mates
+    (let ((all-rf (apply append (map (lambda (rf-ev) (car (find-group rf-ev
+                                                                      group-mates))) rf-events))))
+      (map (lambda (ev) (cons ev (property-map all-rf ev))) events)))
+
+
+;; Different events write/read from different locations based on their types and edges they are connected to
+;; This information is stored in the arg field
+;; If an event comes after a data edge it has the data arg
+;; If an event comes after an addr edge it has the addr arg
+;; If an event comes after the first part of a ctrl (ctrl-a) it has the ctrl arg
+
+;; First we collect all events that are dst of data/addr/ctrl edges
+;; Then we propagate to all events with the same eid b ased on the eid-partition
+#;(define (update-dep-properties events group-mates edges)
+
+    ;; Initialize lists for different properties
+    (define data-events '())
+    (define addr-events '())
+    (define ctrl-events '())
+
+    ;; Propert map that tells us to what arg each event is mapped
+    (define (property-map data-events addr-events ctrl-events ev)
+      (cond
+        ((member ev data-events) "data")
+        ((member ev addr-events) "addr")
+        ((member ev ctrl-events) "ctrl")
+        (else "reg")))
+
+    ;; Helper function to find to which eid group an event belongs to
+    (define (find-group event groups)
+      (filter (lambda (group) (member event group)) groups))
+
+    ;; Collecting affected events based on edge types
+    (for-each (lambda (edge)
+                (let ((dst (edge-dst edge))
+                      (type (edge-type edge)))
+                  (cond
+                    ((equal? type "data-dep")
+                     (set! data-events (cons dst data-events)))
+                    ((equal? type "addr-dep")
+                     (set! addr-events (cons dst addr-events)))
+                    ((equal? type "ctrl-a-dep")
+                     (set! ctrl-events (cons dst ctrl-events))))))
+              edges)
+
+    ;; We propagate affected events' arguments to all events with the same eid
+    (let ((all-data (apply append (map (lambda (data-ev) (car (find-group data-ev group-mates))) data-events)))
+          (all-addr (apply append (map (lambda (addr-ev) (car (find-group addr-ev group-mates))) addr-events)))
+          (all-ctrl (apply append (map (lambda (ctrl-ev) (car (find-group ctrl-ev group-mates))) ctrl-events))))
+      (map (lambda (ev) (cons ev (property-map all-data all-addr all-ctrl ev))) events)))
+
+
+;; Edges of the form [X] connect an event with its self therefore they have the same eid
+;; If the acyclic keyword is used, the first and last event have the same eid
+;; We get the eid groups after performing simple uf
+;; The we collect all pairs of rf edges
+;; Finally, we use the rf-uf procedure to get the eid-partition of all events
+#;(define (get-eid-partition events edges is-acyclic)
+    (let* ((same-eid-sets (get-same-eid-set edges))
+           (same-eid (if is-acyclic (append same-eid-sets (list (list 1 0))) same-eid-sets))
+           (groups (simple-uf (map list events) same-eid))
+           (rf-pairs (get-rf-pairs edges))
+           (groups (rf-uf groups rf-pairs)))
+      groups))
+
+;; Helper method to get all pairs of rf edges
+;; First we collect all edges with type rf
+;; We transform them in a simplified form (we only care about src and dst)
+;; We get all pairs
+#;(define (get-rf-pairs edges)
+    (let* ((rf-edges (filter (lambda (edge) (equal? (edge-type edge) "rf")) edges))
+           (rf-edges (map (lambda (e) (list (edge-src e) (edge-dst e))) rf-edges))
+           (rf-pairs (all-pairs rf-edges))
+           (rf-pairs (map (lambda (pair) (list (list (cadar pair) (cadadr pair)) (list (caar pair) (caadr pair)))) rf-pairs)))
+      rf-pairs
+      ))
+
