@@ -60,13 +60,12 @@
 (define (but-last xs) (reverse (cdr (reverse xs))))
 
 (define (extract-instances type model)
-  (filter values (map (lambda (x)
-                        (match x
-                               (('define-fun name _ T val)
-                                (if (eq? T type)
-                                    (cons name val)
-                                    #f))
-                               (_ #f))) model)))
+  (filter values
+          (map (lambda (x)
+                 (match x
+                        (('define-fun name _ T val)
+                         (if (eq? T type) (cons name val) #f))
+                        (_ #f))) model)))
 
 (define (shared-ptr addr)
   (string-append "(shrd + " (number->string addr) ")"))
@@ -77,6 +76,8 @@
 (define (cond-on addr)
   (string-append "if (*" (local-ptr addr) ") "))
 
+(define (value-name val)
+  (string-append "v" (number->string val)))
 
 ; ------------------------------------------------------------------------------
 ; generator
@@ -158,8 +159,7 @@
             (map (lambda (events)
                    (sort events
                          (lambda (l r)
-                           (let ((eid-l (event-eid l))
-                                 (eid-r (event-eid r)))
+                           (let ((eid-l (event-eid l)) (eid-r (event-eid r)))
                              (and (hash-table-exists? po-map eid-l)
                                   (= eid-r (hash-table-ref po-map eid-l)))))))
                  (split-per-process uevs))))
@@ -171,8 +171,11 @@
         (comments)
 
         (initialization
-         ,@(let* ((ma (apply max (append (map event-tid uevs)
-                                         (map event-addr uevs))))
+         ,@(let* ((ma (apply max (append
+                                  (map event-wval uevs)
+                                  (map event-rval uevs)
+                                  (map event-tid uevs)
+                                  (map event-addr uevs))))
                   (addrs (map (lambda (i)
                                 (string-append "addr" (number->string i)))
                               (seq ma))))
@@ -196,7 +199,7 @@
              ; create assertions for each of them based on priv memory
              (map (lambda (ev)
                     `(exists= '(deref/array priv ,(event-eid ev))
-                              '(number->string ,(event-rval ev))))
+                              ',(value-name (event-rval ev))))
                   rf-evs)))))))
 
 ; ------------------------------------------------------------------------------
@@ -205,11 +208,10 @@
 (define-syntax declare-array
   (syntax-rules ()
     ((declare-array NAME LEN)
-     (let ((vals (string-join (map string-append
-                                   (make-list LEN "a")
-                                   (map number->string (seq LEN)))
-                              ",")))
-       (string-append "int " NAME "[" (number->string LEN) "] = {" vals "};")))))
+     (let* ((vals (map value-name (seq LEN)))
+            (vals (string-join vals ",")))
+       (string-append "\tint " NAME
+                      "[" (number->string LEN) "] = {" vals "};")))))
 
 (define-syntax ref
   (syntax-rules ()
@@ -234,12 +236,14 @@
 
 (define (eval-rval ev)
   (let ((rval (eval (event-rval ev))))
-    (if (number? rval) (number->string rval)
+    (if (number? rval)
+        (value-name rval)
         rval)))
 
 (define (eval-wval ev)
   (let ((wval (eval (event-wval ev))))
-    (if (number? wval) (number->string wval)
+    (if (number? wval)
+        (value-name wval)
         wval)))
 
 (define (eval-mo mo)
@@ -284,8 +288,8 @@
            (eval-wval ev) ", "
            (eval-mo mo) ")"))
 
-         ((cons 'XCHG _) (event-mark ev))
-         (_ (error "unexpected event" (cons (event-op ev) (event-mark ev))))))
+         (_ (error "unexpected event"
+                   (cons (event-op ev) (event-mark ev))))))
 
 (define (string-line ev . xs)
   (apply string-append
@@ -307,8 +311,7 @@
        (display (number->string ID))
        (display " (int *priv, int *shrd) ")
        (print "{")
-       (print CODE)
-       ...
+       (print CODE) ...
        (print "}")
        (newline)))))
 
@@ -317,10 +320,7 @@
     ((initialization DECL ...)
      (begin
        (print "{")
-       (begin
-         (display "\t")
-         (print DECL))
-       ...
+       (print DECL) ...
        (print "}")
        (newline)))))
 
@@ -335,19 +335,18 @@
 (define-syntax header
   (syntax-rules ()
     ((header txt)
-     (begin (print txt)
-            (newline)))))
+     (begin (print txt) (newline)))))
 
 (define-syntax exists=
   (syntax-rules ()
     ((exists= A B)
-     (print "\t/\\ " (eval A) " = " (eval B)))))
+     (print "\t/\\ " (eval A) " == " (eval B)))))
 
 (define-syntax exists
   (syntax-rules ()
     ((exists PRED ...)
      (begin
-       (print "exists ( 1=1")
+       (print "exists (1==1")
        PRED ...
        (print ")")
        (newline)))))
