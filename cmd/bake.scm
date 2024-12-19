@@ -2,6 +2,7 @@
 (import (scheme base)
         (scheme file)
         (scheme read)
+        (scheme eval)
         (srfi 1)
         (srfi 69) ; hash
         (srfi 95) ; sort
@@ -16,23 +17,28 @@
 
 (define size (if size_flag "int" "long"))
 
-(define explicit-init-events #t)
-
-(define in-branch #f)
-
-(define (get-in-branch)
-  (if in-branch
-      (begin
-        (set! in-branch #f)
-        #t)
-      #f))
-
 (define (usage)
-  (print "roast <z3 model>"))
+  (print "bake <z3 model>"))
 
+; ------------------------------------------------------------------------------
+; main
+; ------------------------------------------------------------------------------
+(define (main args)
+  (die-unless (= (length args) 1) "model file missing")
+
+  (let* ((fn (car args))
+         (file-content (if (equal? "-in" fn)
+                           (begin (read) (read))
+                           (with-input-from-file fn
+                            (lambda () (read) (read))))))
+    (run3 file-content))
+  0)
+
+; ------------------------------------------------------------------------------
+; support
+; ------------------------------------------------------------------------------
 (define-record-type
   event-record
-  ;  (event uid eid tid po co addr val-r val-w val-e val-d op rmw-type marker1 marker2 arg obs ass chain)
   (event eid tid op addr rval wval mark)
   event?
   (eid event-eid)
@@ -43,16 +49,6 @@
   (wval event-wval)
   (mark event-mark))
 
-(define (extract-event-records expr)
-  (match expr
-         (('model . defs)
-          (apply append (map extract-event-records defs)))
-         (('define-fun _ _ 'Event ev)
-          (extract-event-records ev))
-         (('mk-event . fields)
-          (list (apply event fields)))
-         (else '())))
-
 (define (get-test-name expr)
   (match expr
          (('model . defs)
@@ -61,242 +57,7 @@
           str)
          (else "")))
 
-(define (count predicate collection)
-  (let loop ((coll collection) (cnt 0))
-    (cond
-      ((null? coll) cnt)
-      ((predicate (car coll))
-       (loop (cdr coll) (+ 1 cnt)))
-      (else
-       (loop (cdr coll) cnt)))))
-
 (define (but-last xs) (reverse (cdr (reverse xs))))
-
-(define (get-tids event-records)
-  (unique (map (lambda (x) (event-tid x)) event-records)))
-
-(define (get-write-addresses event-writes)
-  (unique (map (lambda (x) (event-addr x)) event-writes)))
-
-(define (records-per-tid event-records tids)
-  (map (lambda (tid)
-         (filter (lambda (event-record)
-                   (eq? (event-tid event-record) tid))
-                 event-records))
-       tids))
-
-(define (get-writes-per-addr write-events write-addresses)
-  (map (lambda (address)
-         (filter (lambda (event-record)
-                   (eq? (event-addr event-record) address))
-                 write-events))
-       write-addresses))
-
-(define (get-t-number tid tid-list)
-  (number->string (count (lambda (t) (< t tid)) tid-list)))
-
-(define (get-read-t-number event event-records-per-tid)
-  (number->string (
-                   count (lambda (ev) (and (or (eq? (event-op ev) 'read-modify-write) (eq? (event-op
-                                                                                            ev) 'read)) (< (event-po ev) (event-po event)))) event-records-per-tid)))
-
-(define (get-temp-t-number event event-records-per-tid)
-  (number->string (
-                   count (lambda (ev) (and (eq? (event-rmw-type ev) 'CAS) (< (event-po ev) (event-po event)))) event-records-per-tid)))
-
-(define (get-var-name addr)
-  (string-append "v" (number->string addr)))
-
-(define (get-init-var-name addr)
-  (string-append "addr" (number->string addr)))
-
-(define (sort-records event-records-all-groups criteria)
-  (map (lambda (event-records-one-group) (sort event-records-one-group (lambda (l r) (< (criteria l) (criteria r))))) event-records-all-groups))
-
-
-(define (get-event-type event)
-  (match (event-marker1 event)
-         ('Plain (string-append "volatile " size))
-         (else (string-append "atomic_" size))))
-
-(define (get-mem-order event number)
-  (let ((getter (if (= number 1) event-marker1 event-marker2)))
-    (match (getter event)
-           ('RLX "memory_order_relaxed")
-           ('REL "memory_order_release")
-           ('SC "memory_order_seq_cst")
-           ('REL-ACQ "memory_order_acq_rel")
-           ('ACQ "memory_order_acquire")
-           (else "LALALALLA"))))
-
-(define (get-read-loc event event-records-per-tid)
-  (if (or (eq? (event-arg event) 'addr)
-          (eq? (event-arg event) 'ctrl))
-      (string-append
-       (if (eq? 'Plain (event-marker1 event))
-           ;(string-append "(" size " *)r")
-           (string-append "r")
-           (string-append "(atomic_" size " *)r")
-           )
-       (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
-      (string-append
-       (if (eq? 'Plain (event-marker1 event))
-           ""
-           (string-append "(atomic_" size " *)")
-           )
-       (get-var-name (event-addr event)))))
-
-(define (get-write-val event event-records-per-tid)
-  (if (and (eq? (event-op event) 'write)
-           (eq? (event-chain event) 'start-chain))
-      (string-append
-       "v"
-       (number->string (event-val-w event)))
-      (if (or (eq? (event-arg event) 'data)
-              (eq? (event-arg event) 'ctrl))
-          (string-append
-           "r"
-           (number->string (- (string->number (get-read-t-number event event-records-per-tid)) 1)))
-          (number->string (event-val-w event))
-          )
-      )
-  )
-
-(define (print-event-read event event-records-per-tid)
-  (match (event-marker1 event)
-         ('Plain
-          (string-append
-           (string-append size " r")
-           (get-read-t-number event event-records-per-tid)
-           " = *"
-           (get-read-loc event event-records-per-tid)
-           ";"
-           ))
-
-         (else
-          (string-append
-           (string-append size " r")
-           (get-read-t-number event event-records-per-tid)
-           " = atomic_load_explicit("
-           (get-read-loc event event-records-per-tid)
-           ", "
-           (get-mem-order event 1)
-           ");"
-           ))))
-
-(define (print-event-write event event-records-per-tid)
-  (match (event-marker1 event)
-         ('Plain
-          (string-append
-           "*"
-           (get-read-loc event event-records-per-tid)
-           " = "
-           (get-write-val event event-records-per-tid)
-           ";"
-           ))
-         (else
-          (string-append
-           "atomic_store_explicit("
-           (get-read-loc event event-records-per-tid)
-           ", "
-           (get-write-val event event-records-per-tid)
-           ", "
-           (get-mem-order event 1)
-           ");"
-           ))))
-
-
-(define (print-event-RMW event event-records-per-tid)
-  (match (event-rmw-type event)
-         ('XCHG
-          (print-event-XCHG event event-records-per-tid))
-         ('FAA
-          (print-event-FAA event event-records-per-tid))
-         ('CAS
-          (print-event-CAS event event-records-per-tid))))
-
-(define (print-event-XCHG event event-records-per-tid)
-  (string-append
-   (string-append size " r")
-   (get-read-t-number event event-records-per-tid)
-   " = atomic_exchange_explicit("
-   (get-read-loc event event-records-per-tid)
-   ", "
-   (get-write-val event event-records-per-tid)
-   ","
-   (get-mem-order event 1)
-   ");"
-   ))
-
-(define (print-event-FAA event event-records-per-tid)
-  "")
-
-(define (print-event-CAS event event-records-per-tid)
-  (string-append
-   (string-append size " temp_e")
-   (get-temp-t-number event event-records-per-tid)
-   " = "
-   ;(if (eq? 'addr (event-arg event))
-   ;(string-append "*" (get-read-loc event event-records-per-tid))
-   (number->string (event-val-e event))
-   ;)
-   ";\n    "
-   "atomic_compare_exchange_strong_explicit("
-   (get-read-loc event event-records-per-tid)  ; obj
-   ", &temp_e"				       ; expected
-   (get-temp-t-number event event-records-per-tid)
-   ;(get-write-val event event-records-per-tid)
-   ", "
-   (if (eq? 'data (event-arg event))
-       (get-write-val event event-records-per-tid)
-       (number->string (event-val-d event))        ; desired
-       )
-   ", "
-   (get-mem-order event 1)
-   ", "
-   (get-mem-order event 2)
-   ");\n    "
-   (string-append size " r")
-   (get-read-t-number event event-records-per-tid)
-   " = temp_e"
-   (get-temp-t-number event event-records-per-tid)
-   ";"
-   ))
-
-(define (print-event-branch event event-records-per-tid)
-  (begin
-    (set! in-branch #t)
-    (string-append
-     "if ("
-     (get-read-loc event event-records-per-tid)
-     ") {"
-     )))
-
-(define (print-event-fence event)
-  (string-append
-   "atomic_thread_fence("
-   (get-mem-order event 1)
-   ");"
-   ))
-
-(define (print-event event event-records-per-tid)
-  (let ((branch (get-in-branch)))
-    (apply string-append `(
-                           ,(if branch "    " "")
-                           "    "
-                           ,(match (event-op event)
-                                   ('read
-                                    (print-event-read event event-records-per-tid))
-                                   ('write
-                                    (print-event-write event event-records-per-tid))
-                                   ('fence
-                                    (print-event-fence event))
-                                   ('branch
-                                    (print-event-branch event event-records-per-tid))
-                                   (else
-                                    (print-event-RMW event event-records-per-tid)))
-                           ,(if branch "\n    }" "")
-                           ))))
 
 (define (extract-instances type model)
   (filter values (map (lambda (x)
@@ -306,11 +67,6 @@
                                     (cons name val)
                                     #f))
                                (_ #f))) model)))
-
-(define (sort-records event-records-all-groups criteria)
-  (map (lambda (event-records-one-group)
-         (sort event-records-one-group
-               (lambda (l r) (< (criteria l) (criteria r))))) event-records-all-groups))
 
 (define (shared-ptr addr)
   (string-append "(shrd + " (number->string addr) ")"))
@@ -322,6 +78,9 @@
   (string-append "if (*" (local-ptr addr) ") "))
 
 
+; ------------------------------------------------------------------------------
+; generator
+; ------------------------------------------------------------------------------
 (define (split-per-process evs)
   (let iter ((evs evs) (groups '()))
     (if (null? evs)
@@ -346,16 +105,17 @@
          (rf-dst '())
          (edges (extract-instances 'Edge model))
          (events (extract-instances 'Event model)))
+
     (define (resolve-deps ev)
       (let* ((eid (event-eid ev))
              (addr (if (hash-table-exists? addr-dep eid)
-                       `(deref 'priv ,(hash-table-ref addr-dep eid))
-                       `(deref 'shrd ,(event-addr ev))))
+                       `(ref priv ,(hash-table-ref addr-dep eid))
+                       `(ref shrd ,(event-addr ev))))
              (wval (if (hash-table-exists? data-dep eid)
-                       `(deref 'priv ,(hash-table-ref data-dep eid))
+                       `(deref priv ,(hash-table-ref data-dep eid))
                        (event-wval ev)))
              (cnd (if (hash-table-exists? ctrl-dep eid)
-                      `(ifthen (deref 'shrd ,(hash-table-ref ctrl-dep eid)))
+                      `(onlyif (deref shrd ,(hash-table-ref ctrl-dep eid)))
                       #f)))
         `(code ,cnd ,(event (event-eid ev)
                             (event-tid ev)
@@ -383,40 +143,43 @@
 
 
     ;; extract events
-    (let* ((evs (sort events
-                      (lambda (l r)
-                        (let ((src (list-ref l 2))
-                              (dst (list-ref r 2))
-                              (stid (list-ref l 3))
-                              (dtid (list-ref r 3)))
-                          (or (and  (= stid dtid)
-                                    (hash-table-exists? po-map src)
-                                    (= dst (hash-table-ref po-map src)))
-                              (< stid dtid))))))
-           (uevs (map (lambda (ev) (apply event (cdr ev)))
-                      (unique (map cdr evs))))
-           (thr 0)
-           (process-id (let ((pid-count 0))
+    (let* ((process-id (let ((pid-count 0))
                          (lambda ()
                            (let ((cur pid-count))
                              (set! pid-count (+ 1 cur))
-                             cur)))))
+                             cur))))
+
+           (evs (sort events (lambda (l r) (> (list-ref l 3) (list-ref r 3)))))
+           (uevs (map (lambda (ev) (apply event (cdr ev)))
+                      (unique (map cdr evs))))
+
+           ; split events in per-thread group, sort events within threads
+           (events-per-thread
+            (map (lambda (events)
+                   (sort events
+                         (lambda (l r)
+                           (let ((eid-l (event-eid l))
+                                 (eid-r (event-eid r)))
+                             (and (hash-table-exists? po-map eid-l)
+                                  (= eid-r (hash-table-ref po-map eid-l)))))))
+                 (split-per-process uevs))))
 
       ; litmus structure
       `(litmus
-        (header "C")
+        (header ,(string-append "C \"" name "\""))
 
-        (comments
-         (print evs)
-         (print (map event-tid uevs) (map event-addr uevs)))
+        (comments)
 
         (initialization
-         ,@(let* ((ma (apply max (append (map event-tid uevs) (map event-addr uevs))))
-                  (addrs (map (lambda (i) (string-append "addr" (number->string i))) (seq ma))))
+         ,@(let* ((ma (apply max (append (map event-tid uevs)
+                                         (map event-addr uevs))))
+                  (addrs (map (lambda (i)
+                                (string-append "addr" (number->string i)))
+                              (seq ma))))
              (list `(declare-array "priv" ,ma)
                    `(declare-array "shrd" ,ma))))
 
-        ,@(let* ((processes (split-per-process uevs)))
+        ,@(let* ((processes events-per-thread))
             (map (lambda (p)
                    `(process (id ,(process-id))
                              (signature (priv shrd))
@@ -425,26 +188,183 @@
 
         ; created the events of each thread, now let's create the exists
         (exists
-         ,(let* ((rf-evs ; select only events that are dst of rf edges
-                  (filter (lambda (ev) (member (event-eid ev) rf-dst)) uevs)))
+         ,@(let* ((rf-evs ; select only events that are dst of rf edges
+                   (filter (lambda (ev)
+                             (member (event-eid ev) rf-dst))
+                           uevs)))
 
-            ; create assertions for each of them based on priv memory
-            (map (lambda (ev) `(= (priv ,(event-eid ev)) ,(event-rval ev)))
-                 rf-evs)))))))
+             ; create assertions for each of them based on priv memory
+             (map (lambda (ev)
+                    `(exists= '(deref/array priv ,(event-eid ev))
+                              '(number->string ,(event-rval ev))))
+                  rf-evs)))))))
+
+; --------------------
+; syntax
+; --------------------
+(define-syntax declare-array
+  (syntax-rules ()
+    ((declare-array NAME LEN)
+     (let ((vals (string-join (map string-append
+                                   (make-list LEN "a")
+                                   (map number->string (seq LEN)))
+                              ",")))
+       (string-append "int " NAME "[" (number->string LEN) "] = {" vals "};")))))
+
+(define-syntax ref
+  (syntax-rules ()
+    ((ref VAR IDX)
+     (begin
+       (string-append (symbol->string 'VAR) " + "
+                      (number->string IDX))))))
+
+(define-syntax deref/array
+  (syntax-rules ()
+    ((deref/array VAR IDX)
+     (begin
+       (string-append (symbol->string 'VAR) "["
+                      (number->string IDX) "]")))))
+
+(define-syntax deref
+  (syntax-rules ()
+    ((deref VAR IDX)
+     (string-append "*(" (ref VAR IDX)  ")"))
+    ((deref STR)
+     (string-append "*(" STR ")"))))
+
+(define (eval-rval ev)
+  (let ((rval (eval (event-rval ev))))
+    (if (number? rval) (number->string rval)
+        rval)))
+
+(define (eval-wval ev)
+  (let ((wval (eval (event-wval ev))))
+    (if (number? wval) (number->string wval)
+        wval)))
+
+(define (eval-mo mo)
+  (match mo
+         ('SC "memory_order_seq_cst")
+         ('REL "memory_order_release")
+         ('ACQ "memory_order_acquire")
+         ('RLX "memory_order_relaxed")
+         (_ (error "unexpected memory order" mo))))
+
+(define (pevent ev)
+  (match (cons (event-op ev) (event-mark ev))
+         ('(R . Plain)
+          (string-append
+           (deref priv (event-eid ev)) " = "
+           (deref (eval (event-addr ev)))))
+
+         (`(R . ,mo)
+          (string-append
+           (deref priv (event-eid ev)) " = "
+           "atomic_load_explicit("
+           (eval (event-addr ev)) ", "
+           (eval-mo mo) ")"))
+
+         ('(W . Plain)
+          (string-append
+           (eval (event-addr ev)) " = "
+           (eval-wval ev)))
+
+         (`(W . ,mo)
+          (string-append
+           "atomic_store_explicit("
+           (eval (event-addr ev)) ", "
+           (eval-wval ev) ", "
+           (eval-mo mo) ")"))
+
+         (`(XCHG . ,mo)
+          (string-append
+           (deref priv (event-eid ev)) " = "
+           "atomic_exchange_explicit("
+           (eval (event-addr ev)) ", "
+           (eval-wval ev) ", "
+           (eval-mo mo) ")"))
+
+         ((cons 'XCHG _) (event-mark ev))
+         (_ (error "unexpected event" (cons (event-op ev) (event-mark ev))))))
+
+(define (string-line ev . xs)
+  (apply string-append
+         #;(string-append "E" (number->string (event-eid ev)) ":")
+         "\t" xs))
+
+(define-syntax code
+  (syntax-rules ()
+    ((code #f EVENT)
+     (string-line EVENT (pevent EVENT) ";"))
+    ((code (onlyif CND) EVENT)
+     (string-line EVENT "if (" CND ") " (pevent EVENT) ";"))))
+
+(define-syntax process
+  (syntax-rules ()
+    ((process (id ID) SIG CODE ...)
+     (begin
+       (display "P")
+       (display (number->string ID))
+       (display " (int *priv, int *shrd) ")
+       (print "{")
+       (print CODE)
+       ...
+       (print "}")
+       (newline)))))
+
+(define-syntax initialization
+  (syntax-rules ()
+    ((initialization DECL ...)
+     (begin
+       (print "{")
+       (begin
+         (display "\t")
+         (print DECL))
+       ...
+       (print "}")
+       (newline)))))
+
+(define (comments . xs)
+  (when (not (null? xs))
+    (print "/*")
+    (for-each print xs)
+    (print "*/")
+    (newline)))
+
+
+(define-syntax header
+  (syntax-rules ()
+    ((header txt)
+     (begin (print txt)
+            (newline)))))
+
+(define-syntax exists=
+  (syntax-rules ()
+    ((exists= A B)
+     (print "\t/\\ " (eval A) " = " (eval B)))))
+
+(define-syntax exists
+  (syntax-rules ()
+    ((exists PRED ...)
+     (begin
+       (print "exists ( 1=1")
+       PRED ...
+       (print ")")
+       (newline)))))
+
+(define-syntax litmus
+  (syntax-rules ()
+    ((litmus ID COMMENTS INIT PROC ... EXISTS)
+     (begin ID COMMENTS INIT PROC ... EXISTS))))
+
 
 (define (run3 x)
-  (pretty-print (create-litmus x)))
+  (let ((litmus (create-litmus x)))
+    ;(pretty-print litmus)
+    (eval litmus)))
 
-
-(define (main args)
-  (die-unless (= (length args) 1) "model file missing")
-
-  (let* ((fn (car args))
-         (file-content (if (equal? "-in" fn)
-                           (begin (read) (read))
-                           (with-input-from-file fn
-                            (lambda () (read) (read))))))
-    (run3 file-content))
-  0)
+; ------------------------------------------------------------------------------
+; end
+; ------------------------------------------------------------------------------
 
 (start-command main)

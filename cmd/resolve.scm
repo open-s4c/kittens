@@ -62,7 +62,7 @@
                      (REL)
                      (ACQ)
                      (RLX)
-                     (PLAIN)))
+                     (Plain)))
 
               (declare-datatype
                Operation ((F)
@@ -161,6 +161,7 @@
 
 (define (intersect lst1 lst2)
   (filter (lambda (x) (member x lst2)) lst1))
+
 ;; All of the listed edge names are renamed
 (define (rename-relation rel)
   (let ((rel (string-downcase rel)))
@@ -176,9 +177,8 @@
          ;; Create a new event adn recursively create edges on the left and right
          (('seq . rest)
           (let ((counter (get-counter)))
-            (list
-             (make-edges el counter (car rest))
-             (make-edges counter er (cadr rest)))))
+            (list (make-edges el counter (car rest))
+                  (make-edges counter er (cadr rest)))))
 
          ;; Make two edges recursively with the same endpoints
          (('isect . rest)
@@ -202,11 +202,8 @@
          ;; Should not happen
          (else (error "unexpected relation" expr))))
 
-
-
 (define (extract-events edges)
-  (let ((pairs (map (lambda (edge)
-                      (list (edge-dst edge) (edge-src edge)))
+  (let ((pairs (map (lambda (edge) (list (edge-dst edge) (edge-src edge)))
                     edges)))
     (sort (unique (flatten pairs)))))
 
@@ -239,9 +236,10 @@
   (let ((ev (event->symbol eid)))
     `(assert (reading (op ,ev)))))
 
-(define (assert-read eid)
+(define (assert-plain-read eid)
   (let ((ev (event->symbol eid)))
-    `(assert (= (op ,ev) R))))
+    `(assert (and (= (op ,ev) R)
+                  (= (mark ,ev) Plain)))))
 
 (define (assert-writing eid)
   (let ((ev (event->symbol eid)))
@@ -271,8 +269,9 @@
 
 (define (assert-plain eid)
   (let ((ev (event->symbol eid)))
-    `(assert (or (= (op ,ev) R)
-                 (= (op ,ev) W)))))
+    `(assert (and (or (= (op ,ev) R)
+                      (= (op ,ev) W))
+                  (= (mark ,ev) Plain)))))
 
 (define (edge-constraints ed)
   (let ((src (edge-src ed))
@@ -285,8 +284,9 @@
                        (assert-same 'addr src dst)
                        (assert-same '(wval . rval) src dst)
                        (assert-writing src)
+                       (assert-reading dst)
                        (if (observer? attr)
-                           (assert-read dst)
+                           (assert-plain-read dst)
                            (assert-reading dst))))
            ("co" (list (assert-diff 'eid src dst)
                        (assert-diff 'tid src dst)
@@ -318,7 +318,6 @@
                                 (assert-value 'op src attr))
                                (else (error "unexpected attr" attr)))))
            (_ (error "unknown edge type" type)))))
-
 
 ;; core logic of resolve
 (define (run type texpr)
