@@ -1,0 +1,61 @@
+; ------------------------------------------------------------------------------
+; Copyright (C) Huawei Technologies Co., Ltd. 2024. All rights reserved.
+; SPDX-License-Identifier: MIT
+; ------------------------------------------------------------------------------
+((synopsis "Kittens toolkit")
+ (version "%VER%")
+ (category misc)
+
+ (author "Huawei Dresden Research Center")
+ (license "MIT")
+
+ (dependencies srfi-1    ; filter
+               srfi-38
+               srfi-48   ; pretty-print
+               srfi-64   ; test
+               srfi-69   ; hash table
+               srfi-95   ; sort
+               srfi-113  ; sets
+               srfi-128  ; required by srfi-113
+               srfi-130  ; string-contains/split
+               srfi-193  ; command arguments
+               matchable ; match construct
+               packrat)
+
+ (component-options
+  (csc-options "-d1" "-O3" "-X" "r7rs" "-R" "r7rs"))
+
+ (components
+
+  ; Programs
+  (program explode
+           (source "cmd/explode.scm")
+           (csc-options "-d0" "-static"))
+
+  ; Extensions
+  (extension kittens.utils
+             (source "lib/kittens/utils.sld")
+             (types-file))
+  (extension kittens.packrat
+             (source "lib/kittens/packrat.sld")
+             (types-file))
+  (extension kittens.debug
+             (source "lib/kittens/debug.sld")
+             (types-file))
+  (extension kittens.generator
+             (source "lib/kittens/generator.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.command
+             (source "lib/kittens/command.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.match
+             (source "lib/kittens/match.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))
+  (extension kittens.cat
+             (source "lib/kittens/cat.sld")
+             (types-file)
+             (component-dependencies kittens.packrat))))
+
