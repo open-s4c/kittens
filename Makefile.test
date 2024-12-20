@@ -1,0 +1,15 @@
+# ------------------------------------------------------------------------------
+# Copyright (C) Huawei Technologies Co., Ltd. 2024. All rights reserved.
+# SPDX-License-Identifier: 0BSD
+# ------------------------------------------------------------------------------
+TSTS = $(wildcard *.tst)
+SCM  = chibi-scheme -I $(ROOTDIR)/lib -I $(ROOTDIR)/vendor
+
+.PHONY: test test-local
+test: test-local
+
+test-local: $(TSTS:.tst=.log)
+
+%.log: %.tst
+	@echo [TEST] running $<
+	@$(SCM) $<
