@@ -245,6 +245,11 @@
   (let ((ev (event->symbol eid)))
     `(assert (writing (op ,ev)))))
 
+(define (assert-memory eid)
+  (let ((ev (event->symbol eid)))
+    `(assert (or (writing (op ,ev))
+                 (reading (op ,ev))))))
+
 (define (memory-order? x)
   (member x '("SC" "REL" "ACQ" "RLX")))
 
@@ -284,7 +289,6 @@
                        (assert-same 'addr src dst)
                        (assert-same '(wval . rval) src dst)
                        (assert-writing src)
-                       (assert-reading dst)
                        (if (observer? attr)
                            (assert-plain-read dst)
                            (assert-reading dst))))
@@ -303,7 +307,8 @@
            ("po-addr" (list (assert-diff 'eid src dst)
                             (assert-same 'tid src dst)
                             (assert-same '(rval . addr) src dst)
-                            (assert-reading src)))
+                            (assert-reading src)
+                            (assert-memory dst)))
            ("po-ctrl" (list (assert-diff 'eid src dst)
                             (assert-same 'tid src dst)
                             (assert-diff 'addr src dst)
