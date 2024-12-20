@@ -1,13 +1,13 @@
 ; ------------------------------------------------------------------------------
 ; Copyright (C) Huawei Technologies Co., Ltd. 2024. All rights reserved.
-; SPDX-License-Identifier: MIT
+; SPDX-License-Identifier: 0BSD
 ; ------------------------------------------------------------------------------
 ((synopsis "Kittens toolkit")
  (version "%VER%")
  (category misc)
 
- (author "Huawei Dresden Research Center")
- (license "MIT")
+ (author "Diogo Behrens and Todor Slavov")
+ (license "0BSD")
 
  (dependencies srfi-1    ; filter
                srfi-38

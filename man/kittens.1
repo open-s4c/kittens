@@ -1,0 +1,24 @@
+.TH kittens 1 "Kittens toolkit" "%VER%" ""
+.SH NAME
+kittens - toolkit for test case generation out of cat models
+.SH SYNOPSYS
+.B kittens
+.I command
+[\fIarguments ...]
+.SH DESCRIPTION
+This program is the entrypoint to the
+.B kittens
+toolkit. It accepts the following commands:
+
+.SS explode \fImodel \fIlength [\fIinclude ...]
+Enumerates all possible expanded expressions of in the
+.I model
+file.
+For
+.B acyclic
+rules, the command concatenates the expression with itself
+.I length
+times.
+Additional definitions can be passed as
+.I include
+files.
