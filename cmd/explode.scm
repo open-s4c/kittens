@@ -3,29 +3,24 @@
 ; Copyright (C) Huawei Technologies Co., Ltd. 2024. All rights reserved.
 ; SPDX-License-Identifier: 0BSD
 ; ------------------------------------------------------------------------------
-
-;; explode
+;; # explode
 ;;
-;; Assumption
-;; - there is no recursive definition
-;;   for example `let rf = X;rf;Y` will replace rf only once
+;; Expand the axioms in a cat model in a list of kittens (union-free subaxioms).
 ;;
-;; How to achieve that:
-;;   in a let statement defining s, the symbol s should not occur in
-;;   the right hand expression. If it does, we rename s as base$s
-;;   In the final print we remove all base$ prefixes.
-;;   How should we deal with mutually recursive definitions such as:
-;;     let a = b
-;;     let b = X;a;Y
-;;   My take would be to claim these to be disallowed.
-;;   An alternative to the previous approach for the let x = x case is to
-;;   take the order in which the definitions are done into account and
-;;   "overwrite" previous definitions with the following redefinitions.
+;; ## Algorithm
 ;;
-;; 1- parse the cat file
-;; 2- collects a map with all let statements
-;; 3- decides whether to do acyclic explode or empty explode
-;; 3.1- acyclic explode: concatenate N expressions
+;; 1. parse the cat file
+;; 2. parse include files
+;; 3. collects a map with all let statements
+;; 4. for each acyclic axiom (acyclic . expr):
+;;    - completely expand expr using map from step 3
+;;    - combine expr N times with `;`
+;;    - traverse the expression tree in DFS
+;;    - print each union-free subexpression (kitten)
+;; 5. for each non-acyclic axiom (eg, empty):
+;;    - completely expand expr using map from step 3
+;;    - traverse the expression tree in DFS
+;;    - print each union-free subexpression (kitten)
 
 (import (scheme base)
         (scheme file)
@@ -143,31 +138,6 @@
                (stmts (caddr model)))
           (list 'model (cadr model) (append istmts stmts))))
       model))
-
-; ------------------------------------------------------------------------------
-; Isomorphism filtering
-; ------------------------------------------------------------------------------
-(define (contains-isomorphism res cycle)
-  (define (helper res cycle n)
-    (if (eq? n 0)
-        #f
-        (if (or (member cycle res)
-                (member (reverse cycle) res))
-            #t
-            (helper res (rotate-list cycle) (- n 1)))))
-  (helper res cycle (length res)))
-
-(define (rotate-list lst)
-  (if (null? lst)
-      lst
-      (append (cdr lst) (list (car lst)))))
-
-(define (remove-dub res remaining)
-  (if (null? remaining)
-      res
-      (if (contains-isomorphism res (car remaining))
-          (remove-dub res (cdr remaining))
-          (remove-dub (append res (list (car remaining))) (cdr remaining)))))
 
 ; ------------------------------------------------------------------------------
 ; Printing
