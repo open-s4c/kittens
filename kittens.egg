@@ -3,7 +3,7 @@
 ; SPDX-License-Identifier: 0BSD
 ; ------------------------------------------------------------------------------
 ((synopsis "Kittens toolkit")
- (version "%VER%")
+ (version "0.0")
  (category misc)
 
  (author "Diogo Behrens and Todor Slavov")

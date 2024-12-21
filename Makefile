@@ -5,10 +5,10 @@
 ROOTDIR = $(CURDIR)
 include $(ROOTDIR)/Makefile.test
 
-PREFIX = /usr/local
-LIB = $(shell find lib -name "*.scm" -o -name "*.tst" -o -name "*.sld")
-CMD = $(shell find cmd -name "*.scm" -o -name "*.tst" -o -name "*.sld")
-SRCS = $(LIB) $(CMD)
+PREFIX  = /usr/local
+LIB     = $(shell find lib -name "*.scm" -o -name "*.tst" -o -name "*.sld")
+CMD     = $(shell find cmd -name "*.scm" -o -name "*.tst" -o -name "*.sld")
+SRCS    = $(LIB) $(CMD)
 
 default: format perms test build
 
@@ -25,11 +25,22 @@ format: $(SRCS)
 perms:
 	for f in $(CMD); do chmod 755 $$f; done
 
-build:
+VERSION:
+	@cmd/build-version | tee $@
+
+build: VERSION
+	VERSION="$(shell cat VERSION | cut -d- -f1)" && \
+		sed -i .bak "s/(version.*)/(version \"$$VERSION\")/g" \
+		kittens.egg
+	VERSION="$(shell cat VERSION)" && \
+		sed -i .bak "s/^VERSION=.*$$/VERSION=$$VERSION/g" \
+		cmd/kittens
+
 	chicken-install -n
 
 clean:
-	rm -rf kitten.* kittens.*.* *.link $(notdir $(basename $(CMD)))
+	rm -rf kitten.* kittens.*.* *.link \
+		$(notdir $(basename $(CMD))) VERSION
 
 install: build
 	@mkdir -p $(PREFIX)/bin

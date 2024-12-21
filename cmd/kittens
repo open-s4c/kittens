@@ -3,12 +3,15 @@
 # Copyright (C) Huawei Technologies Co., Ltd. 2024. All rights reserved.
 # SPDX-License-Identifier: 0BSD
 # ------------------------------------------------------------------------------
-
+VERSION=0.0
 case "$1" in
 explode)
     shift
 	exec ./explode "$@"
-;;
+    ;;
+--version|-v)
+    echo "Kittens v$VERSION"
+    ;;
 *)
 	exit 0
 esac
