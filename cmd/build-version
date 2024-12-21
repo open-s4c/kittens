@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# find source directory
+SRCDIR="$(readlink -f $(dirname $(readlink -f $0))/..)"
+
+if [ -f "$SRCDIR/VERSION" ] && [ ! -z "$(cat $SRCDIR/VERSION)" ]; then
+    # use VERSION file exits
+    cat "$SRCDIR/VERSION"
+elif [ ! -z "$(which git)" ]; then
+    # otherwise try to get tag or commit hash from git
+    (
+        cd $SRCDIR
+        if git describe --tags > /dev/null 2>&1; then
+            VER=$(git describe --tags --dirty)
+            # expect version to be prefixed with `v`
+            echo $VER | cut -b2-
+        else
+            echo "0.1-$(git describe --always --dirty)"
+        fi
+    )
+else
+    echo UNKNOWN
+fi

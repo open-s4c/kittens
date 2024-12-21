@@ -15,6 +15,15 @@
         (kittens debug)
         (kittens command))
 
+(cond-expand
+  (chicken
+   (import (only (scheme r5rs) scheme-report-environment))))
+
+(define (eval! x)
+  (cond-expand
+    (chicken (eval x (scheme-report environment 5)))
+    (else (eval x))))
+
 (define type "a")
 
 (define size_flag #t)
@@ -239,13 +248,13 @@
      (string-append "*(" STR ")"))))
 
 (define (eval-rval ev)
-  (let ((rval (eval (event-rval ev))))
+  (let ((rval (eval! (event-rval ev))))
     (if (number? rval)
         (value-name rval)
         rval)))
 
 (define (eval-wval ev)
-  (let ((wval (eval (event-wval ev))))
+  (let ((wval (eval! (event-wval ev))))
     (if (number? wval)
         (value-name wval)
         wval)))
@@ -263,24 +272,24 @@
          ('(R . Plain)
           (string-append
            (deref priv (event-eid ev)) " = "
-           (deref (eval (event-addr ev)))))
+           (deref (eval! (event-addr ev)))))
 
          (`(R . ,mo)
           (string-append
            (deref priv (event-eid ev)) " = "
            "atomic_load_explicit("
-           (eval (event-addr ev)) ", "
+           (eval! (event-addr ev)) ", "
            (eval-mo mo) ")"))
 
          ('(W . Plain)
           (string-append
-           (eval (event-addr ev)) " = "
+           (eval! (event-addr ev)) " = "
            (eval-wval ev)))
 
          (`(W . ,mo)
           (string-append
            "atomic_store_explicit("
-           (eval (event-addr ev)) ", "
+           (eval! (event-addr ev)) ", "
            (eval-wval ev) ", "
            (eval-mo mo) ")"))
 
@@ -288,7 +297,7 @@
           (string-append
            (deref priv (event-eid ev)) " = "
            "atomic_exchange_explicit("
-           (eval (event-addr ev)) ", "
+           (eval! (event-addr ev)) ", "
            (eval-wval ev) ", "
            (eval-mo mo) ")"))
 
@@ -344,7 +353,7 @@
 (define-syntax exists=
   (syntax-rules ()
     ((exists= A B)
-     (print "\t/\\ " (eval A) " == " (eval B)))))
+     (print "\t/\\ " (eval! A) " == " (eval! B)))))
 
 (define-syntax exists
   (syntax-rules ()
@@ -364,7 +373,7 @@
 (define (run3 x)
   (let ((litmus (create-litmus x)))
     ;(pretty-print litmus)
-    (eval litmus)))
+    (eval! litmus)))
 
 ; ------------------------------------------------------------------------------
 ; end
