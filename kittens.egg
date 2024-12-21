@@ -31,6 +31,12 @@
   (program explode
            (source "cmd/explode.scm")
            (csc-options "-d0" "-static"))
+  (program explode
+           (source "cmd/recode.scm")
+           (csc-options "-d0" "-static"))
+  (program explode
+           (source "cmd/create.scm")
+           (csc-options "-d0" "-static"))
 
   ; Extensions
   (extension kittens.utils
